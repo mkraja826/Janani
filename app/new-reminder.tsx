@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { scheduleDailyReminder } from '@/features/reminders/notifications';
 import { supabase } from '@/lib/supabase';
@@ -16,18 +17,29 @@ const kinds = [
   { value: 'custom', label: 'Other', icon: 'sparkles-outline' },
 ] as const;
 
+function toLocalTime(value: Date) {
+  return `${String(value.getHours()).padStart(2, '0')}:${String(value.getMinutes()).padStart(2, '0')}`;
+}
+
 export default function NewReminderScreen() {
   const { session } = useAuth();
   const [kind, setKind] = useState<(typeof kinds)[number]['value']>('medication');
   const [title, setTitle] = useState('');
   const [instructions, setInstructions] = useState('');
-  const [time, setTime] = useState('09:00');
+  const [timeValue, setTimeValue] = useState(() => new Date(2000, 0, 1, 9, 0));
+  const [showTimePicker, setShowTimePicker] = useState(false);
   const [durationDays, setDurationDays] = useState('30');
   const [saving, setSaving] = useState(false);
+  const time = useMemo(() => toLocalTime(timeValue), [timeValue]);
+
+  function onTimeChange(event: DateTimePickerEvent, selected?: Date) {
+    if (Platform.OS === 'android') setShowTimePicker(false);
+    if (event.type !== 'dismissed' && selected) setTimeValue(selected);
+  }
 
   async function save() {
-    if (!session || !title.trim() || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) {
-      Alert.alert('Check the reminder', 'Add a title and use time in 24-hour HH:MM format, for example 09:00.');
+    if (!session || !title.trim()) {
+      Alert.alert('Check the reminder', 'Add a reminder title.');
       return;
     }
 
@@ -44,7 +56,7 @@ export default function NewReminderScreen() {
       .eq('user_id', session.user.id)
       .maybeSingle();
 
-    const family = Array.isArray(memberships?.families) ? memberships?.families[0] : memberships?.families;
+    const family = Array.isArray(memberships?.families) ? memberships.families[0] : memberships?.families;
     const pregnancies = family?.pregnancies;
     const pregnancy = (Array.isArray(pregnancies) ? pregnancies : pregnancies ? [pregnancies] : []).find((item) => item.status === 'active');
 
@@ -113,9 +125,19 @@ export default function NewReminderScreen() {
         <Field label={kind === 'medication' ? 'Medicine name' : 'Reminder title'} value={title} onChangeText={setTitle} placeholder={kind === 'medication' ? 'Example: Iron tablet' : 'Example: Drink water'} />
         <Field label="Instructions (optional)" value={instructions} onChangeText={setInstructions} placeholder="Example: After breakfast, as prescribed" multiline />
         <View style={styles.split}>
-          <View style={styles.flex}><Field label="Daily time" value={time} onChangeText={setTime} placeholder="09:00" keyboardType="numbers-and-punctuation" /></View>
+          <View style={styles.flex}>
+            <Text style={styles.label}>Daily time</Text>
+            <Pressable onPress={() => setShowTimePicker(true)} style={styles.timeButton}>
+              <Ionicons name="time-outline" size={21} color={colors.rose} />
+              <Text style={styles.timeText}>{timeValue.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</Text>
+            </Pressable>
+          </View>
           <View style={styles.flex}><Field label="For how many days" value={durationDays} onChangeText={setDurationDays} placeholder="30" keyboardType="number-pad" /></View>
         </View>
+
+        {showTimePicker && (
+          <DateTimePicker value={timeValue} mode="time" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={onTimeChange} />
+        )}
 
         <View style={styles.safetyCard}>
           <Ionicons name="shield-checkmark-outline" size={22} color={colors.sage} />
@@ -135,26 +157,5 @@ function Field({ label, ...props }: { label: string } & React.ComponentProps<typ
 }
 
 const styles = StyleSheet.create({
-  page: { flex: 1, backgroundColor: colors.background },
-  header: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md, padding: spacing.lg },
-  iconButton: { width: 44, height: 44, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
-  headerCopy: { flex: 1 },
-  eyebrow: { fontSize: 11, letterSpacing: 1.8, fontWeight: '800', color: colors.rose },
-  title: { marginTop: 4, fontSize: 27, lineHeight: 33, fontWeight: '800', color: colors.ink },
-  content: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl, gap: spacing.lg },
-  label: { marginBottom: spacing.sm, fontSize: 13, fontWeight: '800', color: colors.roseDark },
-  kindRow: { gap: spacing.sm },
-  kind: { minWidth: 100, minHeight: 48, paddingHorizontal: spacing.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: spacing.sm, borderRadius: radius.pill, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
-  kindActive: { backgroundColor: colors.rose, borderColor: colors.rose },
-  kindText: { fontSize: 13, fontWeight: '700', color: colors.roseDark },
-  kindTextActive: { color: colors.surface },
-  field: { flex: 1 },
-  input: { minHeight: 54, paddingHorizontal: spacing.md, borderRadius: radius.md, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, fontSize: 16, color: colors.ink },
-  multiline: { minHeight: 100, paddingTop: spacing.md, textAlignVertical: 'top' },
-  split: { flexDirection: 'row', gap: spacing.md },
-  flex: { flex: 1 },
-  safetyCard: { flexDirection: 'row', gap: spacing.md, padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.sageSoft },
-  safetyText: { flex: 1, fontSize: 13, lineHeight: 19, color: colors.muted },
-  saveButton: { minHeight: 56, borderRadius: radius.pill, backgroundColor: colors.rose, flexDirection: 'row', gap: spacing.sm, alignItems: 'center', justifyContent: 'center' },
-  saveText: { fontSize: 16, fontWeight: '800', color: colors.surface },
+  page:{flex:1,backgroundColor:colors.background},header:{flexDirection:'row',alignItems:'flex-start',gap:spacing.md,padding:spacing.lg},iconButton:{width:44,height:44,borderRadius:radius.pill,alignItems:'center',justifyContent:'center',backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border},headerCopy:{flex:1},eyebrow:{fontSize:11,letterSpacing:1.8,fontWeight:'800',color:colors.rose},title:{marginTop:4,fontSize:27,lineHeight:33,fontWeight:'800',color:colors.ink},content:{paddingHorizontal:spacing.lg,paddingBottom:spacing.xxl,gap:spacing.lg},label:{marginBottom:spacing.sm,fontSize:13,fontWeight:'800',color:colors.roseDark},kindRow:{gap:spacing.sm},kind:{minWidth:100,minHeight:48,paddingHorizontal:spacing.md,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:spacing.sm,borderRadius:radius.pill,backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border},kindActive:{backgroundColor:colors.rose,borderColor:colors.rose},kindText:{fontSize:13,fontWeight:'700',color:colors.roseDark},kindTextActive:{color:colors.surface},field:{flex:1},input:{minHeight:54,paddingHorizontal:spacing.md,borderRadius:radius.md,backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border,fontSize:16,color:colors.ink},multiline:{minHeight:100,paddingTop:spacing.md,textAlignVertical:'top'},split:{flexDirection:'row',gap:spacing.md},flex:{flex:1},timeButton:{minHeight:54,paddingHorizontal:spacing.md,flexDirection:'row',alignItems:'center',gap:spacing.sm,borderRadius:radius.md,backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border},timeText:{fontSize:16,fontWeight:'700',color:colors.ink},safetyCard:{flexDirection:'row',gap:spacing.md,padding:spacing.md,borderRadius:radius.md,backgroundColor:colors.sageSoft},safetyText:{flex:1,fontSize:13,lineHeight:19,color:colors.muted},saveButton:{minHeight:56,borderRadius:radius.pill,backgroundColor:colors.rose,flexDirection:'row',gap:spacing.sm,alignItems:'center',justifyContent:'center'},saveText:{fontSize:16,fontWeight:'800',color:colors.surface}
 });
