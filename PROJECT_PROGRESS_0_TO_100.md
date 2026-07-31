@@ -1,6 +1,6 @@
 # Janani Project Progress
 
-**Overall progress: 16%**
+**Overall progress: 24%**
 
 ## Completed
 
@@ -12,19 +12,20 @@
 - Supabase client foundation added
 - Environment variable template and secret-safe `.gitignore` added
 - Janani Supabase project verified healthy in `ap-south-1`
-- Core database schema deployed
-- Row Level Security enabled
-- Auth profile trigger added
-- Family membership access helpers added
-- Security hardening migration applied
-- Persistent Supabase authentication provider added
-- Email sign-up and sign-in screen added
-- Mother and partner onboarding forms added
-- Atomic mother family and pregnancy creation RPC deployed
-- Secure partner invite-code joining RPC deployed
+- Core database schema deployed with Row Level Security
+- Persistent authentication, mother onboarding and partner linking added
+- Atomic family creation and secure invite joining RPCs deployed
 - Role-aware protected home foundation added
-- Mother-only partner invite code display added
-- Supabase TypeScript types generated and schema compatibility reviewed
+- Pregnancy week, day, trimester and due-date countdown calculation added
+- Daily reminder list added
+- Medicine, hydration, appointment, nutrition and custom reminder creation added
+- Reminder duration and daily time support added
+- Local notification permission, Android channel and daily scheduling added
+- Foreground notification presentation configured
+- Taken and skipped reminder-state tracking added
+- Duplicate occurrence history prevented at database level
+- Partner-visible shared reminder status supported through family RLS
+- Medical reminder safety copy added
 
 ## Database modules deployed
 
@@ -39,28 +40,31 @@
 
 ## Current usable flow
 
-1. User opens the emotional Janani welcome screen.
-2. User creates an account or signs in.
-3. Mother creates a private family and pregnancy profile.
-4. Janani generates a private partner invite code.
-5. Partner signs in and joins using that code.
-6. Both reach a role-aware family home protected by Supabase RLS.
+1. User registers or signs in.
+2. Mother creates a family and pregnancy profile, or partner joins with an invite code.
+3. Home shows the current pregnancy week and trimester.
+4. Either family member opens Reminders.
+5. A daily care or medicine reminder is created with time and duration.
+6. Janani schedules a local phone notification after permission is granted.
+7. Either linked family member can mark the occurrence taken or skipped.
 
 ## Next milestone
 
-Phase 2 daily care foundation:
+Phase 3 journal and partner connection:
 
-1. Replace manual date text fields with native date pickers
-2. Calculate pregnancy week and trimester from due date/LMP
-3. Add medication reminder creation and daily schedule
-4. Add local notification permissions and scheduling
-5. Add reminder completion, skip and missed-state tracking
-6. Add partner-visible reminder status
-7. Add automated typecheck and lint workflow
+1. Native date and time pickers
+2. Reminder editing, pausing and notification cancellation
+3. Pregnancy journal create, edit and timeline screens
+4. Mood selection and optional partner sharing
+5. Thinking-of-you partner nudge flow
+6. Push-token registration for cross-device nudges
+7. Home-screen widget architecture for Android and iOS
+8. Automated typecheck and lint workflow
 
 ## Safety principles
 
 - Medical guidance is educational and trimester-aware, never diagnostic.
 - Urgent warning signs must direct users to qualified medical care.
+- Medicine names, doses and duration are user-entered and must follow the prescribing clinician.
 - Partner access is explicit, revocable, and protected by RLS.
 - No service-role keys or production secrets may enter the mobile app or repository.
