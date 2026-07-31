@@ -1,6 +1,6 @@
 # Janani Project Progress
 
-**Overall progress: 50%**
+**Overall progress: 54%**
 
 ## Completed
 
@@ -13,6 +13,8 @@
 - Local notification permissions and daily scheduling added
 - Reminder taken, skipped, pause, resume, edit and deletion flows added
 - Reminder edits and resumes safely replace local notification schedules
+- Native reminder time picker added
+- Notification taps now deep-link to the intended Janani screen
 - Pregnancy journal timeline, mood and private/shared controls added
 - Journal edit and delete actions connected for authors
 - Thinking-of-you partner message and acknowledgement added
@@ -20,8 +22,9 @@
 - Device push-token table deployed with owner-only RLS
 - Expo push-token registration added after authentication
 - Authenticated `send-partner-nudge` Edge Function deployed
-- Thinking-of-you messages now trigger secure cross-device Expo push delivery
-- Push delivery gracefully falls back to realtime/in-app delivery when no device token exists
+- Thinking-of-you messages trigger secure cross-device Expo push delivery
+- Invalid Expo device tokens are removed when the push service reports `DeviceNotRegistered`
+- Shared JSON cache utility added with failure-safe AsyncStorage handling
 - Supabase Row Level Security protects family, pregnancy, journal and token data
 - GitHub Actions typecheck workflow made runnable without a lockfile
 
@@ -39,32 +42,33 @@
 
 ## Edge Functions deployed
 
-- send-partner-nudge
+- send-partner-nudge (version 2)
 
 ## Current usable flow
 
 1. User registers or signs in.
 2. Mother creates a family and pregnancy profile, or partner joins with an invite code.
 3. Home shows pregnancy progress.
-4. Family members create, complete, pause, resume, edit or delete reminders.
+4. Family members create reminders using the native clock picker and may complete, pause, resume, edit or delete them.
 5. Users create private or shared journal entries and can edit or delete their own entries.
 6. Supported development builds register a private Expo push token.
 7. Mother or partner sends a Thinking-of-you message.
-8. Janani saves the nudge, resolves only the linked recipient and sends a cross-device push notification.
-9. Realtime keeps the shared message history updated and the recipient can acknowledge it with a heart.
+8. Janani securely saves the nudge and sends a cross-device push notification.
+9. Tapping a Janani notification opens the relevant reminder or partner connection screen.
+10. Invalid push tokens are removed automatically and shared data remains available for future cache integration.
 
 ## Next milestone
 
-Phase 8 device readiness and offline reliability:
+Phase 9 offline integration and Android surface:
 
-1. Observe and fix the first GitHub Actions typecheck result
+1. Observe and fix the first successful GitHub Actions typecheck run
 2. Commit a deterministic npm lockfile from a local install
-3. Native date and time pickers
-4. Notification tap deep-link handling
-5. Offline cache and sync queue foundation
-6. Android home-screen widget architecture
+3. Use native date pickers in pregnancy setup and journal entry date selection
+4. Integrate the cache utility into reminders, journal and partner nudges
+5. Add an offline mutation queue with conflict-safe retries
+6. Build Android home-screen widget architecture
 7. Android development build and physical-device verification
-8. Push receipt handling and invalid-token cleanup
+8. Add push receipt polling for delayed delivery failures
 
 ## Safety principles
 
