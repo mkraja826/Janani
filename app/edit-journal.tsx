@@ -3,16 +3,38 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
+import { enqueueMutation } from '@/lib/offlineQueue';
 import { supabase } from '@/lib/supabase';
 import { colors, radius, spacing } from '@/theme/tokens';
 
 const moods = [{v:1,e:'😞'},{v:2,e:'😕'},{v:3,e:'😌'},{v:4,e:'🙂'},{v:5,e:'🥰'}];
+function mutationId() { return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => { const r = Math.floor(Math.random() * 16); return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16); }); }
 
 export default function EditJournalScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [title,setTitle]=useState(''); const [body,setBody]=useState(''); const [mood,setMood]=useState<number|null>(null); const [shared,setShared]=useState(false); const [loading,setLoading]=useState(true); const [saving,setSaving]=useState(false);
   useEffect(()=>{async function load(){const {data,error}=await supabase.from('journal_entries').select('title,body,mood,is_shared_with_partner').eq('id',id).single(); if(error||!data){Alert.alert('Entry unavailable',error?.message??'This entry could not be found.');router.back();return;} setTitle(data.title??'');setBody(data.body);setMood(data.mood);setShared(data.is_shared_with_partner);setLoading(false);} if(id)load();},[id]);
-  async function save(){if(!body.trim()){Alert.alert('Write a little more','The journal entry cannot be empty.');return;} setSaving(true);const {error}=await supabase.from('journal_entries').update({title:title.trim()||null,body:body.trim(),mood,is_shared_with_partner:shared}).eq('id',id);setSaving(false);if(error)Alert.alert('Could not update entry',error.message);else router.replace('/journal');}
+
+  async function save(){
+    if(!id || !body.trim()){Alert.alert('Write a little more','The journal entry cannot be empty.');return;}
+    setSaving(true);
+    const payload = {
+      p_entry_id: id,
+      p_client_mutation_id: mutationId(),
+      p_title: title.trim(),
+      p_body: body.trim(),
+      p_mood: mood,
+      p_is_shared_with_partner: shared,
+    };
+    const {error}=await supabase.rpc('update_journal_entry_idempotent', payload);
+    setSaving(false);
+    if(error){
+      await enqueueMutation('journal_edit', payload);
+      Alert.alert('Saved on this phone','Janani will update this memory safely when the connection returns.');
+      router.replace('/journal');
+    } else router.replace('/journal');
+  }
+
   if(loading)return <View style={styles.center}><ActivityIndicator color={colors.rose}/></View>;
   return <SafeAreaView style={styles.page}><View style={styles.header}><Pressable onPress={()=>router.back()} style={styles.icon}><Ionicons name="close" size={22} color={colors.ink}/></Pressable><View><Text style={styles.eyebrow}>EDIT MEMORY</Text><Text style={styles.heading}>Your words, your choice</Text></View></View><ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled"><Text style={styles.label}>How did you feel?</Text><View style={styles.moods}>{moods.map(item=><Pressable key={item.v} onPress={()=>setMood(item.v)} style={[styles.mood,mood===item.v&&styles.moodActive]}><Text style={styles.emoji}>{item.e}</Text></Pressable>)}</View><Field label="Title" value={title} onChangeText={setTitle}/><Field label="Entry" value={body} onChangeText={setBody} multiline/><View style={styles.share}><View style={{flex:1}}><Text style={styles.shareTitle}>Share with partner</Text><Text style={styles.shareText}>Turn this off to make the entry private again.</Text></View><Switch value={shared} onValueChange={setShared}/></View><Pressable disabled={saving} onPress={save} style={styles.save}>{saving?<ActivityIndicator color={colors.surface}/>:<Text style={styles.saveText}>Save changes</Text>}</Pressable></ScrollView></SafeAreaView>;
 }
