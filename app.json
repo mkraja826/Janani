@@ -14,7 +14,8 @@
         {
           "defaultChannel": "gentle-reminders"
         }
-      ]
+      ],
+      "./plugins/withJananiWidget"
     ],
     "android": {
       "package": "com.mkraja826.janani",
