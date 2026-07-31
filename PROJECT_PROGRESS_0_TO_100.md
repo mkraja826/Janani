@@ -1,6 +1,6 @@
 # Janani Project Progress
 
-**Overall progress: 71%**
+**Overall progress: 75%**
 
 ## Completed
 
@@ -19,8 +19,11 @@
 - Notification taps deep-link to the intended Janani screen
 - Pregnancy journal timeline, mood and private/shared controls added
 - Journal edit and delete actions connected for authors
-- Idempotent journal creation RPC and per-author mutation key protection deployed
-- New journal entries queue safely during transient network failures without duplicate replay
+- Idempotent journal creation and editing RPCs deployed
+- Journal create/edit actions queue safely during transient network failures without duplicate replay
+- Idempotent reminder creation RPC and creator mutation-key protection deployed
+- Reminder creation can queue offline after the active pregnancy has been cached
+- Replayed reminder creation schedules the local phone notification and stores its identifier
 - Thinking-of-you partner message and acknowledgement added
 - Realtime publication and subscriptions added for reminders, logs, journal entries and partner nudges
 - Device push-token table deployed with owner-only RLS
@@ -33,7 +36,7 @@
 - Reminder taken/skipped actions use optimistic updates and queue failed writes
 - Journal timeline loads from local cache and failed deletions are queued
 - Partner message timeline loads its last saved copy when offline
-- Offline mutation processor handles reminder status, journal create/delete and partner acknowledgement
+- Offline mutation processor handles reminder status/create, journal create/edit/delete and partner acknowledgement
 - Queued mutations flush after sign-in and whenever the app returns to the foreground
 - Android home-screen widget state and deep-link action contract added
 - Expo config plugin generates the Android AppWidget provider and resources
@@ -68,8 +71,8 @@
 3. Home shows pregnancy progress.
 4. Family members create reminders with a native clock picker and may complete, pause, resume, edit or delete them.
 5. Reminder, journal and partner timelines can open from saved device data.
-6. Failed reminder status, journal create/delete and partner acknowledgement writes are retained and retried when the app becomes active.
-7. Journal creation uses a stable client mutation ID, so replay cannot create duplicate memories.
+6. Failed reminder status/create, journal create/edit/delete and partner acknowledgement writes are retained and retried when the app becomes active.
+7. Stable mutation IDs prevent duplicate journal memories, duplicate edits and duplicate reminders during replay.
 8. Mother and partner exchange cross-device caring notifications.
 9. Tapping a Janani notification opens the relevant screen.
 10. Expo prebuild generates the Android widget provider, React Native bridge and resources.
@@ -78,12 +81,12 @@
 
 ## Next milestone
 
-Phase 14 compilation and release readiness:
+Phase 15 compilation and release readiness:
 
 1. Obtain and inspect a successful GitHub Actions run
 2. Commit a deterministic npm lockfile from a network-enabled local install
-3. Add idempotent offline journal editing
-4. Add offline reminder creation with safe local-notification reconciliation
+3. Add offline reminder editing with notification reconciliation
+4. Add a visible pending-sync indicator and retry status
 5. Verify Expo prebuild output and Android manifest on a local clone
 6. Compile the Android development build
 7. Test widget updates, deep links, reminders and push notifications on two physical devices
@@ -91,8 +94,9 @@ Phase 14 compilation and release readiness:
 
 ## Known limitations
 
-- Reminder creation/editing and journal editing still require an active connection.
-- Offline reminder creation needs reconciliation between the local notification identifier and the final Supabase reminder ID.
+- Reminder editing still requires an active connection.
+- Offline reminder creation requires the pregnancy ID to have been cached during an earlier online session.
+- A queued reminder receives its local notification after reconnect, not while fully offline.
 - The generated native widget bridge has not yet been compiled on Android hardware.
 - GitHub has not yet returned a successful CI status for the repository.
 - This execution environment cannot resolve GitHub through direct git clone, so a local npm install, deterministic lockfile, Expo prebuild and Android compile could not be performed here.
