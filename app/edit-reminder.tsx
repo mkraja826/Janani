@@ -1,57 +1,45 @@
 import { Ionicons } from '@expo/vector-icons';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { cancelReminderNotification, scheduleDailyReminder } from '@/features/reminders/notifications';
+import { enqueueMutation } from '@/lib/offlineQueue';
 import { supabase } from '@/lib/supabase';
 import { colors, radius, spacing } from '@/theme/tokens';
 
+const toTime = (value: Date) => `${String(value.getHours()).padStart(2,'0')}:${String(value.getMinutes()).padStart(2,'0')}`;
+
 export default function EditReminderScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [title, setTitle] = useState('');
-  const [instructions, setInstructions] = useState('');
-  const [time, setTime] = useState('09:00');
-  const [oldIdentifier, setOldIdentifier] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [title,setTitle]=useState(''); const [instructions,setInstructions]=useState('');
+  const [timeValue,setTimeValue]=useState(()=>new Date(2000,0,1,9,0)); const [showTime,setShowTime]=useState(false);
+  const [oldIdentifier,setOldIdentifier]=useState<string|null>(null); const [loading,setLoading]=useState(true); const [saving,setSaving]=useState(false);
 
-  useEffect(() => {
-    async function load() {
-      const { data, error } = await supabase.from('reminders').select('title,instructions,local_time,notification_identifier').eq('id', id).single();
-      if (error || !data) { Alert.alert('Reminder unavailable', error?.message ?? 'This reminder could not be found.'); router.back(); return; }
-      setTitle(data.title); setInstructions(data.instructions ?? ''); setTime(data.local_time.slice(0, 5)); setOldIdentifier(data.notification_identifier); setLoading(false);
-    }
-    if (id) load();
-  }, [id]);
+  useEffect(()=>{async function load(){const {data,error}=await supabase.from('reminders').select('title,instructions,local_time,notification_identifier').eq('id',id).single();if(error||!data){Alert.alert('Reminder unavailable',error?.message??'This reminder could not be found.');router.back();return;}const[h,m]=data.local_time.split(':').map(Number);setTitle(data.title);setInstructions(data.instructions??'');setTimeValue(new Date(2000,0,1,h,m));setOldIdentifier(data.notification_identifier);setLoading(false);}if(id)load();},[id]);
 
-  async function save() {
-    if (!title.trim() || !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) { Alert.alert('Check reminder', 'Add a title and a valid HH:MM time.'); return; }
+  function onTimeChange(event:DateTimePickerEvent,value?:Date){if(Platform.OS==='android')setShowTime(false);if(event.type!=='dismissed'&&value)setTimeValue(value);}
+
+  async function save(){
+    if(!id||!title.trim()){Alert.alert('Check reminder','Add a reminder title.');return;}
     setSaving(true);
-    let newIdentifier: string | null = null;
-    try {
-      await cancelReminderNotification(oldIdentifier);
-      newIdentifier = await scheduleDailyReminder(title.trim(), instructions.trim() || null, time);
-      const { error } = await supabase.from('reminders').update({ title: title.trim(), instructions: instructions.trim() || null, local_time: `${time}:00`, notification_identifier: newIdentifier, is_active: true }).eq('id', id);
-      if (error) throw error;
+    const time=toTime(timeValue);
+    const payload={p_reminder_id:id,p_title:title.trim(),p_instructions:instructions.trim(),p_local_time:`${time}:00`,old_notification_identifier:oldIdentifier};
+    const {data,error}=await supabase.rpc('update_reminder_offline_safe',{p_reminder_id:id,p_title:title.trim(),p_instructions:instructions.trim(),p_local_time:`${time}:00`});
+    if(error||typeof data!=='string'){
+      await enqueueMutation('reminder_edit',payload);
+      setSaving(false);
+      Alert.alert('Saved for sync','Janani will update and reschedule this reminder when the connection returns.');
       router.replace('/reminders');
-    } catch (error) {
-      Alert.alert('Could not update reminder', error instanceof Error ? error.message : 'Please try again.');
-    } finally { setSaving(false); }
+      return;
+    }
+    try{await cancelReminderNotification(oldIdentifier);const next=await scheduleDailyReminder(title.trim(),instructions.trim()||null,time);await supabase.from('reminders').update({notification_identifier:next}).eq('id',id);}catch{}
+    setSaving(false);router.replace('/reminders');
   }
 
-  if (loading) return <View style={styles.center}><ActivityIndicator color={colors.rose} /></View>;
-  return <SafeAreaView style={styles.page}>
-    <View style={styles.header}><Pressable onPress={() => router.back()} style={styles.icon}><Ionicons name="close" size={22} color={colors.ink} /></Pressable><View><Text style={styles.eyebrow}>EDIT CARE ROUTINE</Text><Text style={styles.title}>Keep it accurate</Text></View></View>
-    <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-      <Field label="Reminder title" value={title} onChangeText={setTitle} />
-      <Field label="Instructions" value={instructions} onChangeText={setInstructions} multiline />
-      <Field label="Daily time (HH:MM)" value={time} onChangeText={setTime} keyboardType="numbers-and-punctuation" />
-      <Text style={styles.help}>Saving replaces the previous phone schedule and reactivates the reminder.</Text>
-      <Pressable disabled={saving} onPress={save} style={styles.save}>{saving ? <ActivityIndicator color={colors.surface} /> : <Text style={styles.saveText}>Save and reschedule</Text>}</Pressable>
-    </ScrollView>
-  </SafeAreaView>;
+  if(loading)return <View style={styles.center}><ActivityIndicator color={colors.rose}/></View>;
+  return <SafeAreaView style={styles.page}><View style={styles.header}><Pressable onPress={()=>router.back()} style={styles.icon}><Ionicons name="close" size={22} color={colors.ink}/></Pressable><View><Text style={styles.eyebrow}>EDIT CARE ROUTINE</Text><Text style={styles.title}>Keep it accurate</Text></View></View><ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled"><Field label="Reminder title" value={title} onChangeText={setTitle}/><Field label="Instructions" value={instructions} onChangeText={setInstructions} multiline/><View><Text style={styles.label}>Daily time</Text><Pressable onPress={()=>setShowTime(true)} style={styles.timeButton}><Ionicons name="time-outline" size={20} color={colors.rose}/><Text style={styles.timeText}>{timeValue.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}</Text></Pressable>{showTime&&<DateTimePicker value={timeValue} mode="time" display={Platform.OS==='ios'?'spinner':'default'} onChange={onTimeChange}/>}</View><Text style={styles.help}>Saving replaces the previous phone schedule and reactivates the reminder. Offline edits sync automatically.</Text><Pressable disabled={saving} onPress={save} style={styles.save}>{saving?<ActivityIndicator color={colors.surface}/>:<Text style={styles.saveText}>Save and reschedule</Text>}</Pressable></ScrollView></SafeAreaView>;
 }
-
-function Field({ label, ...props }: { label: string } & React.ComponentProps<typeof TextInput>) { return <View><Text style={styles.label}>{label}</Text><TextInput {...props} placeholderTextColor={colors.muted} style={[styles.input, props.multiline && styles.multiline]} /></View>; }
-const styles = StyleSheet.create({page:{flex:1,backgroundColor:colors.background},center:{flex:1,alignItems:'center',justifyContent:'center',backgroundColor:colors.background},header:{flexDirection:'row',alignItems:'center',gap:spacing.md,padding:spacing.lg},icon:{width:44,height:44,borderRadius:radius.pill,alignItems:'center',justifyContent:'center',backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border},eyebrow:{fontSize:11,letterSpacing:1.8,fontWeight:'800',color:colors.rose},title:{fontSize:27,fontWeight:'800',color:colors.ink},content:{padding:spacing.lg,gap:spacing.lg},label:{marginBottom:spacing.sm,fontSize:13,fontWeight:'800',color:colors.roseDark},input:{minHeight:54,paddingHorizontal:spacing.md,borderRadius:radius.md,backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border,fontSize:16,color:colors.ink},multiline:{minHeight:110,paddingTop:spacing.md,textAlignVertical:'top'},help:{fontSize:13,lineHeight:19,color:colors.muted},save:{minHeight:56,borderRadius:radius.pill,alignItems:'center',justifyContent:'center',backgroundColor:colors.rose},saveText:{fontSize:16,fontWeight:'800',color:colors.surface}});
+function Field({label,...props}:{label:string}&React.ComponentProps<typeof TextInput>){return <View><Text style={styles.label}>{label}</Text><TextInput {...props} placeholderTextColor={colors.muted} style={[styles.input,props.multiline&&styles.multiline]}/></View>}
+const styles=StyleSheet.create({page:{flex:1,backgroundColor:colors.background},center:{flex:1,alignItems:'center',justifyContent:'center',backgroundColor:colors.background},header:{flexDirection:'row',alignItems:'center',gap:spacing.md,padding:spacing.lg},icon:{width:44,height:44,borderRadius:radius.pill,alignItems:'center',justifyContent:'center',backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border},eyebrow:{fontSize:11,letterSpacing:1.8,fontWeight:'800',color:colors.rose},title:{fontSize:27,fontWeight:'800',color:colors.ink},content:{padding:spacing.lg,gap:spacing.lg},label:{marginBottom:spacing.sm,fontSize:13,fontWeight:'800',color:colors.roseDark},input:{minHeight:54,paddingHorizontal:spacing.md,borderRadius:radius.md,backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border,fontSize:16,color:colors.ink},multiline:{minHeight:110,paddingTop:spacing.md,textAlignVertical:'top'},timeButton:{minHeight:54,paddingHorizontal:spacing.md,flexDirection:'row',alignItems:'center',gap:spacing.sm,borderRadius:radius.md,backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border},timeText:{fontSize:16,fontWeight:'700',color:colors.ink},help:{fontSize:13,lineHeight:19,color:colors.muted},save:{minHeight:56,borderRadius:radius.pill,alignItems:'center',justifyContent:'center',backgroundColor:colors.rose},saveText:{fontSize:16,fontWeight:'800',color:colors.surface}});
