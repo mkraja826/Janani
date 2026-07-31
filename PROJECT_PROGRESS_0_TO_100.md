@@ -1,6 +1,6 @@
 # Janani Project Progress
 
-**Overall progress: 54%**
+**Overall progress: 57%**
 
 ## Completed
 
@@ -25,6 +25,9 @@
 - Thinking-of-you messages trigger secure cross-device Expo push delivery
 - Invalid Expo device tokens are removed when the push service reports `DeviceNotRegistered`
 - Shared JSON cache utility added with failure-safe AsyncStorage handling
+- Partner message timeline now loads its last saved copy when offline
+- Offline mutation queue foundation added with retry-attempt tracking
+- Android home-screen widget state and deep-link action contract added
 - Supabase Row Level Security protects family, pregnancy, journal and token data
 - GitHub Actions typecheck workflow made runnable without a lockfile
 
@@ -55,20 +58,22 @@
 7. Mother or partner sends a Thinking-of-you message.
 8. Janani securely saves the nudge and sends a cross-device push notification.
 9. Tapping a Janani notification opens the relevant reminder or partner connection screen.
-10. Invalid push tokens are removed automatically and shared data remains available for future cache integration.
+10. The partner message timeline can fall back to its last saved local copy without blocking the screen.
+11. Future offline writes can be queued through the mutation queue contract.
+12. The widget contract defines pregnancy week, next reminder and partner-connection actions for the native Android layer.
 
 ## Next milestone
 
-Phase 9 offline integration and Android surface:
+Phase 10 full offline integration and native Android surface:
 
 1. Observe and fix the first successful GitHub Actions typecheck run
 2. Commit a deterministic npm lockfile from a local install
 3. Use native date pickers in pregnancy setup and journal entry date selection
-4. Integrate the cache utility into reminders, journal and partner nudges
-5. Add an offline mutation queue with conflict-safe retries
-6. Build Android home-screen widget architecture
-7. Android development build and physical-device verification
-8. Add push receipt polling for delayed delivery failures
+4. Integrate cached reads into reminders and journal
+5. Connect reminder status and journal writes to the offline mutation queue
+6. Build the native Android AppWidget provider and configuration
+7. Sync widget state whenever home, reminders or partner messages change
+8. Android development build and physical-device verification
 
 ## Safety principles
 
@@ -79,4 +84,5 @@ Phase 9 offline integration and Android surface:
 - Partner access is explicit, revocable, and protected by RLS.
 - Push tokens are private per user and never exposed to other family members.
 - The push Edge Function authenticates every request before resolving a recipient.
+- Offline data is a local convenience copy and Supabase remains the authoritative shared record.
 - No service-role keys or production secrets may enter the mobile app or repository.
