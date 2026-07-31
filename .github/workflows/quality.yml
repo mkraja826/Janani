@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  typecheck:
+  quality:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -15,3 +15,12 @@ jobs:
           node-version: 20
       - run: npm install --no-audit --no-fund
       - run: npm run typecheck
+      - run: npx expo config --type public
+      - run: npx expo prebuild --platform android --no-install --non-interactive
+      - name: Verify widget generation
+        run: |
+          test -f android/app/src/main/java/com/mkraja826/janani/JananiWidgetModule.kt
+          test -f android/app/src/main/java/com/mkraja826/janani/JananiWidgetPackage.kt
+          test -f android/app/src/main/java/com/mkraja826/janani/JananiCareWidget.kt
+          test -f android/app/src/main/res/layout/janani_care_widget.xml
+          grep -q "JananiWidgetPackage" android/app/src/main/java/com/mkraja826/janani/MainApplication.kt
