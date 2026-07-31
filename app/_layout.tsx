@@ -4,6 +4,7 @@ import { router, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 
+import { WidgetSync } from '@/features/widget/WidgetSync';
 import { AuthProvider } from '@/providers/AuthProvider';
 import { colors } from '@/theme/tokens';
 
@@ -20,35 +21,21 @@ function NotificationNavigation() {
   useEffect(() => {
     function openFromResponse(response: Notifications.NotificationResponse | null) {
       const screen = response?.notification.request.content.data?.screen;
-      if (typeof screen === 'string' && screen.startsWith('/')) {
-        router.push(screen as never);
-      }
+      if (typeof screen === 'string' && screen.startsWith('/')) router.push(screen as never);
     }
-
     Notifications.getLastNotificationResponseAsync().then(openFromResponse);
     const subscription = Notifications.addNotificationResponseReceivedListener(openFromResponse);
     return () => subscription.remove();
   }, []);
-
   return null;
 }
 
 export default function RootLayout() {
   const [queryClient] = useState(() => new QueryClient());
-
-  return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <NotificationNavigation />
-        <StatusBar style="dark" />
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: { backgroundColor: colors.background },
-            animation: 'fade',
-          }}
-        />
-      </AuthProvider>
-    </QueryClientProvider>
-  );
+  return <QueryClientProvider client={queryClient}><AuthProvider>
+    <NotificationNavigation />
+    <WidgetSync />
+    <StatusBar style="dark" />
+    <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background }, animation: 'fade' }} />
+  </AuthProvider></QueryClientProvider>;
 }
