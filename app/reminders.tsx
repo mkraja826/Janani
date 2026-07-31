@@ -1,0 +1,192 @@
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+
+import { supabase } from '@/lib/supabase';
+import { colors, radius, spacing } from '@/theme/tokens';
+
+type Reminder = {
+  id: string;
+  title: string;
+  instructions: string | null;
+  kind: 'medication' | 'appointment' | 'hydration' | 'nutrition' | 'custom';
+  local_time: string;
+  days_of_week: number[];
+};
+
+type ReminderLog = {
+  reminder_id: string;
+  scheduled_for: string;
+  state: 'pending' | 'taken' | 'skipped' | 'missed';
+};
+
+function todayOccurrence(localTime: string): string {
+  const [hour, minute] = localTime.split(':').map(Number);
+  const value = new Date();
+  value.setHours(hour, minute, 0, 0);
+  return value.toISOString();
+}
+
+function formatTime(localTime: string): string {
+  const [hour, minute] = localTime.split(':').map(Number);
+  return new Date(2000, 0, 1, hour, minute).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+}
+
+export default function RemindersScreen() {
+  const [reminders, setReminders] = useState<Reminder[]>([]);
+  const [logs, setLogs] = useState<ReminderLog[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [savingId, setSavingId] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 1);
+
+    const [reminderResult, logResult] = await Promise.all([
+      supabase
+        .from('reminders')
+        .select('id, title, instructions, kind, local_time, days_of_week')
+        .eq('is_active', true)
+        .lte('start_date', start.toISOString().slice(0, 10))
+        .or(`end_date.is.null,end_date.gte.${start.toISOString().slice(0, 10)}`)
+        .order('local_time'),
+      supabase
+        .from('reminder_logs')
+        .select('reminder_id, scheduled_for, state')
+        .gte('scheduled_for', start.toISOString())
+        .lt('scheduled_for', end.toISOString()),
+    ]);
+
+    if (reminderResult.error || logResult.error) {
+      Alert.alert('Could not load reminders', reminderResult.error?.message ?? logResult.error?.message);
+    } else {
+      const weekday = new Date().getDay();
+      setReminders((reminderResult.data ?? []).filter((item) => item.days_of_week.length === 0 || item.days_of_week.includes(weekday)) as Reminder[]);
+      setLogs((logResult.data ?? []) as ReminderLog[]);
+    }
+
+    setLoading(false);
+    setRefreshing(false);
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const states = useMemo(() => new Map(logs.map((log) => [log.reminder_id, log.state])), [logs]);
+
+  async function mark(reminder: Reminder, state: 'taken' | 'skipped') {
+    setSavingId(reminder.id);
+    const scheduledFor = todayOccurrence(reminder.local_time);
+    const { error } = await supabase.rpc('mark_reminder_occurrence', {
+      p_reminder_id: reminder.id,
+      p_scheduled_for: scheduledFor,
+      p_state: state,
+      p_note: null,
+    });
+
+    if (error) Alert.alert('Could not update reminder', error.message);
+    else setLogs((current) => [...current.filter((item) => item.reminder_id !== reminder.id), { reminder_id: reminder.id, scheduled_for: scheduledFor, state }]);
+    setSavingId(null);
+  }
+
+  return (
+    <SafeAreaView style={styles.page}>
+      <View style={styles.header}>
+        <Pressable accessibilityLabel="Go back" onPress={() => router.back()} style={styles.iconButton}>
+          <Ionicons name="arrow-back" size={22} color={colors.ink} />
+        </Pressable>
+        <View style={styles.headerCopy}>
+          <Text style={styles.eyebrow}>TODAY’S CARE</Text>
+          <Text style={styles.title}>Gentle reminders</Text>
+        </View>
+        <Pressable accessibilityLabel="Add reminder" onPress={() => router.push('/reminders/new')} style={styles.addButton}>
+          <Ionicons name="add" size={24} color={colors.surface} />
+        </Pressable>
+      </View>
+
+      {loading ? (
+        <View style={styles.center}><ActivityIndicator color={colors.rose} /></View>
+      ) : (
+        <ScrollView
+          contentContainerStyle={styles.list}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />}
+        >
+          <View style={styles.note}>
+            <Ionicons name="heart-outline" size={22} color={colors.rose} />
+            <Text style={styles.noteText}>No scolding here. Janani simply helps the family remember and try again.</Text>
+          </View>
+
+          {reminders.length === 0 ? (
+            <View style={styles.empty}>
+              <Ionicons name="alarm-outline" size={42} color={colors.sage} />
+              <Text style={styles.emptyTitle}>Nothing scheduled today</Text>
+              <Text style={styles.emptyText}>Add medicines, hydration, appointments, or a custom care reminder.</Text>
+              <Pressable onPress={() => router.push('/reminders/new')} style={styles.primaryButton}>
+                <Text style={styles.primaryText}>Add first reminder</Text>
+              </Pressable>
+            </View>
+          ) : reminders.map((reminder) => {
+            const state = states.get(reminder.id) ?? 'pending';
+            const completed = state === 'taken';
+            return (
+              <View key={reminder.id} style={[styles.card, completed && styles.cardDone]}>
+                <View style={styles.cardTop}>
+                  <View style={styles.kindIcon}><Ionicons name={reminder.kind === 'medication' ? 'medical-outline' : reminder.kind === 'hydration' ? 'water-outline' : 'alarm-outline'} size={23} color={colors.rose} /></View>
+                  <View style={styles.cardCopy}>
+                    <Text style={styles.time}>{formatTime(reminder.local_time)}</Text>
+                    <Text style={styles.cardTitle}>{reminder.title}</Text>
+                    {!!reminder.instructions && <Text style={styles.instructions}>{reminder.instructions}</Text>}
+                  </View>
+                </View>
+                <View style={styles.actions}>
+                  <Pressable disabled={savingId === reminder.id} onPress={() => mark(reminder, 'skipped')} style={styles.skipButton}>
+                    <Text style={styles.skipText}>{state === 'skipped' ? 'Skipped' : 'Skip today'}</Text>
+                  </Pressable>
+                  <Pressable disabled={savingId === reminder.id} onPress={() => mark(reminder, 'taken')} style={[styles.doneButton, completed && styles.doneButtonActive]}>
+                    {savingId === reminder.id ? <ActivityIndicator color={colors.surface} /> : <><Ionicons name="checkmark" size={20} color={colors.surface} /><Text style={styles.doneText}>{completed ? 'Taken' : 'Mark taken'}</Text></>}
+                  </Pressable>
+                </View>
+              </View>
+            );
+          })}
+        </ScrollView>
+      )}
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  page: { flex: 1, backgroundColor: colors.background },
+  header: { flexDirection: 'row', alignItems: 'center', padding: spacing.lg, gap: spacing.md },
+  headerCopy: { flex: 1 },
+  eyebrow: { fontSize: 11, letterSpacing: 1.8, fontWeight: '800', color: colors.rose },
+  title: { marginTop: 3, fontSize: 27, fontWeight: '800', color: colors.ink },
+  iconButton: { width: 44, height: 44, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  addButton: { width: 46, height: 46, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.rose },
+  center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+  list: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl, gap: spacing.md },
+  note: { flexDirection: 'row', gap: spacing.md, padding: spacing.md, borderRadius: radius.md, backgroundColor: colors.blush },
+  noteText: { flex: 1, fontSize: 14, lineHeight: 20, color: colors.roseDark },
+  empty: { alignItems: 'center', marginTop: spacing.xl, padding: spacing.xl, borderRadius: radius.lg, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  emptyTitle: { marginTop: spacing.md, fontSize: 20, fontWeight: '800', color: colors.ink },
+  emptyText: { marginTop: spacing.sm, textAlign: 'center', fontSize: 14, lineHeight: 21, color: colors.muted },
+  primaryButton: { marginTop: spacing.lg, minHeight: 50, paddingHorizontal: spacing.lg, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.rose },
+  primaryText: { color: colors.surface, fontWeight: '800' },
+  card: { padding: spacing.lg, gap: spacing.lg, borderRadius: radius.lg, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  cardDone: { backgroundColor: colors.sageSoft },
+  cardTop: { flexDirection: 'row', gap: spacing.md },
+  kindIcon: { width: 46, height: 46, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.blush },
+  cardCopy: { flex: 1 },
+  time: { fontSize: 12, fontWeight: '800', color: colors.rose },
+  cardTitle: { marginTop: 3, fontSize: 18, fontWeight: '800', color: colors.ink },
+  instructions: { marginTop: spacing.sm, fontSize: 14, lineHeight: 20, color: colors.muted },
+  actions: { flexDirection: 'row', gap: spacing.sm },
+  skipButton: { flex: 1, minHeight: 48, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border },
+  skipText: { fontWeight: '700', color: colors.muted },
+  doneButton: { flex: 1.35, minHeight: 48, flexDirection: 'row', gap: spacing.sm, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.rose },
+  doneButtonActive: { backgroundColor: colors.sage },
+  doneText: { fontWeight: '800', color: colors.surface },
+});
