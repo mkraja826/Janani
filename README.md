@@ -1,54 +1,63 @@
 # Janani
 
-Janani is a pregnancy-support mobile application designed for mothers, partners, and trusted caregivers.
+Janani is a pregnancy-support mobile application for mothers and invited partners. It combines practical daily-care tools with a warm, reassuring voice inspired by a caring grandmother.
 
-## Product promise
+## Current capabilities
 
-Janani combines practical pregnancy support with a warm, reassuring voice inspired by a caring grandmother. It helps families remember medication, appointments, hydration and nutrition, understand trimester-specific guidance, preserve pregnancy memories, and stay emotionally connected.
+- Mother and partner role-based onboarding
+- Private family invitation linking
+- Pregnancy week, trimester, and due-date progress
+- Medicine and custom reminders with local notifications
+- Reminder completion, pause, resume, edit, and deletion
+- Pregnancy journal with private-by-default partner sharing
+- Thinking-of-you messages, realtime updates, and cross-device push notifications
+- Offline cache, idempotent queued writes, pending-sync indicator, and manual retry
+- Android home-screen widget with pregnancy, reminder, and partner-message state
+- In-app safety and privacy information
 
-## Initial scope
+## Safety boundary
 
-- Mother and partner role-based experiences
-- Pregnancy profile and trimester timeline
-- Medication and custom reminders
-- Reminder completion history
-- Pregnancy journal with optional partner sharing
-- Partner “Thinking of you” nudge and home-screen widget foundation
-- Secure family linking
-- Supabase authentication, database, realtime and storage
-- Safety-first educational content that never replaces professional medical care
+Janani provides supportive reminders and educational information. It does not diagnose, prescribe, monitor a medical condition, or replace a doctor, emergency service, or qualified healthcare professional.
 
 ## Technology
 
 - Expo + React Native + TypeScript
 - Expo Router
-- Supabase Auth, PostgreSQL, Realtime and Storage
-- TanStack Query for server state
-- Zustand for small local UI state
-- Expo Notifications for device reminders
-- EAS Build for Android and iOS
+- Supabase Auth, PostgreSQL, Realtime, and Edge Functions
+- TanStack Query and AsyncStorage
+- Expo Notifications
+- Native Android AppWidget generated through an Expo config plugin
+- EAS Build profiles for development APK, preview APK, and production AAB
 
 ## Repository structure
 
 ```text
 app/                     Expo Router screens
-src/components/          Reusable UI components
-src/features/            Domain modules
-src/lib/                 Supabase and shared infrastructure
+src/features/            Domain modules and synchronization
+src/lib/                 Supabase, cache, and offline infrastructure
 src/theme/               Design tokens
+plugins/                 Android widget config plugin
 supabase/migrations/     Versioned database schema
-docs/                    Architecture, UX and safety decisions
+docs/                    Architecture, privacy, safety, and testing
 ```
 
-## Setup
+## Local setup
 
 1. Copy `.env.example` to `.env`.
 2. Add the Janani Supabase project URL and publishable key.
 3. Run `npm install`.
-4. Run `npx expo start`.
+4. Run `npm run typecheck`.
+5. Run `npx expo prebuild --platform android --clean`.
+6. Run `npx expo run:android` or create an EAS development build.
 
-Never commit service-role keys, database passwords, signing files, or production secrets.
+Never commit service-role keys, database passwords, Android signing files, or production secrets.
 
-## Current milestone
+## Release status
 
-Phase 1 foundation is in progress: secure backend schema, mobile shell, design system, authentication foundation, and role-aware onboarding.
+Product implementation is advanced, but Janani is **not yet release-ready**. A deterministic lockfile, successful TypeScript/Expo prebuild validation, Android compilation, physical two-device testing, final app icon/splash assets, public privacy-policy URL, and tested account deletion flow remain mandatory release gates.
+
+See:
+
+- `PROJECT_PROGRESS_0_TO_100.md`
+- `docs/ANDROID_TWO_DEVICE_TEST_CHECKLIST.md`
+- `docs/PRIVACY_POLICY_DRAFT.md`
