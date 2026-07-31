@@ -1,6 +1,6 @@
 # Janani Project Progress
 
-**Overall progress: 8%**
+**Overall progress: 16%**
 
 ## Completed
 
@@ -17,6 +17,14 @@
 - Auth profile trigger added
 - Family membership access helpers added
 - Security hardening migration applied
+- Persistent Supabase authentication provider added
+- Email sign-up and sign-in screen added
+- Mother and partner onboarding forms added
+- Atomic mother family and pregnancy creation RPC deployed
+- Secure partner invite-code joining RPC deployed
+- Role-aware protected home foundation added
+- Mother-only partner invite code display added
+- Supabase TypeScript types generated and schema compatibility reviewed
 
 ## Database modules deployed
 
@@ -29,16 +37,25 @@
 - journal_entries
 - partner_nudges
 
+## Current usable flow
+
+1. User opens the emotional Janani welcome screen.
+2. User creates an account or signs in.
+3. Mother creates a private family and pregnancy profile.
+4. Janani generates a private partner invite code.
+5. Partner signs in and joins using that code.
+6. Both reach a role-aware family home protected by Supabase RLS.
+
 ## Next milestone
 
-Phase 1 onboarding and authentication:
+Phase 2 daily care foundation:
 
-1. Email/OTP authentication screens
-2. Mother versus partner onboarding
-3. Family creation and secure invite linking
-4. Pregnancy setup and due-date calculation
-5. Session routing and protected app shell
-6. Generate and commit Supabase TypeScript database types
+1. Replace manual date text fields with native date pickers
+2. Calculate pregnancy week and trimester from due date/LMP
+3. Add medication reminder creation and daily schedule
+4. Add local notification permissions and scheduling
+5. Add reminder completion, skip and missed-state tracking
+6. Add partner-visible reminder status
 7. Add automated typecheck and lint workflow
 
 ## Safety principles
