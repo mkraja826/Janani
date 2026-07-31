@@ -4,7 +4,13 @@ const QUEUE_KEY = 'janani:offline-mutation-queue:v1';
 
 export type OfflineMutation = {
   id: string;
-  kind: 'reminder_status' | 'journal_save' | 'journal_delete' | 'partner_acknowledgement';
+  kind:
+    | 'reminder_status'
+    | 'reminder_create'
+    | 'journal_save'
+    | 'journal_edit'
+    | 'journal_delete'
+    | 'partner_acknowledgement';
   payload: Record<string, unknown>;
   createdAt: string;
   attempts: number;
