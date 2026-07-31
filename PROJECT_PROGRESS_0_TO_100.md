@@ -1,6 +1,6 @@
 # Janani Project Progress
 
-**Overall progress: 75%**
+**Overall progress: 78%**
 
 ## Completed
 
@@ -24,6 +24,8 @@
 - Idempotent reminder creation RPC and creator mutation-key protection deployed
 - Reminder creation can queue offline after the active pregnancy has been cached
 - Replayed reminder creation schedules the local phone notification and stores its identifier
+- Offline-safe reminder editing RPC deployed
+- Reminder edits queue during connection failure and reschedule the phone notification after replay
 - Thinking-of-you partner message and acknowledgement added
 - Realtime publication and subscriptions added for reminders, logs, journal entries and partner nudges
 - Device push-token table deployed with owner-only RLS
@@ -36,8 +38,10 @@
 - Reminder taken/skipped actions use optimistic updates and queue failed writes
 - Journal timeline loads from local cache and failed deletions are queued
 - Partner message timeline loads its last saved copy when offline
-- Offline mutation processor handles reminder status/create, journal create/edit/delete and partner acknowledgement
+- Offline mutation processor handles reminder status/create/edit, journal create/edit/delete and partner acknowledgement
 - Queued mutations flush after sign-in and whenever the app returns to the foreground
+- Global pending-sync banner shows the number of waiting changes
+- Manual Retry control flushes queued changes on demand
 - Android home-screen widget state and deep-link action contract added
 - Expo config plugin generates the Android AppWidget provider and resources
 - Native `JananiWidgetModule` and `JananiWidgetPackage` generation added
@@ -48,58 +52,41 @@
 - CI validates TypeScript, Expo config, Android prebuild and generated widget files
 - Supabase Row Level Security protects family, pregnancy, journal and token data
 
-## Database modules deployed
-
-- profiles
-- families
-- family_members
-- pregnancies
-- reminders
-- reminder_logs
-- journal_entries
-- partner_nudges
-- device_push_tokens
-
-## Edge Functions deployed
-
-- send-partner-nudge (version 2)
-
 ## Current usable flow
 
 1. User registers or signs in.
 2. Mother creates a family using native due-date and LMP pickers, or partner joins with an invite code.
 3. Home shows pregnancy progress.
-4. Family members create reminders with a native clock picker and may complete, pause, resume, edit or delete them.
+4. Family members create and edit reminders with native time controls, online or through the offline queue.
 5. Reminder, journal and partner timelines can open from saved device data.
-6. Failed reminder status/create, journal create/edit/delete and partner acknowledgement writes are retained and retried when the app becomes active.
-7. Stable mutation IDs prevent duplicate journal memories, duplicate edits and duplicate reminders during replay.
-8. Mother and partner exchange cross-device caring notifications.
-9. Tapping a Janani notification opens the relevant screen.
-10. Expo prebuild generates the Android widget provider, React Native bridge and resources.
-11. WidgetSync writes live pregnancy, reminder and partner-message data and refreshes installed widgets.
-12. Widget buttons open the corresponding Janani care screens.
+6. Failed reminder status/create/edit, journal create/edit/delete and partner acknowledgement writes are retained and retried.
+7. A visible banner reports pending changes and offers manual retry.
+8. Stable mutation IDs prevent duplicate journal memories, duplicate edits and duplicate reminders during replay.
+9. Mother and partner exchange cross-device caring notifications.
+10. Tapping a Janani notification opens the relevant screen.
+11. Expo prebuild generates the Android widget provider, React Native bridge and resources.
+12. WidgetSync writes live pregnancy, reminder and partner-message data and refreshes installed widgets.
 
 ## Next milestone
 
-Phase 15 compilation and release readiness:
+Phase 16 build and release readiness:
 
 1. Obtain and inspect a successful GitHub Actions run
 2. Commit a deterministic npm lockfile from a network-enabled local install
-3. Add offline reminder editing with notification reconciliation
-4. Add a visible pending-sync indicator and retry status
-5. Verify Expo prebuild output and Android manifest on a local clone
-6. Compile the Android development build
-7. Test widget updates, deep links, reminders and push notifications on two physical devices
-8. Prepare app icons, splash assets, privacy policy and closed-testing checklist
+3. Verify Expo prebuild output and Android manifest on a local clone
+4. Compile the Android development build
+5. Test widget updates, deep links, reminders, offline queue and push notifications on two physical devices
+6. Add app icons and splash assets
+7. Publish privacy policy and medical disclaimer pages
+8. Prepare closed-testing checklist and release notes
 
 ## Known limitations
 
-- Reminder editing still requires an active connection.
 - Offline reminder creation requires the pregnancy ID to have been cached during an earlier online session.
 - A queued reminder receives its local notification after reconnect, not while fully offline.
 - The generated native widget bridge has not yet been compiled on Android hardware.
 - GitHub has not yet returned a successful CI status for the repository.
-- This execution environment cannot resolve GitHub through direct git clone, so a local npm install, deterministic lockfile, Expo prebuild and Android compile could not be performed here.
+- This execution environment cannot perform a direct GitHub clone, npm install, deterministic lockfile generation, Expo prebuild or Android compilation.
 - A physical Android development build and two-device mother/partner test remain pending.
 
 ## Safety principles
