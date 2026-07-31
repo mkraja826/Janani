@@ -1,6 +1,6 @@
 # Janani Project Progress
 
-**Overall progress: 61%**
+**Overall progress: 64%**
 
 ## Completed
 
@@ -14,7 +14,9 @@
 - Reminder taken, skipped, pause, resume, edit and deletion flows added
 - Reminder edits and resumes safely replace local notification schedules
 - Native reminder time picker added
-- Notification taps now deep-link to the intended Janani screen
+- Native expected due-date and optional LMP pickers added to mother onboarding
+- Native journal memory-date picker added
+- Notification taps deep-link to the intended Janani screen
 - Pregnancy journal timeline, mood and private/shared controls added
 - Journal edit and delete actions connected for authors
 - Thinking-of-you partner message and acknowledgement added
@@ -23,16 +25,17 @@
 - Expo push-token registration added after authentication
 - Authenticated `send-partner-nudge` Edge Function deployed
 - Thinking-of-you messages trigger secure cross-device Expo push delivery
-- Invalid Expo device tokens are removed when the push service reports `DeviceNotRegistered`
+- Invalid Expo device tokens are removed when Expo reports `DeviceNotRegistered`
 - Shared JSON cache utility added with failure-safe AsyncStorage handling
-- Reminder list and today-status history now load from local cache before network refresh
-- Reminder taken/skipped actions use optimistic updates and queue failed writes for retry
-- Journal timeline now loads from local cache before network refresh
-- Journal deletion uses an optimistic local update and queues failed deletion for retry
+- Reminder list and today-status history load from local cache before network refresh
+- Reminder taken/skipped actions use optimistic updates and queue failed writes
+- Journal timeline loads from local cache and failed deletions are queued
 - Partner message timeline loads its last saved copy when offline
-- Offline mutation queue foundation added with retry-attempt tracking
+- Offline mutation processor added for reminder status, journal deletion and partner acknowledgement
+- Queued mutations flush after sign-in and whenever the app returns to the foreground
 - Android home-screen widget state and deep-link action contract added
-- Expo config plugin now generates the first native Android AppWidget provider, layout, background and provider metadata
+- Expo config plugin generates the first native Android AppWidget provider and resources
+- Widget synchronization component now prepares live pregnancy week, next reminder and latest partner message
 - Supabase Row Level Security protects family, pregnancy, journal and token data
 - GitHub Actions typecheck workflow made runnable without a lockfile
 
@@ -55,37 +58,36 @@
 ## Current usable flow
 
 1. User registers or signs in.
-2. Mother creates a family and pregnancy profile, or partner joins with an invite code.
+2. Mother creates a family using native due-date and LMP pickers, or partner joins with an invite code.
 3. Home shows pregnancy progress.
-4. Family members create reminders using the native clock picker and may complete, pause, resume, edit or delete them.
-5. Reminder and journal timelines open from saved device data before attempting a network refresh.
-6. Failed reminder taken/skipped updates and journal deletions are retained in the local retry queue.
-7. Users create private or shared journal entries and can edit or delete their own entries.
-8. Supported development builds register a private Expo push token.
-9. Mother or partner sends a Thinking-of-you message and Janani sends a cross-device push notification.
-10. Tapping a Janani notification opens the relevant reminder or partner connection screen.
-11. Expo prebuild can generate the first Android Janani care widget provider and resources.
+4. Family members create reminders with a native clock picker and may complete, pause, resume, edit or delete them.
+5. Reminder, journal and partner timelines can open from saved device data.
+6. Failed reminder status, journal deletion and partner acknowledgement writes are retained and retried when the app becomes active.
+7. Users create journal memories for today or an earlier date using the native date picker.
+8. Mother and partner exchange cross-device caring notifications.
+9. Tapping a Janani notification opens the relevant screen.
+10. Expo prebuild can generate the native Android Janani care widget provider and resources.
+11. WidgetSync prepares the latest pregnancy, reminder and partner-message state for the native bridge.
 
 ## Next milestone
 
-Phase 11 synchronization and build verification:
+Phase 12 native bridge and build verification:
 
-1. Observe and fix the first successful GitHub Actions typecheck run
-2. Commit a deterministic npm lockfile from a local install
-3. Add a reconnect processor that safely flushes each queued mutation type
-4. Add native date pickers in pregnancy setup and journal entry date selection
-5. Sync real pregnancy week, next reminder and partner message into Android widget storage
-6. Add widget buttons for reminders and Thinking of you
-7. Run Expo prebuild and verify generated Android manifest/resources
-8. Create an Android development build and test on two physical devices
+1. Generate and register the Android `JananiWidget` React Native bridge
+2. Persist WidgetSync state into Android SharedPreferences and force widget refresh
+3. Add separate widget buttons for Reminders and Thinking of you
+4. Add idempotency protection for offline journal creation/editing
+5. Commit a deterministic npm lockfile from a local install
+6. Run Expo prebuild and verify generated Android manifest/resources
+7. Fix all TypeScript and Android compilation errors
+8. Create an Android development build and test mother/partner flows on two physical devices
 
 ## Known limitations
 
-- The offline queue stores failed mutations, but automatic reconnect-time flushing is not yet wired into app lifecycle.
-- Reminder creation, reminder editing and journal creation still require an active connection.
-- The Android widget provider currently displays fallback SharedPreferences values until React Native-to-widget state synchronization is added.
-- Native pregnancy and journal date pickers are still pending.
-- TypeScript CI and physical Android compilation have not yet been confirmed successful.
+- Reminder creation/editing and journal creation/editing still require an active connection.
+- Offline journal-save replay is intentionally held until an idempotency key is added.
+- WidgetSync is mounted, but the native `JananiWidget` bridge still needs to be generated before live values reach SharedPreferences.
+- TypeScript CI, Expo prebuild and physical Android compilation have not yet been confirmed successful.
 
 ## Safety principles
 
