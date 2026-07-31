@@ -5,6 +5,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useState } from 'react';
 
 import { OfflineQueueSync } from '@/features/offline/OfflineQueueSync';
+import { SyncStatus } from '@/features/offline/SyncStatus';
 import { WidgetSync } from '@/features/widget/WidgetSync';
 import { AuthProvider } from '@/providers/AuthProvider';
 import { colors } from '@/theme/tokens';
@@ -39,5 +40,6 @@ export default function RootLayout() {
     <WidgetSync />
     <StatusBar style="dark" />
     <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background }, animation: 'fade' }} />
+    <SyncStatus />
   </AuthProvider></QueryClientProvider>;
 }
