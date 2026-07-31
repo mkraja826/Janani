@@ -1,12 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const QUEUE_KEY = 'janani:offline-mutation-queue:v1';
+const listeners = new Set<(count: number) => void>();
 
 export type OfflineMutation = {
   id: string;
   kind:
     | 'reminder_status'
     | 'reminder_create'
+    | 'reminder_edit'
     | 'journal_save'
     | 'journal_edit'
     | 'journal_delete'
@@ -27,6 +29,13 @@ async function readQueue(): Promise<OfflineMutation[]> {
 
 async function writeQueue(queue: OfflineMutation[]): Promise<void> {
   await AsyncStorage.setItem(QUEUE_KEY, JSON.stringify(queue));
+  listeners.forEach((listener) => listener(queue.length));
+}
+
+export function subscribeToQueuedMutationCount(listener: (count: number) => void) {
+  listeners.add(listener);
+  getQueuedMutationCount().then(listener).catch(() => listener(0));
+  return () => listeners.delete(listener);
 }
 
 export async function enqueueMutation(
