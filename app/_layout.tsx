@@ -1,8 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import * as Notifications from 'expo-notifications';
-import { Stack } from 'expo-router';
+import { router, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { AuthProvider } from '@/providers/AuthProvider';
 import { colors } from '@/theme/tokens';
@@ -16,12 +16,30 @@ Notifications.setNotificationHandler({
   }),
 });
 
+function NotificationNavigation() {
+  useEffect(() => {
+    function openFromResponse(response: Notifications.NotificationResponse | null) {
+      const screen = response?.notification.request.content.data?.screen;
+      if (typeof screen === 'string' && screen.startsWith('/')) {
+        router.push(screen as never);
+      }
+    }
+
+    Notifications.getLastNotificationResponseAsync().then(openFromResponse);
+    const subscription = Notifications.addNotificationResponseReceivedListener(openFromResponse);
+    return () => subscription.remove();
+  }, []);
+
+  return null;
+}
+
 export default function RootLayout() {
   const [queryClient] = useState(() => new QueryClient());
 
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
+        <NotificationNavigation />
         <StatusBar style="dark" />
         <Stack
           screenOptions={{
