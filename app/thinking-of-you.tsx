@@ -23,14 +23,22 @@ export default function ThinkingOfYouScreen() {
     setLoading(false);
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+    const channel = supabase.channel('janani-partner-nudges').on('postgres_changes', { event: '*', schema: 'public', table: 'partner_nudges' }, load).subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [load]);
 
   async function send(message: string) {
     setSending(message);
-    const { error } = await supabase.rpc('send_partner_nudge', { p_message: message });
+    const { data, error } = await supabase.functions.invoke('send-partner-nudge', { body: { message } });
     setSending(null);
     if (error) Alert.alert('Could not send warmth', error.message);
-    else { Alert.alert('Sent with love', 'Your partner will see that you were thinking of them.'); load(); }
+    else {
+      const delivered = typeof data?.delivered_to === 'number' ? data.delivered_to : 0;
+      Alert.alert('Sent with love', delivered > 0 ? 'Your partner has been notified.' : 'Your partner will see it in Janani. Phone alerts will begin after their device registers.');
+      load();
+    }
   }
 
   async function acknowledge(id: string) {
