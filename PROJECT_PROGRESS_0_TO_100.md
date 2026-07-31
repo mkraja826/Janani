@@ -1,102 +1,73 @@
 # Janani Project Progress
 
-**Overall progress: 78%**
+**Overall progress: 81%**
 
 ## Completed
 
-- GitHub repository initialized on `main`
-- Expo + React Native + TypeScript foundation added
-- Emotional welcome, authentication and role-aware onboarding added
-- Secure mother family creation and partner invite joining added
-- Pregnancy week, trimester and due-date countdown added
-- Daily medicine and care reminders added
-- Local notification permissions and daily scheduling added
-- Reminder taken, skipped, pause, resume, edit and deletion flows added
-- Reminder edits and resumes safely replace local notification schedules
-- Native reminder time picker added
-- Native expected due-date and optional LMP pickers added to mother onboarding
-- Native journal memory-date picker added
-- Notification taps deep-link to the intended Janani screen
-- Pregnancy journal timeline, mood and private/shared controls added
-- Journal edit and delete actions connected for authors
-- Idempotent journal creation and editing RPCs deployed
-- Journal create/edit actions queue safely during transient network failures without duplicate replay
-- Idempotent reminder creation RPC and creator mutation-key protection deployed
-- Reminder creation can queue offline after the active pregnancy has been cached
-- Replayed reminder creation schedules the local phone notification and stores its identifier
-- Offline-safe reminder editing RPC deployed
-- Reminder edits queue during connection failure and reschedule the phone notification after replay
-- Thinking-of-you partner message and acknowledgement added
-- Realtime publication and subscriptions added for reminders, logs, journal entries and partner nudges
-- Device push-token table deployed with owner-only RLS
-- Expo push-token registration added after authentication
-- Authenticated `send-partner-nudge` Edge Function deployed
-- Thinking-of-you messages trigger secure cross-device Expo push delivery
-- Invalid Expo device tokens are removed when Expo reports `DeviceNotRegistered`
-- Shared JSON cache utility added with failure-safe AsyncStorage handling
-- Reminder list and today-status history load from local cache before network refresh
-- Reminder taken/skipped actions use optimistic updates and queue failed writes
-- Journal timeline loads from local cache and failed deletions are queued
-- Partner message timeline loads its last saved copy when offline
-- Offline mutation processor handles reminder status/create/edit, journal create/edit/delete and partner acknowledgement
-- Queued mutations flush after sign-in and whenever the app returns to the foreground
-- Global pending-sync banner shows the number of waiting changes
-- Manual Retry control flushes queued changes on demand
-- Android home-screen widget state and deep-link action contract added
-- Expo config plugin generates the Android AppWidget provider and resources
-- Native `JananiWidgetModule` and `JananiWidgetPackage` generation added
-- MainApplication registration is patched automatically during Expo prebuild
-- WidgetSync writes pregnancy week, family, next reminder and partner message to native SharedPreferences
-- Widget refresh is forced immediately after state updates
-- Widget buttons open Reminders and Thinking of you directly
-- CI validates TypeScript, Expo config, Android prebuild and generated widget files
-- Supabase Row Level Security protects family, pregnancy, journal and token data
+- Expo + React Native + TypeScript mobile foundation
+- Secure Supabase authentication, family linking, pregnancy profiles, RLS, realtime, and Edge Functions
+- Mother and partner role-aware onboarding
+- Pregnancy week, trimester, and due-date progress
+- Daily reminders with local notifications, completion history, pause, resume, edit, and deletion
+- Native date and time pickers
+- Pregnancy journal with private-by-default partner sharing
+- Thinking-of-you messages, acknowledgements, realtime updates, and cross-device push delivery
+- Offline cache and idempotent queue for reminder status/create/edit and journal create/edit/delete
+- Pending-sync banner, automatic foreground replay, and manual Retry control
+- Android home-screen widget provider, native bridge, state synchronization, refresh, and deep-link buttons
+- Notification-tap deep linking
+- Supabase push-token privacy and invalid-token cleanup
+- In-app Safety & Privacy screen linked from Home
+- Android version code and explicit notification/widget-related permission metadata
+- EAS development APK, preview APK, and production AAB build profiles
+- Privacy-policy draft
+- Two-device Android acceptance checklist
+- Updated project README and release status
+- GitHub Actions workflow for TypeScript, Expo configuration, Android prebuild, and widget-generation validation
 
-## Current usable flow
+## Backend modules deployed
 
-1. User registers or signs in.
-2. Mother creates a family using native due-date and LMP pickers, or partner joins with an invite code.
-3. Home shows pregnancy progress.
-4. Family members create and edit reminders with native time controls, online or through the offline queue.
-5. Reminder, journal and partner timelines can open from saved device data.
-6. Failed reminder status/create/edit, journal create/edit/delete and partner acknowledgement writes are retained and retried.
-7. A visible banner reports pending changes and offers manual retry.
-8. Stable mutation IDs prevent duplicate journal memories, duplicate edits and duplicate reminders during replay.
-9. Mother and partner exchange cross-device caring notifications.
-10. Tapping a Janani notification opens the relevant screen.
-11. Expo prebuild generates the Android widget provider, React Native bridge and resources.
-12. WidgetSync writes live pregnancy, reminder and partner-message data and refreshes installed widgets.
+- profiles
+- families
+- family_members
+- pregnancies
+- reminders
+- reminder_logs
+- journal_entries
+- partner_nudges
+- device_push_tokens
+- authenticated family/reminder/journal RPCs
+- send-partner-nudge Edge Function
 
-## Next milestone
+## Release gates still open
 
-Phase 16 build and release readiness:
-
-1. Obtain and inspect a successful GitHub Actions run
-2. Commit a deterministic npm lockfile from a network-enabled local install
-3. Verify Expo prebuild output and Android manifest on a local clone
-4. Compile the Android development build
-5. Test widget updates, deep links, reminders, offline queue and push notifications on two physical devices
-6. Add app icons and splash assets
-7. Publish privacy policy and medical disclaimer pages
-8. Prepare closed-testing checklist and release notes
+1. Generate and commit a deterministic `package-lock.json` from a network-enabled local install.
+2. Obtain a successful TypeScript and Expo prebuild run.
+3. Compile the Android development build and fix native errors.
+4. Test mother and partner journeys on two physical Android devices.
+5. Test widget refresh, deep links, reminder scheduling, push delivery, reboot recovery, and offline replay.
+6. Create final app icon, adaptive icon foreground, splash image, notification icon, and store graphics.
+7. Add and test account deletion and family unlinking.
+8. Publish the final privacy policy at a public URL and replace all placeholders.
+9. Complete Play Console data-safety answers and closed-testing materials.
 
 ## Known limitations
 
-- Offline reminder creation requires the pregnancy ID to have been cached during an earlier online session.
-- A queued reminder receives its local notification after reconnect, not while fully offline.
-- The generated native widget bridge has not yet been compiled on Android hardware.
-- GitHub has not yet returned a successful CI status for the repository.
-- This execution environment cannot perform a direct GitHub clone, npm install, deterministic lockfile generation, Expo prebuild or Android compilation.
-- A physical Android development build and two-device mother/partner test remain pending.
+- Offline reminder creation requires a pregnancy ID cached during an earlier online session.
+- A reminder created fully offline receives its local notification after reconnect.
+- The generated native widget bridge has not been compiled on Android hardware.
+- GitHub has not returned a visible successful CI status.
+- This execution environment cannot perform a direct clone, npm install, deterministic lockfile generation, Expo prebuild, or Android compilation.
+- The current privacy policy is a draft and is not yet published.
+- Account deletion is not yet implemented; public release is blocked until it is tested.
 
 ## Safety principles
 
-- Medical guidance is educational and trimester-aware, never diagnostic.
-- Urgent warning signs must direct users to qualified medical care.
+- Janani is supportive and educational, never diagnostic.
 - Medicine details must follow the prescribing clinician.
+- Urgent concerns must direct users to qualified medical or emergency care.
 - Journal sharing is explicit and private by default.
 - Partner access is explicit, revocable, and protected by RLS.
-- Push tokens are private per user and never exposed to other family members.
-- The push Edge Function authenticates every request before resolving a recipient.
-- Offline data is a local convenience copy and Supabase remains the authoritative shared record.
-- No service-role keys or production secrets may enter the mobile app or repository.
+- Push tokens are private per user.
+- Offline data is a local convenience copy; Supabase remains authoritative.
+- No service-role keys, passwords, signing files, or production secrets may enter the mobile repository.
