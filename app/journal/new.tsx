@@ -4,6 +4,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Alert, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 
+import { enqueueMutation } from '@/lib/offlineQueue';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { colors, radius, spacing } from '@/theme/tokens';
@@ -14,6 +15,11 @@ const moods = [
   { value: 5, emoji: '🥰', label: 'Joyful' },
 ];
 const dateOnly = (value: Date) => `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
+const mutationId = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (character) => {
+  const random = Math.floor(Math.random() * 16);
+  const value = character === 'x' ? random : (random & 0x3) | 0x8;
+  return value.toString(16);
+});
 
 export default function NewJournalEntryScreen() {
   const { session } = useAuth();
@@ -26,9 +32,35 @@ export default function NewJournalEntryScreen() {
     setSaving(true);
     const { data: pregnancy, error: pregnancyError } = await supabase.from('pregnancies').select('id').eq('status', 'active').limit(1).maybeSingle();
     if (pregnancyError || !pregnancy) { setSaving(false); return Alert.alert('Pregnancy profile not found', pregnancyError?.message ?? 'Complete onboarding before writing an entry.'); }
-    const { error } = await supabase.from('journal_entries').insert({ pregnancy_id: pregnancy.id, author_id: session.user.id, title: title.trim() || null, body: body.trim(), mood, is_shared_with_partner: shared, entry_date: dateOnly(entryDate) });
+
+    const clientMutationId = mutationId();
+    const payload = {
+      p_client_mutation_id: clientMutationId,
+      p_pregnancy_id: pregnancy.id,
+      p_title: title.trim(),
+      p_body: body.trim(),
+      p_mood: mood,
+      p_is_shared_with_partner: shared,
+      p_entry_date: dateOnly(entryDate),
+    };
+    const { error } = await supabase.rpc('save_journal_entry_idempotent', payload);
     setSaving(false);
-    if (error) Alert.alert('Could not save entry', error.message); else router.replace('/journal');
+
+    if (!error) {
+      router.replace('/journal');
+      return;
+    }
+
+    const transient = /network|fetch|timeout|connection|offline/i.test(error.message);
+    if (!transient) {
+      Alert.alert('Could not save entry', error.message);
+      return;
+    }
+
+    await enqueueMutation('journal_save', payload);
+    Alert.alert('Saved on this phone', 'Janani will securely add this memory when the connection returns.', [
+      { text: 'Open journal', onPress: () => router.replace('/journal') },
+    ]);
   }
 
   return <SafeAreaView style={styles.page}><ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
