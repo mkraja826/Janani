@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useState } from 'react';
 
+import { AuthProvider } from '@/providers/AuthProvider';
 import { colors } from '@/theme/tokens';
 
 export default function RootLayout() {
@@ -10,14 +11,16 @@ export default function RootLayout() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <StatusBar style="dark" />
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: { backgroundColor: colors.background },
-          animation: 'fade',
-        }}
-      />
+      <AuthProvider>
+        <StatusBar style="dark" />
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: { backgroundColor: colors.background },
+            animation: 'fade',
+          }}
+        />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
