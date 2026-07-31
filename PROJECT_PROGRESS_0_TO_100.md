@@ -1,6 +1,6 @@
 # Janani Project Progress
 
-**Overall progress: 64%**
+**Overall progress: 68%**
 
 ## Completed
 
@@ -34,10 +34,14 @@
 - Offline mutation processor added for reminder status, journal deletion and partner acknowledgement
 - Queued mutations flush after sign-in and whenever the app returns to the foreground
 - Android home-screen widget state and deep-link action contract added
-- Expo config plugin generates the first native Android AppWidget provider and resources
-- Widget synchronization component now prepares live pregnancy week, next reminder and latest partner message
+- Expo config plugin generates the Android AppWidget provider and resources
+- Native `JananiWidgetModule` and `JananiWidgetPackage` generation added
+- MainApplication registration is patched automatically during Expo prebuild
+- WidgetSync writes pregnancy week, family, next reminder and partner message to native SharedPreferences
+- Widget refresh is forced immediately after state updates
+- Widget buttons open Reminders and Thinking of you directly
+- CI now validates TypeScript, Expo config, Android prebuild and generated widget files
 - Supabase Row Level Security protects family, pregnancy, journal and token data
-- GitHub Actions typecheck workflow made runnable without a lockfile
 
 ## Database modules deployed
 
@@ -66,28 +70,30 @@
 7. Users create journal memories for today or an earlier date using the native date picker.
 8. Mother and partner exchange cross-device caring notifications.
 9. Tapping a Janani notification opens the relevant screen.
-10. Expo prebuild can generate the native Android Janani care widget provider and resources.
-11. WidgetSync prepares the latest pregnancy, reminder and partner-message state for the native bridge.
+10. Expo prebuild generates the Android widget provider, React Native bridge and resources.
+11. WidgetSync writes live pregnancy, reminder and partner-message data and refreshes installed widgets.
+12. Widget buttons open the corresponding Janani care screens.
 
 ## Next milestone
 
-Phase 12 native bridge and build verification:
+Phase 13 compilation and release readiness:
 
-1. Generate and register the Android `JananiWidget` React Native bridge
-2. Persist WidgetSync state into Android SharedPreferences and force widget refresh
-3. Add separate widget buttons for Reminders and Thinking of you
-4. Add idempotency protection for offline journal creation/editing
-5. Commit a deterministic npm lockfile from a local install
-6. Run Expo prebuild and verify generated Android manifest/resources
-7. Fix all TypeScript and Android compilation errors
-8. Create an Android development build and test mother/partner flows on two physical devices
+1. Observe the strengthened GitHub Actions run and fix all reported failures
+2. Commit a deterministic npm lockfile from a verified local install
+3. Add idempotency protection for offline journal creation and editing
+4. Add offline reminder creation support with safe local-notification reconciliation
+5. Verify Expo prebuild output and Android manifest on a local clone
+6. Compile the Android development build
+7. Test widget updates, deep links, reminders and push notifications on two physical devices
+8. Prepare app icons, splash assets, privacy policy and closed-testing checklist
 
 ## Known limitations
 
 - Reminder creation/editing and journal creation/editing still require an active connection.
 - Offline journal-save replay is intentionally held until an idempotency key is added.
-- WidgetSync is mounted, but the native `JananiWidget` bridge still needs to be generated before live values reach SharedPreferences.
-- TypeScript CI, Expo prebuild and physical Android compilation have not yet been confirmed successful.
+- The generated native widget bridge has not yet been compiled on Android hardware.
+- GitHub has not yet returned a successful CI status for the repository.
+- A physical Android development build and two-device mother/partner test remain pending.
 
 ## Safety principles
 
