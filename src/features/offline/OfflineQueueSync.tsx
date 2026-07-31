@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { AppState, type AppStateStatus } from 'react-native';
 
-import { scheduleDailyReminder } from '@/features/reminders/notifications';
+import { cancelReminderNotification, scheduleDailyReminder } from '@/features/reminders/notifications';
 import { flushMutationQueue, type OfflineMutation } from '@/lib/offlineQueue';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
@@ -15,24 +15,36 @@ async function processMutation(mutation: OfflineMutation): Promise<boolean> {
     case 'reminder_create': {
       const { data: reminderId, error } = await supabase.rpc('create_reminder_idempotent', mutation.payload);
       if (error || typeof reminderId !== 'string') return false;
-
       const title = mutation.payload.p_title;
       const instructions = mutation.payload.p_instructions;
       const localTime = mutation.payload.p_local_time;
       if (typeof title === 'string' && typeof localTime === 'string') {
         try {
-          const identifier = await scheduleDailyReminder(
-            title,
-            typeof instructions === 'string' ? instructions : null,
-            localTime.slice(0, 5),
-          );
-          if (identifier) {
-            await supabase.from('reminders').update({ notification_identifier: identifier }).eq('id', reminderId);
-          }
-        } catch {
-          // The shared reminder is authoritative; notification setup can be repaired later.
-        }
+          const identifier = await scheduleDailyReminder(title, typeof instructions === 'string' ? instructions : null, localTime.slice(0, 5));
+          if (identifier) await supabase.from('reminders').update({ notification_identifier: identifier }).eq('id', reminderId);
+        } catch {}
       }
+      return true;
+    }
+    case 'reminder_edit': {
+      const { data: reminderId, error } = await supabase.rpc('update_reminder_offline_safe', {
+        p_reminder_id: mutation.payload.p_reminder_id,
+        p_title: mutation.payload.p_title,
+        p_instructions: mutation.payload.p_instructions,
+        p_local_time: mutation.payload.p_local_time,
+      });
+      if (error || typeof reminderId !== 'string') return false;
+      const oldIdentifier = mutation.payload.old_notification_identifier;
+      const title = mutation.payload.p_title;
+      const instructions = mutation.payload.p_instructions;
+      const localTime = mutation.payload.p_local_time;
+      try {
+        await cancelReminderNotification(typeof oldIdentifier === 'string' ? oldIdentifier : null);
+        if (typeof title === 'string' && typeof localTime === 'string') {
+          const identifier = await scheduleDailyReminder(title, typeof instructions === 'string' ? instructions : null, localTime.slice(0, 5));
+          await supabase.from('reminders').update({ notification_identifier: identifier }).eq('id', reminderId);
+        }
+      } catch {}
       return true;
     }
     case 'journal_save': {
@@ -60,30 +72,25 @@ async function processMutation(mutation: OfflineMutation): Promise<boolean> {
   }
 }
 
+export async function flushJananiOfflineQueue() {
+  return flushMutationQueue(processMutation);
+}
+
 export function OfflineQueueSync() {
   const { session } = useAuth();
-
   useEffect(() => {
     if (!session) return;
     let flushing = false;
-
     async function flush() {
       if (flushing) return;
       flushing = true;
-      try {
-        await flushMutationQueue(processMutation);
-      } finally {
-        flushing = false;
-      }
+      try { await flushJananiOfflineQueue(); } finally { flushing = false; }
     }
-
     flush().catch(() => undefined);
     const subscription = AppState.addEventListener('change', (state: AppStateStatus) => {
       if (state === 'active') flush().catch(() => undefined);
     });
-
     return () => subscription.remove();
   }, [session]);
-
   return null;
 }
