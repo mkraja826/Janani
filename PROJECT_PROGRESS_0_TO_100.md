@@ -1,6 +1,6 @@
 # Janani Project Progress
 
-**Overall progress: 85%**
+**Overall progress: 88%**
 
 ## Completed
 
@@ -26,7 +26,11 @@
 - Role-specific deletion warnings: mother deletion removes the family pregnancy space; partner deletion preserves it
 - Android version code and explicit notification/widget-related permission metadata
 - EAS development APK, preview APK, and production AAB build profiles
-- Privacy-policy draft
+- Public legal-site source for privacy policy, terms, medical disclaimer, and legal landing page
+- GitHub Pages deployment workflow for the legal site
+- In-app links to the public Privacy Policy and Terms pages
+- Play Console Data Safety working sheet matched to current implementation
+- Internal-testing release notes
 - Two-device Android acceptance checklist
 - Updated project README and release status
 - GitHub Actions workflow for TypeScript, Expo configuration, Android prebuild, and widget-generation validation
@@ -57,17 +61,19 @@
 5. Test mother and partner journeys on two physical Android devices.
 6. Test widget refresh, deep links, reminder scheduling, push delivery, reboot recovery, and offline replay.
 7. Create final app icon, adaptive icon foreground, splash image, notification icon, and store graphics.
-8. Publish the final privacy policy at a public URL and replace all placeholders.
-9. Complete Play Console data-safety answers and closed-testing materials.
+8. Confirm the GitHub Pages legal site is live and replace the support-contact placeholders.
+9. Recheck Play Console Data Safety answers against the final dependency tree and current Google wording.
+10. Complete closed-testing materials and production signing configuration.
 
 ## Known limitations
 
 - Offline reminder creation requires a pregnancy ID cached during an earlier online session.
 - A reminder created fully offline receives its local notification after reconnect.
 - The generated native widget bridge has not been compiled on Android hardware.
-- GitHub has not returned a visible successful CI status.
+- GitHub has not returned a visible successful quality CI status.
 - This execution environment cannot perform a direct clone, npm install, deterministic lockfile generation, Expo prebuild, or Android compilation.
-- The current privacy policy is a draft and is not yet published.
+- GitHub Pages deployment has been configured but the public URL has not yet been confirmed live.
+- Legal pages still contain a support-contact placeholder that must be replaced before public release.
 - Account deletion and unlinking are implemented but not yet verified on disposable physical-device accounts.
 - JSON export currently uses the platform share sheet; formatted PDF export is not yet included.
 
