@@ -1,6 +1,6 @@
 # Janani Project Progress
 
-**Overall progress: 32%**
+**Overall progress: 38%**
 
 ## Completed
 
@@ -23,7 +23,12 @@
 - Journal RLS corrected so private entries remain author-only
 - Thinking-of-you partner message experience added
 - Secure partner nudge send and acknowledgement RPCs deployed
-- Home navigation connected to Reminders, Journal and Thinking of You
+- Reminder pause and resume controls added
+- Reminder deletion and scheduled-notification cancellation added
+- Journal entry deletion added for authors
+- Realtime publication enabled for reminders, reminder logs, journal entries and partner nudges
+- Reminder and journal screens subscribe to Supabase realtime changes
+- GitHub Actions typecheck workflow added
 
 ## Database modules deployed
 
@@ -41,24 +46,25 @@
 1. User registers or signs in.
 2. Mother creates a family and pregnancy profile, or partner joins with an invite code.
 3. Home shows pregnancy week and trimester.
-4. Family members create and complete daily reminders.
-5. Either user can create a journal entry with a mood.
-6. The author chooses whether an entry stays private or is shared.
-7. Mother and partner can send a one-tap caring message.
-8. The recipient can acknowledge it with a heart.
+4. Family members create, complete, pause, resume or delete daily reminders.
+5. Scheduled local notifications are cancelled when an active reminder is paused or deleted.
+6. Either user can create a journal entry with a mood.
+7. The author chooses whether an entry stays private or is shared and may delete their own entry.
+8. Mother and partner can send and acknowledge caring messages.
+9. Shared care data refreshes through Supabase realtime subscriptions.
 
 ## Next milestone
 
-Phase 4 reliability and cross-device connection:
+Phase 5 cross-device delivery and offline reliability:
 
-1. Native date and time pickers
-2. Reminder editing, pausing, deletion and notification cancellation
-3. Journal editing and deletion
-4. Push-token registration and cross-device nudge notifications
-5. Realtime updates for reminders, journal and nudges
+1. Fix any failures reported by the new GitHub Actions typecheck
+2. Native date and time pickers
+3. Reminder editing and safe notification rescheduling
+4. Journal editing
+5. Push-token registration and cross-device nudge notifications
 6. Android home-screen widget architecture
 7. Offline cache and sync queue foundation
-8. Automated typecheck, lint and Android build verification
+8. Android development build and device verification
 
 ## Safety principles
 
