@@ -32,10 +32,12 @@ async function writeQueue(queue: OfflineMutation[]): Promise<void> {
   listeners.forEach((listener) => listener(queue.length));
 }
 
-export function subscribeToQueuedMutationCount(listener: (count: number) => void) {
+export function subscribeToQueuedMutationCount(listener: (count: number) => void): () => void {
   listeners.add(listener);
   getQueuedMutationCount().then(listener).catch(() => listener(0));
-  return () => listeners.delete(listener);
+  return () => {
+    listeners.delete(listener);
+  };
 }
 
 export async function enqueueMutation(
