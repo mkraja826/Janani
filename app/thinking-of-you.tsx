@@ -21,8 +21,8 @@ export default function ThinkingOfYouScreen() {
 
   const load = useCallback(async () => {
     const cached = await readCache<Nudge[]>(CACHE_KEY);
-    if (cached?.value?.length) {
-      setNudges(cached.value);
+    if (cached?.length) {
+      setNudges(cached);
       setLoading(false);
     }
 
