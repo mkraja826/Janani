@@ -11,10 +11,11 @@ export function WidgetSync() {
   const { session } = useAuth();
 
   useEffect(() => {
-    if (!session || Platform.OS !== 'android' || !widgetBridge?.update) return;
+    const updateWidget = widgetBridge?.update;
+    if (!session || Platform.OS !== 'android' || !updateWidget) return;
 
     async function sync() {
-      const membership = await supabase.from('family_members').select('role,families(name,pregnancies(due_date,status))').eq('user_id', session!.user.id).maybeSingle();
+      const membership = await supabase.from('family_members').select('role,families(name,pregnancies(due_date,status))').eq('user_id', session.user.id).maybeSingle();
       const family = Array.isArray(membership.data?.families) ? membership.data?.families[0] : membership.data?.families;
       const pregnancies = family?.pregnancies;
       const pregnancyList = Array.isArray(pregnancies) ? pregnancies : pregnancies ? [pregnancies] : [];
@@ -24,9 +25,9 @@ export function WidgetSync() {
       const now = new Date();
       const date = now.toISOString().slice(0, 10);
       const reminder = await supabase.from('reminders').select('title,local_time').eq('is_active', true).lte('start_date', date).or(`end_date.is.null,end_date.gte.${date}`).order('local_time').limit(1).maybeSingle();
-      const nudge = await supabase.from('partner_nudges').select('message').neq('sender_id', session!.user.id).order('created_at', { ascending: false }).limit(1).maybeSingle();
+      const nudge = await supabase.from('partner_nudges').select('message').neq('sender_id', session.user.id).order('created_at', { ascending: false }).limit(1).maybeSingle();
 
-      await widgetBridge.update?.({
+      await updateWidget({
         week_label: progress ? `Week ${progress.gestationalWeek} · ${progress.gestationalDay} days` : 'Janani',
         family_label: family?.name ?? 'Our little family',
         next_reminder: reminder.data ? `${reminder.data.local_time.slice(0, 5)} · ${reminder.data.title}` : 'No care reminder scheduled',
