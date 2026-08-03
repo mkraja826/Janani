@@ -14,6 +14,7 @@ The percentage describes engineering readiness, not store approval or production
 - A clean `npm ci`, TypeScript, Expo lint, all 18 Expo Doctor checks, high-severity production dependency audit, legal-site validation, Edge Function formatting/lint/type checks, Expo public-config resolution, and final diff check passed on the finished source.
 - Expo SDK 54 Android prebuild completed cleanly after the final client hardening changes, including the SDK-compatible System UI module, and widget package registration remained idempotent.
 - The final application/native source compiled into an x86_64 debug APK at `android/app/build/outputs/apk/debug/app-debug.apk` (46,080,516 bytes; SHA-256 `16d05f331d5392a8745b44131a6c510ae0c6ddf326277259f330efcb2721c088`).
+- A physical-device Logcat session showed no fatal Janani crash or ANR. The observed sign-out navigation race was fixed by removing the redundant root-route replacement and delegating post-sign-out routing to `AuthGate`.
 - Auth sessions and user-scoped local data are encrypted, with key material held in SecureStore.
 - Caches, offline queues, local reminder schedules, push-token state, and widget state are isolated or cleared by authenticated user.
 - Authenticated screens are gated by both session and current family membership.
@@ -45,7 +46,7 @@ The percentage describes engineering readiness, not store approval or production
 
 ## Release gates still open
 
-1. Install and launch the final APK on a working disposable emulator or device. The current host has not completed this runtime proof.
+1. Reinstall the patched APK on a physical device and confirm sign-out no longer emits the unhandled `REPLACE index` warning.
 2. Complete the full mother/partner checklist on two physical Android devices, including offline replay and membership revocation.
 3. Verify real push delivery, notification timing/taps, reboot recovery, and widget rendering/deep links on physical hardware.
 4. Enable leaked-password protection in the live Supabase Auth settings. This remains an external dashboard/plan gate.
@@ -57,8 +58,8 @@ The percentage describes engineering readiness, not store approval or production
 
 - The disposable Android 15 `Janani_Test` AVD was freshly wiped and booted under WHPX. ADB repeatedly returned to `offline`; the only streamed install reached the OS but failed before installing Janani because the still-initializing emulator storage service had no `PackageManagerInternal`. The AVD was stopped afterward.
 - The existing `Pixel_7` AVD was not wiped or modified.
-- The final APK has therefore not been installed or launched in this host environment; no Janani runtime pass is claimed.
-- Two-device and physical-hardware behavior has not been claimed as tested.
+- A later physical-device session showed Janani running without a fatal native crash or ANR; sign-out produced a development navigation warning that is now patched and awaiting regression verification.
+- Two-device and physical-hardware feature behavior has not been claimed as fully tested.
 - GitHub Pages is live at `https://mkraja826.github.io/Janani/`; all five published routes were checked successfully after deployment.
 - One pre-existing Auth/profile account remains in the live project. Its ownership is unknown, so it is intentionally preserved and must not be used as disposable test data.
 - Supabase leaked-password protection is still disabled. Enabling it requires access to the correct project dashboard and may depend on the project plan.

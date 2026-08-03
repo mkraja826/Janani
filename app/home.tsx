@@ -112,7 +112,9 @@ export default function HomeScreen() {
   async function finishSignOut(discardPending = false) {
     try {
       await signOut({ discardPending });
-      router.replace('/');
+      // AuthGate observes the cleared session and redirects to /auth. Avoid an
+      // additional router.replace('/') while the authenticated navigator is
+      // being removed, which caused an unhandled REPLACE "index" warning.
     } catch (error) {
       if (error instanceof PendingOfflineChangesError) {
         Alert.alert(
