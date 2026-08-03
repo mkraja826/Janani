@@ -1,7 +1,9 @@
 import 'react-native-url-polyfill/auto';
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
+
+import { encryptedAuthStorage } from '@/lib/secureAuthStorage';
+import type { Database } from '@/types/database';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -10,11 +12,27 @@ if (!supabaseUrl || !supabasePublishableKey) {
   throw new Error('Missing Janani Supabase environment variables.');
 }
 
-export const supabase = createClient(supabaseUrl, supabasePublishableKey, {
+const jananiSupabaseUrl: string = supabaseUrl;
+const jananiSupabasePublishableKey: string = supabasePublishableKey;
+
+export const supabase = createClient<Database>(jananiSupabaseUrl, jananiSupabasePublishableKey, {
   auth: {
-    storage: AsyncStorage,
+    storage: encryptedAuthStorage,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
   },
 });
+
+export function createSessionBoundSupabaseClient(accessToken: string) {
+  return createClient<Database>(jananiSupabaseUrl, jananiSupabasePublishableKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+      detectSessionInUrl: false,
+    },
+    global: {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    },
+  });
+}

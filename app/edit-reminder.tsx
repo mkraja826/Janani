@@ -2,40 +2,82 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { cancelReminderNotification, scheduleDailyReminder } from '@/features/reminders/notifications';
+import {
+  cancelReminderNotifications,
+  NotificationPermissionError,
+  scheduleReminderNotifications,
+} from '@/features/reminders/notifications';
+import { isTransientError } from '@/lib/errors';
 import { enqueueMutation } from '@/lib/offlineQueue';
 import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/providers/AuthProvider';
 import { colors, radius, spacing } from '@/theme/tokens';
 
 const toTime = (value: Date) => `${String(value.getHours()).padStart(2,'0')}:${String(value.getMinutes()).padStart(2,'0')}`;
 
 export default function EditReminderScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { session } = useAuth();
   const [title,setTitle]=useState(''); const [instructions,setInstructions]=useState('');
   const [timeValue,setTimeValue]=useState(()=>new Date(2000,0,1,9,0)); const [showTime,setShowTime]=useState(false);
-  const [oldIdentifier,setOldIdentifier]=useState<string|null>(null); const [loading,setLoading]=useState(true); const [saving,setSaving]=useState(false);
+  const [schedule,setSchedule]=useState<{startDate:string;endDate:string|null;daysOfWeek:number[]}|null>(null); const [loading,setLoading]=useState(true); const [saving,setSaving]=useState(false);
 
-  useEffect(()=>{async function load(){const {data,error}=await supabase.from('reminders').select('title,instructions,local_time,notification_identifier').eq('id',id).single();if(error||!data){Alert.alert('Reminder unavailable',error?.message??'This reminder could not be found.');router.back();return;}const[h,m]=data.local_time.split(':').map(Number);setTitle(data.title);setInstructions(data.instructions??'');setTimeValue(new Date(2000,0,1,h,m));setOldIdentifier(data.notification_identifier);setLoading(false);}if(id)load();},[id]);
+  useEffect(()=>{async function load(){const {data,error}=await supabase.from('reminders').select('title,instructions,local_time,start_date,end_date,days_of_week').eq('id',id).single();if(error||!data){Alert.alert('Reminder unavailable',error?.message??'This reminder could not be found.');router.back();return;}const[h,m]=data.local_time.split(':').map(Number);setTitle(data.title);setInstructions(data.instructions??'');setTimeValue(new Date(2000,0,1,h,m));setSchedule({startDate:data.start_date,endDate:data.end_date,daysOfWeek:data.days_of_week});setLoading(false);}if(id)load();},[id]);
 
   function onTimeChange(event:DateTimePickerEvent,value?:Date){if(Platform.OS==='android')setShowTime(false);if(event.type!=='dismissed'&&value)setTimeValue(value);}
 
   async function save(){
-    if(!id||!title.trim()){Alert.alert('Check reminder','Add a reminder title.');return;}
+    if(!session||!id||!title.trim()){Alert.alert('Check reminder','Add a reminder title.');return;}
     setSaving(true);
     const time=toTime(timeValue);
-    const payload={p_reminder_id:id,p_title:title.trim(),p_instructions:instructions.trim(),p_local_time:`${time}:00`,old_notification_identifier:oldIdentifier};
+    const payload={p_reminder_id:id,p_title:title.trim(),p_instructions:instructions.trim(),p_local_time:`${time}:00`};
     const {data,error}=await supabase.rpc('update_reminder_offline_safe',{p_reminder_id:id,p_title:title.trim(),p_instructions:instructions.trim(),p_local_time:`${time}:00`});
     if(error||typeof data!=='string'){
-      await enqueueMutation('reminder_edit',payload);
+      if (error && !isTransientError(error)) {
+        setSaving(false);
+        Alert.alert('Could not update reminder', error.message);
+        return;
+      }
+      await enqueueMutation(session.user.id,'reminder_edit',payload);
       setSaving(false);
       Alert.alert('Saved for sync','Janani will update and reschedule this reminder when the connection returns.');
       router.replace('/reminders');
       return;
     }
-    try{await cancelReminderNotification(oldIdentifier);const next=await scheduleDailyReminder(title.trim(),instructions.trim()||null,time);await supabase.from('reminders').update({notification_identifier:next}).eq('id',id);}catch{}
-    setSaving(false);router.replace('/reminders');
+    let scheduleError: 'permission-denied' | 'failed' | null = null;
+    try {
+      await cancelReminderNotifications(session.user.id, id);
+      if (schedule) {
+        await scheduleReminderNotifications(session.user.id, {
+          id,
+          title: title.trim(),
+          instructions: instructions.trim() || null,
+          localTime: `${time}:00`,
+          startDate: schedule.startDate,
+          endDate: schedule.endDate,
+          daysOfWeek: schedule.daysOfWeek,
+        });
+      }
+    } catch (notificationError) {
+      scheduleError = notificationError instanceof NotificationPermissionError
+        ? 'permission-denied'
+        : 'failed';
+    }
+    setSaving(false);
+    if (scheduleError) {
+      Alert.alert(
+        'Reminder updated',
+        scheduleError === 'permission-denied'
+          ? 'Phone alerts are off. Enable notifications in device settings to receive this reminder.'
+          : 'The reminder was updated, but this phone could not reschedule its alert. Reopen Janani to try again.',
+        [{ text: 'View reminders', onPress: () => router.replace('/reminders') }],
+      );
+      return;
+    }
+    router.replace('/reminders');
   }
 
   if(loading)return <View style={styles.center}><ActivityIndicator color={colors.rose}/></View>;

@@ -2,12 +2,19 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { scheduleDailyReminder } from '@/features/reminders/notifications';
-import { readCache, writeCache } from '@/lib/cache';
+import {
+  NotificationPermissionError,
+  scheduleReminderNotifications,
+} from '@/features/reminders/notifications';
+import { resolveActivePregnancyId } from '@/features/pregnancy/activePregnancy';
+import { toLocalDate } from '@/lib/date';
+import { isTransientError } from '@/lib/errors';
 import { enqueueMutation } from '@/lib/offlineQueue';
 import { supabase } from '@/lib/supabase';
+import { randomUuid } from '@/lib/uuid';
 import { useAuth } from '@/providers/AuthProvider';
 import { colors, radius, spacing } from '@/theme/tokens';
 
@@ -20,7 +27,6 @@ const kinds = [
 ] as const;
 
 function toLocalTime(value: Date) { return `${String(value.getHours()).padStart(2, '0')}:${String(value.getMinutes()).padStart(2, '0')}`; }
-function mutationId() { return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => { const r = Math.floor(Math.random() * 16); return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16); }); }
 
 export default function NewReminderScreen() {
   const { session } = useAuth();
@@ -38,33 +44,15 @@ export default function NewReminderScreen() {
     if (event.type !== 'dismissed' && selected) setTimeValue(selected);
   }
 
-  async function resolvePregnancyId(userId: string): Promise<string | null> {
-    const cacheKey = `active-pregnancy-id:${userId}`;
-    const { data, error } = await supabase
-      .from('family_members')
-      .select('families(pregnancies(id,status))')
-      .eq('user_id', userId)
-      .maybeSingle();
-
-    if (!error) {
-      const family = Array.isArray(data?.families) ? data.families[0] : data?.families;
-      const pregnancies = family?.pregnancies;
-      const pregnancy = (Array.isArray(pregnancies) ? pregnancies : pregnancies ? [pregnancies] : []).find((item) => item.status === 'active');
-      if (pregnancy?.id) {
-        await writeCache(cacheKey, pregnancy.id);
-        return pregnancy.id;
-      }
-    }
-    return readCache<string>(cacheKey);
-  }
-
   async function save() {
     if (!session || !title.trim()) return Alert.alert('Check the reminder', 'Add a reminder title.');
     const days = Number(durationDays);
-    if (!Number.isInteger(days) || days < 1 || days > 365) return Alert.alert('Check duration', 'Choose a duration between 1 and 365 days.');
+    if (!Number.isInteger(days) || days < 1 || days > 60) {
+      return Alert.alert('Check duration', 'Choose a duration between 1 and 60 days.');
+    }
 
     setSaving(true);
-    const pregnancyId = await resolvePregnancyId(session.user.id);
+    const pregnancyId = await resolveActivePregnancyId(session.user.id);
     if (!pregnancyId) {
       setSaving(false);
       return Alert.alert('Pregnancy not available offline', 'Open Janani once with internet after pregnancy setup, then offline reminder creation will work.');
@@ -75,34 +63,57 @@ export default function NewReminderScreen() {
     end.setDate(end.getDate() + days - 1);
     const payload = {
       p_pregnancy_id: pregnancyId,
-      p_client_mutation_id: mutationId(),
+      p_client_mutation_id: randomUuid(),
       p_title: title.trim(),
       p_instructions: instructions.trim(),
       p_kind: kind,
-      p_start_date: start.toISOString().slice(0, 10),
-      p_end_date: end.toISOString().slice(0, 10),
+      p_start_date: toLocalDate(start),
+      p_end_date: toLocalDate(end),
       p_local_time: `${time}:00`,
       p_days_of_week: [0, 1, 2, 3, 4, 5, 6],
     };
 
     const { data: reminderId, error } = await supabase.rpc('create_reminder_idempotent', payload);
     if (error || typeof reminderId !== 'string') {
-      await enqueueMutation('reminder_create', payload);
+      if (error && !isTransientError(error)) {
+        setSaving(false);
+        Alert.alert('Could not save reminder', error.message);
+        return;
+      }
+      await enqueueMutation(session.user.id, 'reminder_create', payload);
       setSaving(false);
       Alert.alert('Saved on this phone', 'Janani will create this reminder and enable its phone alert when the connection returns.');
       router.replace('/reminders');
       return;
     }
 
+    let notificationStatus: 'enabled' | 'permission-denied' | 'failed' = 'enabled';
     try {
-      const notificationIdentifier = await scheduleDailyReminder(title.trim(), instructions.trim() || null, time);
-      if (notificationIdentifier) await supabase.from('reminders').update({ notification_identifier: notificationIdentifier }).eq('id', reminderId);
-    } catch {
-      Alert.alert('Reminder saved', 'The shared reminder is ready, but phone notifications could not be enabled.');
+      await scheduleReminderNotifications(session.user.id, {
+        id: reminderId,
+        title: title.trim(),
+        instructions: instructions.trim() || null,
+        localTime: `${time}:00`,
+        startDate: payload.p_start_date,
+        endDate: payload.p_end_date,
+        daysOfWeek: payload.p_days_of_week,
+      });
+    } catch (notificationError) {
+      notificationStatus = notificationError instanceof NotificationPermissionError
+        ? 'permission-denied'
+        : 'failed';
     }
 
     setSaving(false);
-    router.replace('/reminders');
+    Alert.alert(
+      'Reminder saved',
+      notificationStatus === 'enabled'
+        ? 'Janani will nudge gently around the preferred time. Android may delay non-urgent alerts to protect battery life.'
+        : notificationStatus === 'permission-denied'
+          ? 'The care reminder is saved, but phone alerts are off. Enable notifications in device settings to receive them.'
+          : 'The care reminder is saved, but this phone could not schedule its alert. Reopen Janani or edit the reminder to try again.',
+      [{ text: 'View reminders', onPress: () => router.replace('/reminders') }],
+    );
   }
 
   return <SafeAreaView style={styles.page}>
@@ -112,7 +123,7 @@ export default function NewReminderScreen() {
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.kindRow}>{kinds.map((item) => <Pressable key={item.value} onPress={() => setKind(item.value)} style={[styles.kind, kind === item.value && styles.kindActive]}><Ionicons name={item.icon} size={21} color={kind === item.value ? colors.surface : colors.rose} /><Text style={[styles.kindText, kind === item.value && styles.kindTextActive]}>{item.label}</Text></Pressable>)}</ScrollView>
       <Field label={kind === 'medication' ? 'Medicine name' : 'Reminder title'} value={title} onChangeText={setTitle} placeholder={kind === 'medication' ? 'Example: Iron tablet' : 'Example: Drink water'} />
       <Field label="Instructions (optional)" value={instructions} onChangeText={setInstructions} placeholder="Example: After breakfast, as prescribed" multiline />
-      <View style={styles.split}><View style={styles.flex}><Text style={styles.label}>Daily time</Text><Pressable onPress={() => setShowTimePicker(true)} style={styles.timeButton}><Ionicons name="time-outline" size={21} color={colors.rose} /><Text style={styles.timeText}>{timeValue.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</Text></Pressable></View><View style={styles.flex}><Field label="For how many days" value={durationDays} onChangeText={setDurationDays} placeholder="30" keyboardType="number-pad" /></View></View>
+      <View style={styles.split}><View style={styles.flex}><Text style={styles.label}>Preferred daily time</Text><Pressable onPress={() => setShowTimePicker(true)} style={styles.timeButton}><Ionicons name="time-outline" size={21} color={colors.rose} /><Text style={styles.timeText}>{timeValue.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</Text></Pressable></View><View style={styles.flex}><Field label="For how many days" value={durationDays} onChangeText={setDurationDays} placeholder="30" keyboardType="number-pad" /></View></View>
       {showTimePicker && <DateTimePicker value={timeValue} mode="time" display={Platform.OS === 'ios' ? 'spinner' : 'default'} onChange={onTimeChange} />}
       <View style={styles.safetyCard}><Ionicons name="shield-checkmark-outline" size={22} color={colors.sage} /><Text style={styles.safetyText}>Janani remembers what the family enters. Medicine name, dose, and duration should follow the prescribing doctor’s advice.</Text></View>
       <Pressable disabled={saving} onPress={save} style={styles.saveButton}>{saving ? <ActivityIndicator color={colors.surface} /> : <><Text style={styles.saveText}>Save daily reminder</Text><Ionicons name="checkmark-circle-outline" size={21} color={colors.surface} /></>}</Pressable>

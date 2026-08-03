@@ -1,53 +1,89 @@
-# Janani Privacy Policy — Draft
+# Janani Privacy Policy — Maintained Repository Source
 
-**Effective date:** To be set before public release
+**Effective date in the legal-site source:** August 3, 2026
 
-Janani is a pregnancy-support application for mothers and invited partners. This draft must be reviewed and updated with the final developer identity, support email, website address, hosting details, and applicable legal requirements before publication.
+**Publication status:** Ready for release review, but not yet publicly hosted. The intended canonical URL is `https://mkraja826.github.io/Janani/privacy/`; do not submit that URL to a store until GitHub Pages is enabled and the page is verified.
 
-## Information Janani may process
+This Markdown file is the maintained policy companion to `site/privacy/index.html`. The publishable HTML remains the legal-site source of record. Update both files together when Janani's data behavior or providers change.
 
-Janani may process account details, profile name, family membership, pregnancy dates, height and pre-pregnancy weight entered by the user, reminders, reminder completion records, journal entries, partner messages, device push tokens, and technical information needed to operate and secure the service.
+Janani is a pregnancy-support application. It is not a medical device and does not provide diagnosis, treatment, monitoring, or emergency services.
 
-Janani does not require users to enter a medical diagnosis. Users should avoid storing unnecessary sensitive information in free-text fields.
+## 1. Information Janani processes
 
-## How information is used
+Depending on the features used, Janani may process:
 
-Information is used to authenticate users, create a private family space, calculate pregnancy progress, display reminders, preserve journal entries, synchronize shared family information, deliver notifications, support the Android home-screen widget, prevent duplicate offline writes, and maintain service security and reliability.
+- account identifiers and email address;
+- profile, family membership, and mother-or-partner role information;
+- pregnancy dates and optional body measurements;
+- reminder content, schedules, and completion history;
+- journal entries, moods, and sharing choices;
+- partner messages and acknowledgements; and
+- device push tokens and technical information needed to deliver notifications and protect the service.
 
-## Mother and partner sharing
+Janani does not require a medical diagnosis. Users should avoid placing unnecessary sensitive information in free-text reminders, journals, messages, screenshots, or support requests.
 
-A partner can join only through a family invitation process. Shared reminders and partner messages are visible to linked family members. Journal entries are private by default and become visible to the linked partner only when the author explicitly enables sharing.
+## 2. How information is used
 
-## Device permissions
+Janani uses this information to authenticate accounts, create and protect a family space, calculate pregnancy progress, provide reminders, synchronize selected family information, deliver partner notifications, preserve journal entries, support offline synchronization, operate the home-screen widget, prevent duplicate writes, and maintain service reliability and security.
 
-Janani may request notification permission to deliver reminders and partner alerts. The Android widget reads only the latest Janani state stored locally by the app. Permission can be changed through device settings.
+## 3. Family sharing and journal choices
 
-## Storage and service providers
+A partner can join a family only through an invitation flow. Linked family members can see shared reminders and partner messages. Journal entries are private unless their author chooses to share them with the linked partner.
 
-Janani uses Supabase for authentication, database, realtime synchronization, and server-side functions. Expo notification infrastructure may be used to deliver push notifications. Final policy publication must identify all active processors and link to their privacy information.
+Sensitive mother-only pregnancy details—last menstrual period, height, and pre-pregnancy weight—and the active family invite code are not exposed to a linked partner through the application API. The due date and shared care state support the linked family experience.
 
-## Security
+## 4. Service providers
 
-Janani uses authenticated access, row-level database security, family membership checks, restricted push-token access, and encrypted network transport. No system can guarantee absolute security, and users should protect their device and account credentials.
+Janani uses:
 
-## Retention and deletion
+- Supabase for authentication, database storage, Realtime synchronization, and server functions;
+- Expo services for device-token registration and push-notification delivery; and
+- GitHub for the public legal site and public support issue tracker once Pages is enabled.
 
-Information is retained while the account and family space remain active or as needed to operate and secure the service. Before public release, Janani must provide a tested in-app account-deletion process and a public deletion-request method. Deletion behavior for shared family data must be documented clearly.
+Those providers may process technical logs under their own terms and privacy practices. Janani does not sell personal information and does not currently include advertising or dedicated analytics SDKs.
 
-## Children
+## 5. Device permissions and local storage
 
-Janani is intended for adults managing a pregnancy journey. It is not designed for use by children without appropriate legal consent and supervision.
+Notification permission is used for care and partner alerts. Android reboot and widget functionality may restore reminders and display selected care information. Janani keeps encrypted, per-user on-device caches and pending synchronization state, plus the minimum local notification and widget state needed for those features.
 
-## Medical limitation
+Device settings can limit permissions. Clearing Janani's app data or uninstalling the app removes app-controlled local storage from that device.
 
-Janani provides supportive reminders and educational information. It does not diagnose, prescribe, monitor a medical condition, or replace a doctor, emergency service, or qualified healthcare professional.
+## 6. Security
 
-## Changes
+Janani uses authenticated access controls, database Row Level Security, restricted column grants, protected server functions, private family-scoped Realtime invalidation, replay-resistant writes, and restricted access to device tokens. Data is sent over encrypted network connections supported by the app and its providers.
 
-Material changes to this policy should be communicated inside the app or through another appropriate channel, with an updated effective date.
+No application or storage system can guarantee absolute security. Users should protect their devices, passwords, and family invite codes.
 
-## Contact
+## 7. Retention, export, and deletion
 
-Developer/legal name: **[ADD BEFORE RELEASE]**  
-Support email: **[ADD BEFORE RELEASE]**  
-Website/privacy-policy URL: **[ADD BEFORE RELEASE]**
+Application data is retained while needed to provide the account and family space. Signed-in users can export a JSON copy in Settings and permanently delete their account from the app. Users who have an account but have not completed family onboarding also have an in-app deletion path.
+
+Permanent deletion requires typing `DELETE` and reauthenticating with the current password. Deletion removes the Auth account and active application data according to the user's family role:
+
+- deleting a mother account removes its associated family pregnancy space and dependent shared records;
+- deleting a partner account removes that partner and dependent authored records while preserving the mother's family pregnancy space; and
+- unlinking or leaving a family does not itself delete the user's Auth account.
+
+Infrastructure providers may retain limited backups or security logs for periods governed by operational or legal requirements. The account-deletion source now documents exact `DELETE` confirmation and current-password reauthentication at the intended public route, `https://mkraja826.github.io/Janani/account-deletion/`; that route must still be verified live before store submission.
+
+## 8. User choices
+
+Users can change notification permission in device settings, choose whether individual journal entries are shared, export their data, leave or disconnect a family relationship where the app provides that option, and permanently delete their account.
+
+## 9. Children
+
+Janani is intended for adults managing a pregnancy journey and is not directed to children.
+
+## 10. Medical and emergency information
+
+Janani does not monitor symptoms or contact emergency services. Severe pain, heavy bleeding, breathing difficulty, fainting, seizures, reduced consciousness, or any urgent concern requires immediate contact with local emergency services or a qualified maternity-care professional.
+
+## 11. Changes to this policy
+
+This policy may change as Janani changes. The effective date must be updated when a revised policy is published. Data behavior, providers, retention, permissions, public URLs, and support channels must be rechecked for every release.
+
+## 12. Contact and privacy requests
+
+No support email or separate legal identity is currently published; none is invented in this source. Janani currently directs users to the repository's [public GitHub Issues support path](https://github.com/mkraja826/Janani/issues).
+
+GitHub Issues and replies are public. Never post an email address, password, family invite code, pregnancy or health information, journal content, medication details, access token, device token, or screenshots containing personal data. Until a private security-reporting channel is published, users should open only a minimal issue asking the maintainer to provide a private method.

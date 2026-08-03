@@ -1,10 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, AppState, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { readCache, writeCache } from '@/lib/cache';
+import { isTransientError } from '@/lib/errors';
+import { enqueueMutation } from '@/lib/offlineQueue';
 import { supabase } from '@/lib/supabase';
+import { randomUuid } from '@/lib/uuid';
+import { useMembership } from '@/providers/AuthGate';
 import { useAuth } from '@/providers/AuthProvider';
 import { colors, radius, spacing } from '@/theme/tokens';
 
@@ -14,19 +19,33 @@ const CACHE_KEY = 'partner-nudges';
 
 export default function ThinkingOfYouScreen() {
   const { session } = useAuth();
+  const { onFamilyInvalidation } = useMembership();
   const [nudges, setNudges] = useState<Nudge[]>([]);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState<string | null>(null);
   const [offlineCopy, setOfflineCopy] = useState(false);
+  const userId = session?.user.id;
+  const loadRevision = useRef(0);
+
+  useEffect(() => {
+    loadRevision.current += 1;
+    setNudges([]);
+    setOfflineCopy(false);
+    setLoading(Boolean(userId));
+  }, [userId]);
 
   const load = useCallback(async () => {
-    const cached = await readCache<Nudge[]>(CACHE_KEY);
+    if (!userId) return;
+    const revision = ++loadRevision.current;
+    const cached = await readCache<Nudge[]>(userId, CACHE_KEY);
+    if (revision !== loadRevision.current) return;
     if (cached?.length) {
-      setNudges(cached);
+      setNudges((current) => current.length === 0 ? cached : current);
       setLoading(false);
     }
 
     const { data, error } = await supabase.from('partner_nudges').select('id, sender_id, message, created_at, acknowledged_at').order('created_at', { ascending: false }).limit(30);
+    if (revision !== loadRevision.current) return;
     if (error) {
       setOfflineCopy(Boolean(cached));
       if (!cached) Alert.alert('Could not load messages', error.message);
@@ -34,36 +53,76 @@ export default function ThinkingOfYouScreen() {
       const next = (data ?? []) as Nudge[];
       setNudges(next);
       setOfflineCopy(false);
-      await writeCache(CACHE_KEY, next);
+      await writeCache(userId, CACHE_KEY, next);
     }
     setLoading(false);
-  }, []);
+  }, [userId]);
 
+  useFocusEffect(useCallback(() => {
+    void load();
+  }, [load]));
   useEffect(() => {
-    load();
-    const channel = supabase.channel('janani-partner-nudges').on('postgres_changes', { event: '*', schema: 'public', table: 'partner_nudges' }, load).subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [load]);
+    const stopInvalidations = onFamilyInvalidation(
+      ['partner_nudges'],
+      () => void load(),
+    );
+    const appState = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void load();
+    });
+    return () => {
+      stopInvalidations();
+      appState.remove();
+    };
+  }, [load, onFamilyInvalidation]);
 
   async function send(message: string) {
+    if (!userId) return;
     setSending(message);
-    const { data, error } = await supabase.functions.invoke('send-partner-nudge', { body: { message } });
+    const clientMutationId = randomUuid();
+    const { data, error } = await supabase.functions.invoke('send-partner-nudge', {
+      body: { message, client_mutation_id: clientMutationId },
+    });
     setSending(null);
-    if (error) Alert.alert('Could not send warmth', error.message);
-    else {
-      const delivered = typeof data?.delivered_to === 'number' ? data.delivered_to : 0;
-      Alert.alert('Sent with love', delivered > 0 ? 'Your partner has been notified.' : 'Your partner will see it in Janani. Phone alerts will begin after their device registers.');
-      load();
+    if (error) {
+      if (isTransientError(error)) {
+        await enqueueMutation(userId, 'partner_nudge_send', {
+          message,
+          client_mutation_id: clientMutationId,
+        });
+        Alert.alert('Saved for later', 'Janani will send this note when the connection returns.');
+      } else {
+        Alert.alert('Could not send warmth', error.message);
+      }
+      return;
     }
+    const acceptedByExpo = typeof data?.accepted_by_expo === 'number' ? data.accepted_by_expo : 0;
+    Alert.alert(
+      'Sent with love',
+      acceptedByExpo > 0
+        ? 'The phone alert was accepted for delivery, and your partner will also see the note in Janani.'
+        : 'Your partner will see it in Janani. Phone alerts begin after their device registers.',
+    );
+    void load();
   }
 
   async function acknowledge(id: string) {
+    if (!userId) return;
+    const previous = nudges;
+    const next = nudges.map((item) => item.id === id
+      ? { ...item, acknowledged_at: new Date().toISOString() }
+      : item);
+    setNudges(next);
+    await writeCache(userId, CACHE_KEY, next);
     const { error } = await supabase.rpc('acknowledge_partner_nudge', { p_nudge_id: id });
-    if (!error) {
-      const next = nudges.map((item) => item.id === id ? { ...item, acknowledged_at: new Date().toISOString() } : item);
-      setNudges(next);
-      await writeCache(CACHE_KEY, next);
+    if (!error) return;
+    if (isTransientError(error)) {
+      await enqueueMutation(userId, 'partner_acknowledgement', { nudgeId: id });
+      setOfflineCopy(true);
+      return;
     }
+    setNudges(previous);
+    await writeCache(userId, CACHE_KEY, previous);
+    Alert.alert('Could not send acknowledgement', error.message);
   }
 
   return <SafeAreaView style={styles.page}>

@@ -2,10 +2,15 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Alert, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { resolveActivePregnancyId } from '@/features/pregnancy/activePregnancy';
+import { readCache, writeCache } from '@/lib/cache';
+import { isTransientError } from '@/lib/errors';
 import { enqueueMutation } from '@/lib/offlineQueue';
 import { supabase } from '@/lib/supabase';
+import { randomUuid } from '@/lib/uuid';
 import { useAuth } from '@/providers/AuthProvider';
 import { colors, radius, spacing } from '@/theme/tokens';
 
@@ -15,11 +20,18 @@ const moods = [
   { value: 5, emoji: '🥰', label: 'Joyful' },
 ];
 const dateOnly = (value: Date) => `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`;
-const mutationId = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (character) => {
-  const random = Math.floor(Math.random() * 16);
-  const value = character === 'x' ? random : (random & 0x3) | 0x8;
-  return value.toString(16);
-});
+const JOURNAL_CACHE_KEY = 'journal-timeline-v1';
+
+type CachedJournalEntry = {
+  id: string;
+  author_id: string;
+  title: string | null;
+  body: string;
+  mood: number | null;
+  entry_date: string;
+  is_shared_with_partner: boolean;
+  pending?: boolean;
+};
 
 export default function NewJournalEntryScreen() {
   const { session } = useAuth();
@@ -30,13 +42,16 @@ export default function NewJournalEntryScreen() {
   async function save() {
     if (!session || !body.trim()) return Alert.alert('Write a little more', 'Your journal entry needs a few words before it can be saved.');
     setSaving(true);
-    const { data: pregnancy, error: pregnancyError } = await supabase.from('pregnancies').select('id').eq('status', 'active').limit(1).maybeSingle();
-    if (pregnancyError || !pregnancy) { setSaving(false); return Alert.alert('Pregnancy profile not found', pregnancyError?.message ?? 'Complete onboarding before writing an entry.'); }
+    const pregnancyId = await resolveActivePregnancyId(session.user.id);
+    if (!pregnancyId) {
+      setSaving(false);
+      return Alert.alert('Pregnancy profile unavailable', 'Open Janani once while connected after onboarding, then offline journal saving will work.');
+    }
 
-    const clientMutationId = mutationId();
+    const clientMutationId = randomUuid();
     const payload = {
       p_client_mutation_id: clientMutationId,
-      p_pregnancy_id: pregnancy.id,
+      p_pregnancy_id: pregnancyId,
       p_title: title.trim(),
       p_body: body.trim(),
       p_mood: mood,
@@ -51,13 +66,23 @@ export default function NewJournalEntryScreen() {
       return;
     }
 
-    const transient = /network|fetch|timeout|connection|offline/i.test(error.message);
-    if (!transient) {
+    if (!isTransientError(error)) {
       Alert.alert('Could not save entry', error.message);
       return;
     }
 
-    await enqueueMutation('journal_save', payload);
+    await enqueueMutation(session.user.id, 'journal_save', payload);
+    const cached = await readCache<CachedJournalEntry[]>(session.user.id, JOURNAL_CACHE_KEY) ?? [];
+    await writeCache(session.user.id, JOURNAL_CACHE_KEY, [{
+      id: `offline:${clientMutationId}`,
+      author_id: session.user.id,
+      title: title.trim() || null,
+      body: body.trim(),
+      mood,
+      entry_date: dateOnly(entryDate),
+      is_shared_with_partner: shared,
+      pending: true,
+    }, ...cached]);
     Alert.alert('Saved on this phone', 'Janani will securely add this memory when the connection returns.', [
       { text: 'Open journal', onPress: () => router.replace('/journal') },
     ]);

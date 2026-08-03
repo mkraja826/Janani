@@ -1,47 +1,88 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, RefreshControl, SafeAreaView, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, Alert, AppState, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { readCache, writeCache } from '@/lib/cache';
+import { isTransientError } from '@/lib/errors';
 import { enqueueMutation } from '@/lib/offlineQueue';
 import { supabase } from '@/lib/supabase';
+import { useMembership } from '@/providers/AuthGate';
 import { useAuth } from '@/providers/AuthProvider';
 import { colors, radius, spacing } from '@/theme/tokens';
 
-type Entry = { id: string; author_id: string; title: string | null; body: string; mood: number | null; entry_date: string; is_shared_with_partner: boolean };
+type Entry = { id: string; author_id: string; title: string | null; body: string; mood: number | null; entry_date: string; is_shared_with_partner: boolean; pending?: boolean };
 const moodEmoji: Record<number, string> = { 1: '😞', 2: '😕', 3: '😌', 4: '🙂', 5: '🥰' };
 const CACHE_KEY = 'journal-timeline-v1';
 
 export default function JournalScreen() {
   const { session } = useAuth();
+  const { onFamilyInvalidation } = useMembership();
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [offline, setOffline] = useState(false);
-
-  const load = useCallback(async () => {
-    const cached = await readCache<Entry[]>(CACHE_KEY);
-    if (cached && loading) { setEntries(cached); setLoading(false); }
-    const { data, error } = await supabase.from('journal_entries').select('id, author_id, title, body, mood, entry_date, is_shared_with_partner').order('entry_date', { ascending: false }).order('created_at', { ascending: false });
-    if (error) { setOffline(true); if (!cached) Alert.alert('Could not load journal', error.message); }
-    else { const next=(data ?? []) as Entry[]; setEntries(next); setOffline(false); await writeCache(CACHE_KEY,next); }
-    setLoading(false); setRefreshing(false);
-  }, [loading]);
+  const userId = session?.user.id;
+  const loadRevision = useRef(0);
 
   useEffect(() => {
-    load();
-    const channel = supabase.channel('janani-journal').on('postgres_changes', { event: '*', schema: 'public', table: 'journal_entries' }, load).subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [load]);
+    loadRevision.current += 1;
+    setEntries([]);
+    setOffline(false);
+    setLoading(Boolean(userId));
+  }, [userId]);
+
+  const load = useCallback(async () => {
+    if (!userId) return;
+    const revision = ++loadRevision.current;
+    const cached = await readCache<Entry[]>(userId, CACHE_KEY);
+    if (revision !== loadRevision.current) return;
+    if (cached) {
+      setEntries((current) => current.length === 0 ? cached : current);
+      setLoading(false);
+    }
+    const { data, error } = await supabase.from('journal_entries').select('id, author_id, title, body, mood, entry_date, is_shared_with_partner').order('entry_date', { ascending: false }).order('created_at', { ascending: false });
+    if (revision !== loadRevision.current) return;
+    if (error) { setOffline(true); if (!cached) Alert.alert('Could not load journal', error.message); }
+    else { const next=(data ?? []) as Entry[]; setEntries(next); setOffline(false); await writeCache(userId,CACHE_KEY,next); }
+    setLoading(false); setRefreshing(false);
+  }, [userId]);
+
+  useFocusEffect(useCallback(() => {
+    void load();
+  }, [load]));
+  useEffect(() => {
+    const stopInvalidations = onFamilyInvalidation(
+      ['journal_entries'],
+      () => void load(),
+    );
+    const appState = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void load();
+    });
+    return () => {
+      stopInvalidations();
+      appState.remove();
+    };
+  }, [load, onFamilyInvalidation]);
 
   function remove(entry: Entry) {
     Alert.alert('Delete this memory?', 'This cannot be undone.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete', style: 'destructive', onPress: async () => {
-        const next=entries.filter((item)=>item.id!==entry.id); setEntries(next); await writeCache(CACHE_KEY,next);
+        if (!userId) return;
+        const next=entries.filter((item)=>item.id!==entry.id); setEntries(next); await writeCache(userId,CACHE_KEY,next);
         const { error } = await supabase.from('journal_entries').delete().eq('id', entry.id);
-        if (error) { await enqueueMutation('journal_delete',{entryId:entry.id}); setOffline(true); Alert.alert('Saved for later','Janani will delete this entry when the connection returns.'); }
+        if (!error) return;
+        if (isTransientError(error)) {
+          await enqueueMutation(userId,'journal_delete',{entryId:entry.id});
+          setOffline(true);
+          Alert.alert('Saved for later','Janani will delete this entry when the connection returns.');
+          return;
+        }
+        setEntries(entries);
+        await writeCache(userId, CACHE_KEY, entries);
+        Alert.alert('Could not delete entry', error.message);
       } },
     ]);
   }
@@ -53,7 +94,7 @@ export default function JournalScreen() {
       <View style={styles.note}><Ionicons name="lock-closed-outline" size={21} color={colors.rose} /><Text style={styles.noteText}>Every entry is private unless its author chooses to share it with the partner.</Text></View>
       {entries.length === 0 ? <View style={styles.empty}><Ionicons name="book-outline" size={44} color={colors.sage} /><Text style={styles.emptyTitle}>Your story begins here</Text><Text style={styles.emptyText}>Write about a feeling, a tiny milestone, a doctor visit, or something you want to remember years from now.</Text><Pressable onPress={() => router.push('/journal/new')} style={styles.primary}><Text style={styles.primaryText}>Write first entry</Text></Pressable></View> : entries.map((entry) => {
         const mine = entry.author_id === session?.user.id;
-        return <View key={entry.id} style={styles.card}><View style={styles.cardTop}><Text style={styles.date}>{new Date(`${entry.entry_date}T00:00:00`).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' })}</Text><View style={styles.badge}><Ionicons name={entry.is_shared_with_partner ? 'people-outline' : 'lock-closed-outline'} size={14} color={colors.roseDark} /><Text style={styles.badgeText}>{entry.is_shared_with_partner ? 'Shared' : 'Private'}</Text></View></View><View style={styles.moodRow}><Text style={styles.mood}>{entry.mood ? moodEmoji[entry.mood] : '🫶'}</Text><Text style={styles.author}>{mine ? 'Your entry' : 'Shared by your partner'}</Text></View>{!!entry.title && <Text style={styles.cardTitle}>{entry.title}</Text>}<Text style={styles.body}>{entry.body}</Text>{mine && <View style={styles.manageRow}><Pressable onPress={() => router.push({ pathname: '/edit-journal', params: { id: entry.id } })} style={styles.manageButton}><Ionicons name="create-outline" size={17} color={colors.roseDark} /><Text style={styles.manageText}>Edit entry</Text></Pressable><Pressable onPress={() => remove(entry)} style={styles.manageButton}><Ionicons name="trash-outline" size={17} color={colors.danger} /><Text style={[styles.manageText, { color: colors.danger }]}>Delete entry</Text></Pressable></View>}</View>;
+        return <View key={entry.id} style={styles.card}><View style={styles.cardTop}><Text style={styles.date}>{new Date(`${entry.entry_date}T00:00:00`).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' })}</Text><View style={styles.badge}><Ionicons name={entry.pending ? 'cloud-upload-outline' : entry.is_shared_with_partner ? 'people-outline' : 'lock-closed-outline'} size={14} color={colors.roseDark} /><Text style={styles.badgeText}>{entry.pending ? 'Pending sync' : entry.is_shared_with_partner ? 'Shared' : 'Private'}</Text></View></View><View style={styles.moodRow}><Text style={styles.mood}>{entry.mood ? moodEmoji[entry.mood] : '🫶'}</Text><Text style={styles.author}>{mine ? 'Your entry' : 'Shared by your partner'}</Text></View>{!!entry.title && <Text style={styles.cardTitle}>{entry.title}</Text>}<Text style={styles.body}>{entry.body}</Text>{mine && !entry.pending && <View style={styles.manageRow}><Pressable onPress={() => router.push({ pathname: '/edit-journal', params: { id: entry.id } })} style={styles.manageButton}><Ionicons name="create-outline" size={17} color={colors.roseDark} /><Text style={styles.manageText}>Edit entry</Text></Pressable><Pressable onPress={() => remove(entry)} style={styles.manageButton}><Ionicons name="trash-outline" size={17} color={colors.danger} /><Text style={[styles.manageText, { color: colors.danger }]}>Delete entry</Text></Pressable></View>}</View>;
       })}
     </ScrollView>}
   </SafeAreaView>;

@@ -4,23 +4,50 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   quality:
+    name: TypeScript, Expo, legal site, and Android
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: 20
-      - run: npm install --no-audit --no-fund
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+      - run: npm ci --no-audit --no-fund
+      - run: npm audit --omit=dev --audit-level=high
       - run: npm run typecheck
+      - run: npm run lint
+      - run: npx expo-doctor
+      - run: node .github/scripts/validate-legal-site.mjs
       - run: npx expo config --type public
-      - run: npx expo prebuild --platform android --no-install --non-interactive
+      - run: npx expo prebuild --platform android --clean --no-install
       - name: Verify widget generation
         run: |
           test -f android/app/src/main/java/com/mkraja826/janani/JananiWidgetModule.kt
           test -f android/app/src/main/java/com/mkraja826/janani/JananiWidgetPackage.kt
           test -f android/app/src/main/java/com/mkraja826/janani/JananiCareWidget.kt
           test -f android/app/src/main/res/layout/janani_care_widget.xml
-          grep -q "JananiWidgetPackage" android/app/src/main/java/com/mkraja826/janani/MainApplication.kt
+          grep -Eq '^[[:space:]]*(packages\.)?add\(JananiWidgetPackage\(\)\)[[:space:]]*$' android/app/src/main/java/com/mkraja826/janani/MainApplication.kt
+      - name: Compile Android x86_64 debug APK
+        working-directory: android
+        env:
+          NODE_ENV: development
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug -PreactNativeArchitectures=x86_64 --stacktrace --no-daemon --max-workers=2 --console=plain

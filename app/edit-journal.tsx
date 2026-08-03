@@ -1,26 +1,30 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, SafeAreaView, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { isTransientError } from '@/lib/errors';
 import { enqueueMutation } from '@/lib/offlineQueue';
 import { supabase } from '@/lib/supabase';
+import { randomUuid } from '@/lib/uuid';
+import { useAuth } from '@/providers/AuthProvider';
 import { colors, radius, spacing } from '@/theme/tokens';
 
 const moods = [{v:1,e:'😞'},{v:2,e:'😕'},{v:3,e:'😌'},{v:4,e:'🙂'},{v:5,e:'🥰'}];
-function mutationId() { return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => { const r = Math.floor(Math.random() * 16); return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16); }); }
 
 export default function EditJournalScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
+  const { session } = useAuth();
   const [title,setTitle]=useState(''); const [body,setBody]=useState(''); const [mood,setMood]=useState<number|null>(null); const [shared,setShared]=useState(false); const [loading,setLoading]=useState(true); const [saving,setSaving]=useState(false);
   useEffect(()=>{async function load(){const {data,error}=await supabase.from('journal_entries').select('title,body,mood,is_shared_with_partner').eq('id',id).single(); if(error||!data){Alert.alert('Entry unavailable',error?.message??'This entry could not be found.');router.back();return;} setTitle(data.title??'');setBody(data.body);setMood(data.mood);setShared(data.is_shared_with_partner);setLoading(false);} if(id)load();},[id]);
 
   async function save(){
-    if(!id || !body.trim()){Alert.alert('Write a little more','The journal entry cannot be empty.');return;}
+    if(!session || !id || !body.trim()){Alert.alert('Write a little more','The journal entry cannot be empty.');return;}
     setSaving(true);
     const payload = {
       p_entry_id: id,
-      p_client_mutation_id: mutationId(),
+      p_client_mutation_id: randomUuid(),
       p_title: title.trim(),
       p_body: body.trim(),
       p_mood: mood,
@@ -29,9 +33,13 @@ export default function EditJournalScreen() {
     const {error}=await supabase.rpc('update_journal_entry_idempotent', payload);
     setSaving(false);
     if(error){
-      await enqueueMutation('journal_edit', payload);
-      Alert.alert('Saved on this phone','Janani will update this memory safely when the connection returns.');
-      router.replace('/journal');
+      if (isTransientError(error)) {
+        await enqueueMutation(session.user.id, 'journal_edit', payload);
+        Alert.alert('Saved on this phone','Janani will update this memory safely when the connection returns.');
+        router.replace('/journal');
+      } else {
+        Alert.alert('Could not update entry', error.message);
+      }
     } else router.replace('/journal');
   }
 

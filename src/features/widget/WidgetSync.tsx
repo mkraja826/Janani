@@ -1,27 +1,43 @@
-import { useEffect } from 'react';
-import { NativeModules, Platform } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { AppState } from 'react-native';
 
 import { getPregnancyProgress } from '@/features/pregnancy/progress';
+import {
+  canUpdateNativeWidget,
+  clearPrivateWidgetContent,
+  updateNativeWidget,
+} from '@/features/widget/widgetState';
+import { toLocalDate } from '@/lib/date';
 import { supabase } from '@/lib/supabase';
+import { useMembership } from '@/providers/AuthGate';
 import { useAuth } from '@/providers/AuthProvider';
-
-const widgetBridge = NativeModules.JananiWidget as { update?: (state: Record<string, string>) => Promise<void> } | undefined;
 
 export function WidgetSync() {
   const { session } = useAuth();
+  const { familyId, onFamilyInvalidation } = useMembership();
+  const syncGeneration = useRef(0);
 
   useEffect(() => {
-    if (!session || Platform.OS !== 'android' || !widgetBridge?.update) return;
+    const generation = ++syncGeneration.current;
+    if (!session) {
+      void clearPrivateWidgetContent();
+      return;
+    }
+    if (!familyId || !canUpdateNativeWidget()) return;
 
     const userId = session.user.id;
-    const updateWidget = widgetBridge.update.bind(widgetBridge);
+    let disposed = false;
+    let running = false;
+    let rerunRequested = false;
+    const isCurrent = () => !disposed && syncGeneration.current === generation;
 
-    async function sync() {
+    async function performSync() {
       const membership = await supabase
         .from('family_members')
         .select('role,families(name,pregnancies(due_date,status))')
         .eq('user_id', userId)
         .maybeSingle();
+      if (!isCurrent()) return;
 
       const family = Array.isArray(membership.data?.families)
         ? membership.data?.families[0]
@@ -31,46 +47,76 @@ export function WidgetSync() {
       const pregnancy = pregnancyList.find((item) => item.status === 'active') ?? pregnancyList[0];
       const progress = pregnancy?.due_date ? getPregnancyProgress(pregnancy.due_date) : null;
 
-      const date = new Date().toISOString().slice(0, 10);
-      const reminder = await supabase
+      const date = toLocalDate();
+      const reminders = await supabase
         .from('reminders')
-        .select('title,local_time')
+        .select('id,local_time,days_of_week')
         .eq('is_active', true)
         .lte('start_date', date)
         .or(`end_date.is.null,end_date.gte.${date}`)
         .order('local_time')
-        .limit(1)
-        .maybeSingle();
+        .limit(50);
+      if (!isCurrent()) return;
+      const now = new Date();
+      const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+      const nextReminder = reminders.data?.find((item) => (
+        (item.days_of_week.length === 0 || item.days_of_week.includes(now.getDay()))
+        && item.local_time.slice(0, 5) >= currentTime
+      ));
       const nudge = await supabase
         .from('partner_nudges')
-        .select('message')
+        .select('id')
         .neq('sender_id', userId)
         .order('created_at', { ascending: false })
         .limit(1)
         .maybeSingle();
+      if (!isCurrent()) return;
 
-      await updateWidget({
+      await updateNativeWidget({
         week_label: progress ? `Week ${progress.gestationalWeek} · ${progress.gestationalDay} days` : 'Janani',
         family_label: family?.name ?? 'Our little family',
-        next_reminder: reminder.data
-          ? `${reminder.data.local_time.slice(0, 5)} · ${reminder.data.title}`
-          : 'No care reminder scheduled',
-        partner_message: nudge.data?.message ?? 'Send a little warmth',
+        next_reminder: nextReminder
+          ? `Care reminder around ${nextReminder.local_time.slice(0, 5)}`
+          : 'Open Janani for upcoming reminders',
+        partner_message: nudge.data ? 'A private partner message is waiting' : 'Send a little warmth',
       });
     }
 
-    sync().catch(() => undefined);
-    const channel = supabase
-      .channel('janani-widget-sync')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'reminders' }, () => sync())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'partner_nudges' }, () => sync())
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'pregnancies' }, () => sync())
-      .subscribe();
+    async function sync() {
+      if (disposed) return;
+      if (running) {
+        rerunRequested = true;
+        return;
+      }
+      running = true;
+      try {
+        do {
+          rerunRequested = false;
+          await performSync();
+        } while (rerunRequested && !disposed);
+      } catch {
+        // A later foreground or Realtime event will retry without exposing private data.
+      } finally {
+        running = false;
+        if (rerunRequested && !disposed) void sync();
+      }
+    }
+
+    void sync();
+    const appState = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void sync();
+    });
+    const stopInvalidations = onFamilyInvalidation(
+      ['families', 'pregnancies', 'reminders', 'partner_nudges'],
+      () => void sync(),
+    );
 
     return () => {
-      supabase.removeChannel(channel);
+      disposed = true;
+      appState.remove();
+      stopInvalidations();
     };
-  }, [session]);
+  }, [familyId, onFamilyInvalidation, session]);
 
   return null;
 }

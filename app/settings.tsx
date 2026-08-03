@@ -1,9 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, SafeAreaView, ScrollView, Share, StyleSheet, Text, TextInput, View } from 'react-native';
+import { File, Paths } from 'expo-file-system';
+import { router, useFocusEffect } from 'expo-router';
+import * as Sharing from 'expo-sharing';
+import { useCallback, useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { supabase } from '@/lib/supabase';
+import { useMembership } from '@/providers/AuthGate';
 import { useAuth } from '@/providers/AuthProvider';
 import { colors, radius, spacing } from '@/theme/tokens';
 
@@ -18,53 +22,74 @@ type AccountSummary = {
 
 export default function SettingsScreen() {
   const { session, signOut } = useAuth();
+  const { markMembership } = useMembership();
   const [summary, setSummary] = useState<AccountSummary | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [deleteText, setDeleteText] = useState('');
+  const [currentPassword, setCurrentPassword] = useState('');
+  const userId = session?.user.id;
 
-  useEffect(() => {
-    async function load() {
-      if (!session) return;
-      const { data, error } = await supabase
-        .from('family_members')
-        .select('role,family_id,families(name,family_members(role))')
-        .eq('user_id', session.user.id)
-        .maybeSingle();
-
-      if (error || !data) {
-        setLoading(false);
-        return;
-      }
-
-      const family = Array.isArray(data.families) ? data.families[0] : data.families;
-      const members = family?.family_members;
-      const list = Array.isArray(members) ? members : members ? [members] : [];
-      setSummary({
-        role: data.role as Role,
-        familyId: data.family_id,
-        familyName: family?.name ?? 'Our little family',
-        hasPartner: list.some((item) => item.role === 'partner'),
-      });
+  const load = useCallback(async () => {
+    if (!userId) {
       setLoading(false);
+      return;
     }
-    load();
-  }, [session]);
+    setLoading(true);
+    setLoadError(null);
+    const { data, error } = await supabase
+      .from('family_members')
+      .select('role,family_id,families(name,family_members(role))')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (error) {
+      setLoadError('Janani could not load your account settings. Check your connection and try again.');
+      setLoading(false);
+      return;
+    }
+    if (!data) {
+      await markMembership(false);
+      setLoading(false);
+      router.replace('/onboarding');
+      return;
+    }
+
+    const family = Array.isArray(data.families) ? data.families[0] : data.families;
+    const members = family?.family_members;
+    const list = Array.isArray(members) ? members : members ? [members] : [];
+    setSummary({
+      role: data.role as Role,
+      familyId: data.family_id,
+      familyName: family?.name ?? 'Our little family',
+      hasPartner: list.some((item) => item.role === 'partner'),
+    });
+    setLoading(false);
+  }, [markMembership, userId]);
+
+  useFocusEffect(useCallback(() => {
+    void load();
+  }, [load]));
 
   async function exportData() {
     if (!session) return;
     setBusy('export');
+    let exportFile: File | null = null;
     try {
-      const [profile, membership, pregnancies, reminders, reminderLogs, journal, nudges] = await Promise.all([
+      const [profile, membership, pregnancies, reminders, reminderLogs, journal, nudges, privatePregnancy] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', session.user.id).maybeSingle(),
         supabase.from('family_members').select('role,family_id,joined_at,families(name,created_at)').eq('user_id', session.user.id).maybeSingle(),
-        supabase.from('pregnancies').select('*').order('created_at'),
+        supabase.from('pregnancies').select('id,family_id,mother_id,due_date,status,created_at,updated_at').order('created_at'),
         supabase.from('reminders').select('*').order('created_at'),
         supabase.from('reminder_logs').select('*').order('scheduled_for'),
         supabase.from('journal_entries').select('*').order('entry_date'),
         supabase.from('partner_nudges').select('*').order('created_at'),
+        summary?.role === 'mother'
+          ? supabase.rpc('get_mother_pregnancy_private_details')
+          : Promise.resolve({ data: [], error: null }),
       ]);
-      const firstError = [profile, membership, pregnancies, reminders, reminderLogs, journal, nudges].find((item) => item.error)?.error;
+      const firstError = [profile, membership, pregnancies, reminders, reminderLogs, journal, nudges, privatePregnancy].find((item) => item.error)?.error;
       if (firstError) throw firstError;
 
       const payload = JSON.stringify({
@@ -73,18 +98,44 @@ export default function SettingsScreen() {
         profile: profile.data,
         membership: membership.data,
         pregnancies: pregnancies.data ?? [],
+        pregnancy_private_details: privatePregnancy.data ?? [],
         reminders: reminders.data ?? [],
         reminder_logs: reminderLogs.data ?? [],
         journal_entries: journal.data ?? [],
         partner_nudges: nudges.data ?? [],
       }, null, 2);
 
-      await Share.share({ title: 'Janani data export', message: payload });
+      if (!(await Sharing.isAvailableAsync())) {
+        throw new Error('File sharing is not available on this device.');
+      }
+      exportFile = new File(Paths.cache, `janani-data-export-${Date.now()}.json`);
+      exportFile.write(payload);
+      await Sharing.shareAsync(exportFile.uri, {
+        dialogTitle: 'Share Janani data export',
+        mimeType: 'application/json',
+        UTI: 'public.json',
+      });
     } catch (error) {
       Alert.alert('Could not export data', error instanceof Error ? error.message : 'Please try again while connected.');
     } finally {
+      try {
+        if (exportFile?.exists) exportFile.delete();
+      } catch {
+        // The operating system may already have removed the temporary file.
+      }
       setBusy(null);
     }
+  }
+
+  function confirmExport() {
+    Alert.alert(
+      'Export sensitive Janani data?',
+      'The JSON file can contain pregnancy dates, reminders, journal entries, and partner messages. Share it only with a destination you trust.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Continue', onPress: () => void exportData() },
+      ],
+    );
   }
 
   function leaveOrDisconnect() {
@@ -109,6 +160,7 @@ export default function SettingsScreen() {
               setSummary((current) => current ? { ...current, hasPartner: false } : current);
               Alert.alert('Partner disconnected', 'A new invite code has been created.');
             } else {
+              await markMembership(false);
               router.replace('/onboarding?role=partner');
             }
           },
@@ -118,8 +170,8 @@ export default function SettingsScreen() {
   }
 
   function confirmDelete() {
-    if (!summary || deleteText !== 'DELETE') {
-      Alert.alert('Confirmation needed', 'Type DELETE exactly before continuing.');
+    if (!summary || deleteText !== 'DELETE' || !currentPassword) {
+      Alert.alert('Confirmation needed', 'Type DELETE exactly and enter your current password.');
       return;
     }
 
@@ -136,12 +188,18 @@ export default function SettingsScreen() {
           style: 'destructive',
           onPress: async () => {
             setBusy('delete');
-            const { error } = await supabase.functions.invoke('delete-account', { body: { confirmation: 'DELETE' } });
+            const { error } = await supabase.functions.invoke('delete-account', {
+              body: {
+                confirmation: 'DELETE',
+                current_password: currentPassword,
+              },
+            });
             if (error) {
               setBusy(null);
               return Alert.alert('Could not delete account', error.message);
             }
-            await signOut().catch(() => undefined);
+            await markMembership(false);
+            await signOut({ discardPending: true }).catch(() => undefined);
             router.replace('/');
           },
         },
@@ -150,6 +208,18 @@ export default function SettingsScreen() {
   }
 
   if (loading) return <View style={styles.center}><ActivityIndicator color={colors.rose} /></View>;
+  if (loadError) {
+    return <SafeAreaView style={styles.page}>
+      <View style={styles.errorState}>
+        <Ionicons name="cloud-offline-outline" size={36} color={colors.rose} />
+        <Text style={styles.errorTitle}>Settings are temporarily unavailable</Text>
+        <Text style={styles.errorText}>{loadError}</Text>
+        <Pressable onPress={() => void load()} style={styles.retryButton}>
+          <Text style={styles.retryText}>Try again</Text>
+        </Pressable>
+      </View>
+    </SafeAreaView>;
+  }
 
   return <SafeAreaView style={styles.page}>
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
@@ -159,7 +229,7 @@ export default function SettingsScreen() {
       </View>
 
       <Section title="Your data">
-        <Action icon="download-outline" title="Export my Janani data" description="Share a JSON copy of your pregnancy profile, reminders, journal and partner messages." disabled={busy !== null} loading={busy === 'export'} onPress={exportData} />
+        <Action icon="download-outline" title="Export my Janani data" description="Share a JSON file containing your pregnancy profile, reminders, journal and partner messages." disabled={busy !== null} loading={busy === 'export'} onPress={confirmExport} />
         <Action icon="shield-checkmark-outline" title="Safety & privacy" description="Read how Janani handles health guidance, sharing and permissions." onPress={() => router.push('/safety-privacy')} />
       </Section>
 
@@ -176,7 +246,18 @@ export default function SettingsScreen() {
         <Text style={styles.warning}>{summary?.role === 'mother' ? 'For a mother account, deletion also removes the family pregnancy space and its shared records.' : 'For a partner account, deletion removes your membership and the records you authored.'}</Text>
         <Text style={styles.label}>Type DELETE to confirm</Text>
         <TextInput value={deleteText} onChangeText={setDeleteText} autoCapitalize="characters" placeholder="DELETE" placeholderTextColor={colors.muted} style={styles.input} />
-        <Pressable disabled={busy !== null || deleteText !== 'DELETE'} onPress={confirmDelete} style={[styles.deleteButton, (busy !== null || deleteText !== 'DELETE') && styles.disabled]}>
+        <Text style={styles.label}>Enter your current password</Text>
+        <TextInput
+          value={currentPassword}
+          onChangeText={setCurrentPassword}
+          autoCapitalize="none"
+          autoComplete="current-password"
+          secureTextEntry
+          placeholder="Current password"
+          placeholderTextColor={colors.muted}
+          style={[styles.input, styles.passwordInput]}
+        />
+        <Pressable disabled={!summary || busy !== null || deleteText !== 'DELETE' || !currentPassword} onPress={confirmDelete} style={[styles.deleteButton, (!summary || busy !== null || deleteText !== 'DELETE' || !currentPassword) && styles.disabled]}>
           {busy === 'delete' ? <ActivityIndicator color={colors.surface} /> : <><Ionicons name="trash-outline" size={19} color={colors.surface} /><Text style={styles.deleteText}>Delete account permanently</Text></>}
         </Pressable>
       </Section>
@@ -193,5 +274,5 @@ function Action({ icon, title, description, onPress, danger = false, disabled = 
 }
 
 const styles = StyleSheet.create({
-  page:{flex:1,backgroundColor:colors.background},center:{flex:1,alignItems:'center',justifyContent:'center',backgroundColor:colors.background},content:{padding:spacing.lg,paddingBottom:spacing.xxl,gap:spacing.xl},header:{flexDirection:'row',alignItems:'center',gap:spacing.md},flex:{flex:1},iconButton:{width:44,height:44,borderRadius:radius.pill,alignItems:'center',justifyContent:'center',backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border},eyebrow:{fontSize:11,letterSpacing:1.8,fontWeight:'800',color:colors.rose},title:{marginTop:4,fontSize:27,lineHeight:34,fontWeight:'800',color:colors.ink},section:{gap:spacing.md,padding:spacing.lg,borderRadius:radius.lg,backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border},dangerSection:{borderColor:'#F0C8C8'},sectionTitle:{fontSize:18,fontWeight:'800',color:colors.ink},action:{flexDirection:'row',alignItems:'center',gap:spacing.md,paddingVertical:spacing.sm},actionIcon:{width:44,height:44,borderRadius:radius.md,alignItems:'center',justifyContent:'center',backgroundColor:colors.blush},actionTitle:{fontSize:15,fontWeight:'800',color:colors.ink},actionDescription:{marginTop:3,fontSize:12,lineHeight:17,color:colors.muted},familyCard:{padding:spacing.md,borderRadius:radius.md,backgroundColor:colors.blush},familyName:{fontSize:17,fontWeight:'800',color:colors.ink},roleText:{marginTop:4,fontSize:12,color:colors.muted},warning:{fontSize:13,lineHeight:20,color:colors.muted},label:{fontSize:13,fontWeight:'800',color:colors.danger},input:{minHeight:52,paddingHorizontal:spacing.md,borderRadius:radius.md,borderWidth:1,borderColor:'#E4B5B5',backgroundColor:colors.background,fontSize:16,fontWeight:'800',letterSpacing:1.5,color:colors.ink},deleteButton:{minHeight:54,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:spacing.sm,borderRadius:radius.pill,backgroundColor:colors.danger},deleteText:{fontSize:15,fontWeight:'800',color:colors.surface},disabled:{opacity:.45}
+  page:{flex:1,backgroundColor:colors.background},center:{flex:1,alignItems:'center',justifyContent:'center',backgroundColor:colors.background},errorState:{flex:1,alignItems:'center',justifyContent:'center',gap:spacing.md,padding:spacing.xl},errorTitle:{textAlign:'center',fontSize:20,fontWeight:'800',color:colors.ink},errorText:{maxWidth:340,textAlign:'center',fontSize:14,lineHeight:21,color:colors.muted},retryButton:{minWidth:130,minHeight:50,alignItems:'center',justifyContent:'center',borderRadius:radius.pill,backgroundColor:colors.rose},retryText:{fontWeight:'800',color:colors.surface},content:{padding:spacing.lg,paddingBottom:spacing.xxl,gap:spacing.xl},header:{flexDirection:'row',alignItems:'center',gap:spacing.md},flex:{flex:1},iconButton:{width:44,height:44,borderRadius:radius.pill,alignItems:'center',justifyContent:'center',backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border},eyebrow:{fontSize:11,letterSpacing:1.8,fontWeight:'800',color:colors.rose},title:{marginTop:4,fontSize:27,lineHeight:34,fontWeight:'800',color:colors.ink},section:{gap:spacing.md,padding:spacing.lg,borderRadius:radius.lg,backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border},dangerSection:{borderColor:'#F0C8C8'},sectionTitle:{fontSize:18,fontWeight:'800',color:colors.ink},action:{flexDirection:'row',alignItems:'center',gap:spacing.md,paddingVertical:spacing.sm},actionIcon:{width:44,height:44,borderRadius:radius.md,alignItems:'center',justifyContent:'center',backgroundColor:colors.blush},actionTitle:{fontSize:15,fontWeight:'800',color:colors.ink},actionDescription:{marginTop:3,fontSize:12,lineHeight:17,color:colors.muted},familyCard:{padding:spacing.md,borderRadius:radius.md,backgroundColor:colors.blush},familyName:{fontSize:17,fontWeight:'800',color:colors.ink},roleText:{marginTop:4,fontSize:12,color:colors.muted},warning:{fontSize:13,lineHeight:20,color:colors.muted},label:{fontSize:13,fontWeight:'800',color:colors.danger},input:{minHeight:52,paddingHorizontal:spacing.md,borderRadius:radius.md,borderWidth:1,borderColor:'#E4B5B5',backgroundColor:colors.background,fontSize:16,fontWeight:'800',letterSpacing:1.5,color:colors.ink},passwordInput:{fontWeight:'400',letterSpacing:0},deleteButton:{minHeight:54,flexDirection:'row',alignItems:'center',justifyContent:'center',gap:spacing.sm,borderRadius:radius.pill,backgroundColor:colors.danger},deleteText:{fontSize:15,fontWeight:'800',color:colors.surface},disabled:{opacity:.45}
 });

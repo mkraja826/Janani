@@ -1,0 +1,4 @@
+-- Intentionally empty.
+--
+-- Janani has no production-like seed data. Keeping this file present makes
+-- `supabase db reset` deterministic because config.toml enables this path.

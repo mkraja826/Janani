@@ -7,13 +7,25 @@
     "userInterfaceStyle": "light",
     "scheme": "janani",
     "primaryColor": "#C86B7A",
+    "icon": "./assets/icon.png",
     "plugins": [
       "expo-router",
       "expo-secure-store",
       [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#FFF7F2",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 180,
+          "resizeMode": "contain"
+        }
+      ],
+      [
         "expo-notifications",
         {
-          "defaultChannel": "gentle-reminders"
+          "defaultChannel": "janani-care-reminders",
+          "icon": "./assets/notification-icon.png",
+          "color": "#C86B7A"
         }
       ],
       "./plugins/withJananiWidget"
@@ -21,25 +33,37 @@
     "android": {
       "package": "com.mkraja826.janani",
       "versionCode": 1,
+      "allowBackup": false,
+      "edgeToEdgeEnabled": true,
       "permissions": [
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.RECEIVE_BOOT_COMPLETED",
         "android.permission.VIBRATE"
       ],
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "monochromeImage": "./assets/monochrome-icon.png",
         "backgroundColor": "#FFF7F2"
       }
     },
     "ios": {
       "bundleIdentifier": "com.mkraja826.janani",
       "buildNumber": "1",
-      "supportsTablet": true
+      "supportsTablet": false
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
     },
     "experiments": {
       "typedRoutes": true
     },
     "extra": {
-      "medicalDisclaimer": "Janani provides supportive reminders and educational information. It does not diagnose, prescribe, or replace professional medical care."
-    }
+      "medicalDisclaimer": "Janani provides supportive reminders and educational information. It does not diagnose, prescribe, or replace professional medical care.",
+      "router": {},
+      "eas": {
+        "projectId": "2897dd94-47bf-4b4c-a7a9-82e40aaa65a1"
+      }
+    },
+    "owner": "astromicirql"
   }
 }

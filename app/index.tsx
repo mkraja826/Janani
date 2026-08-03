@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { Pressable, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/providers/AuthProvider';
 import { colors, radius, spacing, typography } from '@/theme/tokens';
@@ -9,7 +10,11 @@ export default function WelcomeScreen() {
   const { session, loading } = useAuth();
 
   function begin(role: 'mother' | 'partner') {
-    router.push(session ? { pathname: '/onboarding', params: { role } } : '/auth');
+    router.push(
+      session
+        ? { pathname: '/onboarding', params: { role } }
+        : { pathname: '/auth', params: { role } },
+    );
   }
 
   return (

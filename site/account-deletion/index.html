@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Instructions for permanently deleting a Janani account in the app, plus a public support path for users who cannot sign in.">
+  <meta name="theme-color" content="#fff7f2">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests">
+  <link rel="canonical" href="https://mkraja826.github.io/Janani/account-deletion/">
+  <link rel="stylesheet" href="../assets/styles.css">
+  <title>Account Deletion — Janani</title>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="../">Janani</a>
+      <nav class="site-nav" aria-label="Legal and support">
+        <ul>
+          <li><a href="../privacy/">Privacy</a></li>
+          <li><a href="../terms/">Terms</a></li>
+          <li><a href="./" aria-current="page">Delete account</a></li>
+          <li><a href="../support/">Support</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+  <main id="main-content" class="page" tabindex="-1">
+    <article class="article">
+      <h1>Delete your Janani account</h1>
+      <p class="lede">The safest and fastest deletion method is the authenticated control inside Janani. Deletion is permanent and cannot be undone.</p>
+
+      <h2>Delete while signed in</h2>
+      <ol class="steps">
+        <li>Open Janani and sign in to the account you want to delete.</li>
+        <li>Open <strong>Settings</strong> from the Home screen and scroll to <strong>Delete account</strong>. If the account is not in a family yet, choose <strong>Delete account</strong> on the onboarding screen instead.</li>
+        <li>Enter the account's current password and type <code>DELETE</code> exactly in the confirmation field.</li>
+        <li>Select <strong>Delete account permanently</strong>, read the final warning, and confirm.</li>
+      </ol>
+      <p>The app submits the request only from an authenticated session. If it reports an error, the account has not been confirmed as deleted; check connectivity and try again.</p>
+
+      <h2>What deletion removes</h2>
+      <ul>
+        <li><strong>Mother account:</strong> deleting the account removes its associated family pregnancy space and shared records that depend on that family.</li>
+        <li><strong>Partner account:</strong> deleting the account removes the partner account and data that depends on it, while preserving the mother's family pregnancy space.</li>
+        <li><strong>On-device data:</strong> sign-out and deletion cleanup is app controlled. You can also clear Janani's app storage or uninstall the app to remove app-controlled local data from that device.</li>
+      </ul>
+      <p>Infrastructure providers may retain limited backups or security logs for periods governed by their operational or legal requirements. Read the <a href="../privacy/">Privacy Policy</a> for more detail.</p>
+
+      <h2>Cannot sign in?</h2>
+      <p>You can open a public GitHub Issue to request help reaching the deletion flow. Opening an issue does not itself delete an account and cannot verify account ownership; it asks the maintainer for the next available support step.</p>
+      <p class="notice"><strong>GitHub Issues are public.</strong> Do not include your email address, password, family invite code, pregnancy or health details, journal text, medication information, device token, or any other personal data.</p>
+      <p><a class="button-link" href="https://github.com/mkraja826/Janani/issues/new?title=Account%20deletion%20help&amp;body=I%20need%20help%20accessing%20the%20in-app%20account%20deletion%20flow.%20I%20have%20not%20included%20personal%20or%20health%20information.">Request account-deletion help on GitHub</a></p>
+      <p>If you do not want to make a public request, do not post account information. There is currently no published support email; use the signed-in deletion control when possible.</p>
+    </article>
+  </main>
+  <footer class="site-footer">
+    <div class="footer-inner">
+      <nav class="footer-nav" aria-label="Footer">
+        <ul>
+          <li><a href="../">Legal home</a></li>
+          <li><a href="../privacy/">Privacy</a></li>
+          <li><a href="../terms/">Terms</a></li>
+          <li><a href="../support/">Support</a></li>
+        </ul>
+      </nav>
+      <p>Last updated: August 3, 2026.</p>
+    </div>
+  </footer>
+</body>
+</html>

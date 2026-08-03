@@ -14,13 +14,21 @@ module.exports = function withJananiWidget(config) {
   config = withAndroidManifest(config, (mod) => {
     const application = AndroidConfig.Manifest.getMainApplicationOrThrow(mod.modResults);
     application.receiver = application.receiver || [];
-    if (!application.receiver.some((item) => item.$?.['android:name'] === RECEIVER)) {
-      application.receiver.push({
-        $: { 'android:name': RECEIVER, 'android:exported': 'true', 'android:label': 'Janani care' },
+    let receiver = application.receiver.find((item) => item.$?.['android:name'] === RECEIVER);
+    if (!receiver) {
+      receiver = {
+        $: { 'android:name': RECEIVER, 'android:exported': 'false', 'android:label': 'Janani care' },
         'intent-filter': [{ action: [{ $: { 'android:name': 'android.appwidget.action.APPWIDGET_UPDATE' } }] }],
         'meta-data': [{ $: { 'android:name': 'android.appwidget.provider', 'android:resource': '@xml/janani_care_widget_info' } }],
-      });
+      };
+      application.receiver.push(receiver);
     }
+    receiver.$ = {
+      ...receiver.$,
+      'android:name': RECEIVER,
+      'android:exported': 'false',
+      'android:label': 'Janani care',
+    };
     return mod;
   });
 
@@ -30,11 +38,26 @@ module.exports = function withJananiWidget(config) {
       const packageLine = contents.match(/^package .*$/m)?.[0];
       if (packageLine) contents = contents.replace(packageLine, `${packageLine}\n\nimport com.mkraja826.janani.JananiWidgetPackage`);
     }
-    if (!contents.includes('packages.add(JananiWidgetPackage())')) {
-      contents = contents.replace(
-        /val packages = PackageList\(this\)\.packages/,
-        'val packages = PackageList(this).packages\n              packages.add(JananiWidgetPackage())',
-      );
+    const hasRegistration = /^\s*(?:packages\.)?add\(JananiWidgetPackage\(\)\)\s*$/m.test(contents);
+    if (!hasRegistration) {
+      const sdk54Packages = /^(\s*)PackageList\(this\)\.packages\.apply\s*\{/m;
+      const legacyPackages = /^(\s*)val packages = PackageList\(this\)\.packages\s*$/m;
+
+      if (sdk54Packages.test(contents)) {
+        contents = contents.replace(
+          sdk54Packages,
+          (match, indentation) => `${match}\n${indentation}  add(JananiWidgetPackage())`,
+        );
+      } else if (legacyPackages.test(contents)) {
+        contents = contents.replace(
+          legacyPackages,
+          (match, indentation) => `${match}\n${indentation}packages.add(JananiWidgetPackage())`,
+        );
+      } else {
+        throw new Error(
+          'Janani widget package registration failed: unsupported Android MainApplication template.',
+        );
+      }
     }
     mod.modResults.contents = contents;
     return mod;
