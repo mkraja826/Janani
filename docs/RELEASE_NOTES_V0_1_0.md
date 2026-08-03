@@ -2,7 +2,7 @@
 
 Janani is a pregnancy-support app for mothers and linked partners. This candidate focuses on gentle daily-care support, shared family reminders, private journaling, emotional connection, and resilient offline behavior.
 
-**Distribution status:** Not cleared for public release or closed testing yet. The live backend is hardened, but final Android execution and two-device evidence, production signing, public policy hosting, and one live Supabase Auth security setting remain open.
+**Distribution status:** Not cleared for public release or closed testing yet. The live backend and public policy hosting are in place, but final Android execution and two-device evidence, production signing, and one live Supabase Auth security setting remain open.
 
 ## Included
 
@@ -35,6 +35,7 @@ Janani is a pregnancy-support app for mothers and linked partners. This candidat
 - A clean Expo SDK 54 Android prebuild completed after the final client hardening changes, with the generated widget bridge/provider verified.
 - The final application/native source compiled to an x86_64 debug APK (46,080,516 bytes; SHA-256 `16d05f331d5392a8745b44131a6c510ae0c6ddf326277259f330efcb2721c088`).
 - The current host has not installed or launched that APK. The disposable Android 15 AVD repeatedly dropped back to ADB `offline`, and its only install attempt failed inside the still-initializing emulator storage service before Janani was installed.
+- GitHub Pages deployed successfully, and the public home, privacy, terms, account-deletion, and support routes returned HTTP 200 over HTTPS.
 - Physical two-device, real push, notification, reboot, widget, and signed-AAB testing have not been completed.
 
 ## Important limitations and release gates
@@ -46,7 +47,6 @@ Janani is a pregnancy-support app for mothers and linked partners. This candidat
 - Real push delivery and widget behavior require physical-device verification even though the EAS project is linked.
 - Leaked-password protection is still disabled in the live Supabase Auth settings and must be enabled if supported by the project plan.
 - Production signing is not configured and no release AAB has been approved.
-- The legal-site source exists, but GitHub Pages and the expected public policy/support URLs are not live yet.
 - Account deletion passed backend smoke testing, but the in-app flow still requires disposable-device acceptance for mother, partner, and no-family accounts.
 
 ## Tester focus after a build is cleared

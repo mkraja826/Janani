@@ -74,10 +74,9 @@ Release approval still requires:
 - two-device mother/partner, offline, Realtime, push, notification, widget, unlinking, export, and deletion acceptance tests;
 - enabling leaked-password protection in the live Supabase Auth settings, subject to dashboard access and plan support;
 - production Android signing and a verified AAB;
-- enabling GitHub Pages and confirming every privacy, terms, support, and deletion URL is publicly reachable; and
 - a passing GitHub review/CI cycle plus final Play Console declarations.
 
-The repository contains a validated legal-site source, but GitHub Pages is not live yet. Do not use the expected Pages URLs in a store listing until they have been published and checked.
+The GitHub Pages legal/support site is live, and its home, privacy, terms, support, and account-deletion routes have been verified over HTTPS.
 
 See:
 

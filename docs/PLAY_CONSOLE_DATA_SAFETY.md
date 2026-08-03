@@ -157,7 +157,7 @@ Verification status:
 External deletion resource:
 
 - intended URL: `https://mkraja826.github.io/Janani/account-deletion/`;
-- current status: not live because GitHub Pages is not enabled;
+- current status: live over HTTPS and verified with HTTP 200 after the workflow deployment;
 - the source page now documents both exact `DELETE` confirmation and current-password reauthentication; and
 - before Play submission, confirm the external path satisfies Google's requirement to let a user request account and associated-data deletion even when the user cannot use the in-app path. A public issue that merely asks for help may not, by itself, prove a complete deletion-request process.
 

@@ -1,6 +1,6 @@
 # Janani Project Progress
 
-**Overall progress: 94%**
+**Overall progress: 95%**
 
 **Status:** Production-readiness verification; not publicly launched
 
@@ -24,6 +24,7 @@ The percentage describes engineering readiness, not store approval or production
 - Local reminder schedules honor start date, end date, local time, and selected weekdays, and are reconciled on a rolling horizon.
 - Original app icon, adaptive foreground, monochrome, splash, notification, and favicon assets are wired into Expo configuration.
 - The legal-site source contains Privacy, Terms, Account Deletion, Support, robots, sitemap, accessibility, and security metadata.
+- GitHub Pages is enabled in workflow mode; the home, privacy, terms, account-deletion, and support routes were deployed and returned HTTP 200 over HTTPS.
 - EAS is linked to `@astromicirql/janani` with project ID `2897dd94-47bf-4b4c-a7a9-82e40aaa65a1`; public environment variables are configured for development, preview, and production profiles.
 
 ## Verified live Supabase backend
@@ -49,9 +50,8 @@ The percentage describes engineering readiness, not store approval or production
 3. Verify real push delivery, notification timing/taps, reboot recovery, and widget rendering/deep links on physical hardware.
 4. Enable leaked-password protection in the live Supabase Auth settings. This remains an external dashboard/plan gate.
 5. Configure production signing, build a signed AAB, and verify its install/update behavior.
-6. Enable GitHub Pages and verify the public privacy, terms, account-deletion, and support URLs.
-7. Push the production-readiness branch, pass GitHub Actions, complete review, and merge intentionally.
-8. Reconcile the final dependency tree and behavior with the current Play Console Data Safety form, then complete closed-testing and store-listing materials.
+6. Pass the final GitHub Actions quality run, complete review, and merge intentionally.
+7. Reconcile the final dependency tree and behavior with the current Play Console Data Safety form, then complete closed-testing and store-listing materials.
 
 ## Environment and operational notes
 
@@ -59,7 +59,7 @@ The percentage describes engineering readiness, not store approval or production
 - The existing `Pixel_7` AVD was not wiped or modified.
 - The final APK has therefore not been installed or launched in this host environment; no Janani runtime pass is claimed.
 - Two-device and physical-hardware behavior has not been claimed as tested.
-- GitHub Pages source and workflow exist, but the site is not currently enabled or publicly live.
+- GitHub Pages is live at `https://mkraja826.github.io/Janani/`; all five published routes were checked successfully after deployment.
 - One pre-existing Auth/profile account remains in the live project. Its ownership is unknown, so it is intentionally preserved and must not be used as disposable test data.
 - Supabase leaked-password protection is still disabled. Enabling it requires access to the correct project dashboard and may depend on the project plan.
 - `npm audit --omit=dev --audit-level=high` passes. It reports 15 moderate transitive `uuid`/Expo build-tool findings whose offered forced fix downgrades Expo incompatibly; no forced major change was applied.

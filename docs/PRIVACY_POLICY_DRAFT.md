@@ -2,7 +2,7 @@
 
 **Effective date in the legal-site source:** August 3, 2026
 
-**Publication status:** Ready for release review, but not yet publicly hosted. The intended canonical URL is `https://mkraja826.github.io/Janani/privacy/`; do not submit that URL to a store until GitHub Pages is enabled and the page is verified.
+**Publication status:** Published and verified over HTTPS at `https://mkraja826.github.io/Janani/privacy/`.
 
 This Markdown file is the maintained policy companion to `site/privacy/index.html`. The publishable HTML remains the legal-site source of record. Update both files together when Janani's data behavior or providers change.
 
@@ -64,7 +64,7 @@ Permanent deletion requires typing `DELETE` and reauthenticating with the curren
 - deleting a partner account removes that partner and dependent authored records while preserving the mother's family pregnancy space; and
 - unlinking or leaving a family does not itself delete the user's Auth account.
 
-Infrastructure providers may retain limited backups or security logs for periods governed by operational or legal requirements. The account-deletion source now documents exact `DELETE` confirmation and current-password reauthentication at the intended public route, `https://mkraja826.github.io/Janani/account-deletion/`; that route must still be verified live before store submission.
+Infrastructure providers may retain limited backups or security logs for periods governed by operational or legal requirements. The live account-deletion route, `https://mkraja826.github.io/Janani/account-deletion/`, documents exact `DELETE` confirmation and current-password reauthentication.
 
 ## 8. User choices
 
