@@ -30,7 +30,11 @@ create table if not exists public.health_conditions (
   status text not null check (status in ('doctor_diagnosed','under_evaluation','pregnancy_history')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  unique (pregnancy_id, condition_code)
+  unique (pregnancy_id, condition_code),
+  check (
+    condition_code not in ('previous_preeclampsia','previous_miscarriage','previous_preterm_birth')
+    or status = 'pregnancy_history'
+  )
 );
 
 create index if not exists health_profiles_mother_id_idx on public.health_profiles(mother_id);
