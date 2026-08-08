@@ -58,6 +58,8 @@ as $$
 declare
   v_user uuid := auth.uid();
   v_entitlement public.care_plus_entitlements%rowtype;
+  v_usage public.ai_usage_monthly%rowtype;
+  v_month date := date_trunc('month', now())::date;
 begin
   if v_user is null then
     raise exception 'authentication required';
@@ -67,8 +69,28 @@ begin
   from public.care_plus_entitlements
   where user_id = v_user;
 
+  select * into v_usage
+  from public.ai_usage_monthly
+  where user_id = v_user and month_start = v_month;
+
   if not found then
-    return jsonb_build_object('active', false, 'status', 'none');
+    -- v_usage may be absent; entitlement is checked independently below.
+    null;
+  end if;
+
+  if not exists (select 1 from public.care_plus_entitlements where user_id = v_user) then
+    return jsonb_build_object(
+      'active', false,
+      'status', 'none',
+      'planCode', null,
+      'currentPeriodEnd', null,
+      'requestsUsed', coalesce(v_usage.requests_used, 0),
+      'requestsLimit', 100,
+      'inputTokensUsed', coalesce(v_usage.input_tokens_used, 0),
+      'inputTokensLimit', 150000,
+      'outputTokensUsed', coalesce(v_usage.output_tokens_used, 0),
+      'outputTokensLimit', 50000
+    );
   end if;
 
   return jsonb_build_object(
@@ -76,7 +98,13 @@ begin
       and (v_entitlement.current_period_end is null or v_entitlement.current_period_end > now()),
     'status', v_entitlement.status,
     'planCode', v_entitlement.plan_code,
-    'currentPeriodEnd', v_entitlement.current_period_end
+    'currentPeriodEnd', v_entitlement.current_period_end,
+    'requestsUsed', coalesce(v_usage.requests_used, 0),
+    'requestsLimit', 100,
+    'inputTokensUsed', coalesce(v_usage.input_tokens_used, 0),
+    'inputTokensLimit', 150000,
+    'outputTokensUsed', coalesce(v_usage.output_tokens_used, 0),
+    'outputTokensLimit', 50000
   );
 end;
 $$;
