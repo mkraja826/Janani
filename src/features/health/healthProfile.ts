@@ -46,7 +46,7 @@ type HealthRpc = <T>(fn: string, args: Record<string, unknown>) => RpcResponse<T
 
 const healthRpc = supabase.rpc as unknown as HealthRpc;
 
-export const CONDITION_OPTIONS: ReadonlyArray<{ code: HealthConditionCode; label: string }> = [
+export const CONDITION_OPTIONS: ReadonlyArray<{ code: HealthConditionCode; label: string; historyOnly?: boolean }> = [
   { code: 'preexisting_diabetes', label: 'Pre-existing diabetes' },
   { code: 'gestational_diabetes', label: 'Gestational diabetes' },
   { code: 'hypothyroidism', label: 'Hypothyroidism' },
@@ -55,9 +55,9 @@ export const CONDITION_OPTIONS: ReadonlyArray<{ code: HealthConditionCode; label
   { code: 'pregnancy_hypertension', label: 'Pregnancy-related high blood pressure' },
   { code: 'anemia', label: 'Anemia' },
   { code: 'pcos', label: 'PCOS' },
-  { code: 'previous_preeclampsia', label: 'Previous preeclampsia' },
-  { code: 'previous_miscarriage', label: 'Previous miscarriage' },
-  { code: 'previous_preterm_birth', label: 'Previous preterm birth' },
+  { code: 'previous_preeclampsia', label: 'Previous preeclampsia', historyOnly: true },
+  { code: 'previous_miscarriage', label: 'Previous miscarriage', historyOnly: true },
+  { code: 'previous_preterm_birth', label: 'Previous preterm birth', historyOnly: true },
 ];
 
 export async function loadHealthProfile(pregnancyId: string): Promise<HealthProfile> {
