@@ -24,6 +24,8 @@ export const SERVER_APPROVED_CONDITION_PACKS = new Set<string>();
 
 const UNSAFE_OUTPUT_PATTERNS: RegExp[] = [
   /\b(stop|start|increase|decrease|double|halve|skip)\b.{0,35}\b(medication|medicine|insulin|dose|dosage|tablet|supplement)\b/i,
+  /\b(take|use|inject)\b.{0,20}\b\d+(?:\.\d+)?\s*(?:mg|mcg|g|units?|iu)\b/i,
+  /\b\d+(?:\.\d+)?\s*(?:mg|mcg|g|units?|iu)\b.{0,30}\b(insulin|medicine|medication|tablet|supplement|iron|folate|thyroid)\b/i,
   /\byou (definitely|certainly) (have|do not have)\b/i,
   /\b(no need|do not need) to (see|contact|call) (a |your )?(doctor|clinician|care team|hospital)\b/i,
   /\b(your baby|the baby|you) (is|are) (completely )?safe\b/i,
