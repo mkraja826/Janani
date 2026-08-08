@@ -10,19 +10,26 @@ export const CARE_PLUS_PRODUCT_IDS = [
 
 export type CarePlusProductId = typeof CARE_PLUS_PRODUCT_IDS[number];
 
-export async function connectPlayBilling(): Promise<void> {
+function billingModule() {
   if (Platform.OS !== 'android') throw new Error('Google Play Billing is only available on Android.');
-  await JananiPlayBilling.connect();
+  if (!JananiPlayBilling) throw new Error('This Janani build does not include the Google Play Billing module. Rebuild the Android app.');
+  return JananiPlayBilling;
+}
+
+export async function connectPlayBilling(): Promise<void> {
+  await billingModule().connect();
 }
 
 export async function loadCarePlusProducts(): Promise<PlaySubscriptionProduct[]> {
-  await connectPlayBilling();
-  return JananiPlayBilling.querySubscriptions([...CARE_PLUS_PRODUCT_IDS]);
+  const billing = billingModule();
+  await billing.connect();
+  return billing.querySubscriptions([...CARE_PLUS_PRODUCT_IDS]);
 }
 
 export async function launchCarePlusPurchase(productId: CarePlusProductId): Promise<void> {
-  await connectPlayBilling();
-  await JananiPlayBilling.purchaseSubscription(productId);
+  const billing = billingModule();
+  await billing.connect();
+  await billing.purchaseSubscription(productId);
 }
 
 export async function verifyPlayPurchase(purchase: PlayPurchase) {
@@ -43,8 +50,9 @@ export async function verifyPlayPurchase(purchase: PlayPurchase) {
 }
 
 export async function restoreCarePlusPurchases() {
-  await connectPlayBilling();
-  const purchases = await JananiPlayBilling.restoreSubscriptions();
+  const billing = billingModule();
+  await billing.connect();
+  const purchases = await billing.restoreSubscriptions();
   const results = [];
   for (const purchase of purchases) {
     if (purchase.purchaseState !== 'purchased') continue;
@@ -54,7 +62,7 @@ export async function restoreCarePlusPurchases() {
 }
 
 export function addPlayPurchaseListener(listener: (purchase: PlayPurchase) => void) {
-  return JananiPlayBilling.addListener('onPurchaseUpdated', (event) => {
+  return billingModule().addListener('onPurchaseUpdated', (event) => {
     for (const purchase of event.purchases ?? []) listener(purchase);
   });
 }
