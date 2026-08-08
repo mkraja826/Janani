@@ -47,20 +47,13 @@ async function getGoogleAccessToken(clientEmail: string, privateKey: string): Pr
     false,
     ['sign'],
   );
-  const signature = await crypto.subtle.sign(
-    'RSASSA-PKCS1-v1_5',
-    key,
-    new TextEncoder().encode(signingInput),
-  );
+  const signature = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', key, new TextEncoder().encode(signingInput));
   const assertion = `${signingInput}.${b64url(new Uint8Array(signature))}`;
 
   const response = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
-      assertion,
-    }),
+    body: new URLSearchParams({ grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer', assertion }),
   });
   if (!response.ok) throw new Error('google_oauth_failed');
   const body = await response.json();
@@ -74,6 +67,16 @@ function mapEntitlementState(state: string, expiryTime: string | null): 'active'
   if (state === 'SUBSCRIPTION_STATE_EXPIRED') return 'expired';
   if (state === 'SUBSCRIPTION_STATE_CANCELED' && expiryTime && new Date(expiryTime).getTime() > Date.now()) return 'active';
   return 'revoked';
+}
+
+async function acknowledgeSubscription(accessToken: string, productId: string, purchaseToken: string): Promise<boolean> {
+  const url = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${PACKAGE_NAME}/purchases/subscriptions/${encodeURIComponent(productId)}/tokens/${encodeURIComponent(purchaseToken)}:acknowledge`;
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' },
+    body: '{}',
+  });
+  return response.ok;
 }
 
 Deno.serve(async (request) => {
@@ -107,15 +110,8 @@ Deno.serve(async (request) => {
   }
 
   const admin = createClient(supabaseUrl, serviceRoleKey, { auth: { persistSession: false } });
-
-  const { data: existingToken } = await admin
-    .from('google_play_subscription_purchases')
-    .select('user_id')
-    .eq('purchase_token', purchaseToken)
-    .maybeSingle();
-  if (existingToken && existingToken.user_id !== userData.user.id) {
-    return respond(409, { error: 'purchase_token_already_owned' });
-  }
+  const { data: existingToken } = await admin.from('google_play_subscription_purchases').select('user_id').eq('purchase_token', purchaseToken).maybeSingle();
+  if (existingToken && existingToken.user_id !== userData.user.id) return respond(409, { error: 'purchase_token_already_owned' });
 
   let accessToken: string;
   try { accessToken = await getGoogleAccessToken(googleClientEmail, googlePrivateKey); }
@@ -131,29 +127,22 @@ Deno.serve(async (request) => {
   if (!matchingItem) return respond(422, { error: 'product_mismatch' });
 
   const subscriptionState = compactString(purchase.subscriptionState, 100) ?? 'SUBSCRIPTION_STATE_UNSPECIFIED';
-  const acknowledgementState = compactString(purchase.acknowledgementState, 100);
+  let acknowledgementState = compactString(purchase.acknowledgementState, 100);
   const expiryTime = compactString(matchingItem.expiryTime, 80);
   const basePlanId = compactString((matchingItem.offerDetails as Record<string, unknown> | undefined)?.basePlanId, 160);
   const linkedPurchaseToken = compactString(purchase.linkedPurchaseToken, 4096);
   const entitlementStatus = mapEntitlementState(subscriptionState, expiryTime);
 
   if (linkedPurchaseToken) {
-    const { data: linked } = await admin
-      .from('google_play_subscription_purchases')
-      .select('user_id')
-      .eq('purchase_token', linkedPurchaseToken)
-      .maybeSingle();
-    if (linked?.user_id && linked.user_id !== userData.user.id) {
-      return respond(409, { error: 'linked_purchase_owned_by_another_user' });
-    }
-    await admin
-      .from('google_play_subscription_purchases')
+    const { data: linked } = await admin.from('google_play_subscription_purchases').select('user_id').eq('purchase_token', linkedPurchaseToken).maybeSingle();
+    if (linked?.user_id && linked.user_id !== userData.user.id) return respond(409, { error: 'linked_purchase_owned_by_another_user' });
+    await admin.from('google_play_subscription_purchases')
       .update({ subscription_state: 'SUBSCRIPTION_STATE_REPLACED', updated_at: new Date().toISOString() })
-      .eq('purchase_token', linkedPurchaseToken)
-      .eq('user_id', userData.user.id);
+      .eq('purchase_token', linkedPurchaseToken).eq('user_id', userData.user.id);
   }
 
-  const purchaseRecord = {
+  const now = new Date().toISOString();
+  const { error: purchaseWriteError } = await admin.from('google_play_subscription_purchases').upsert({
     purchase_token: purchaseToken,
     user_id: userData.user.id,
     package_name: PACKAGE_NAME,
@@ -166,12 +155,9 @@ Deno.serve(async (request) => {
     start_time: compactString(purchase.startTime, 80),
     expiry_time: expiryTime,
     raw_region_code: compactString(purchase.regionCode, 10),
-    verified_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
-  const { error: purchaseWriteError } = await admin
-    .from('google_play_subscription_purchases')
-    .upsert(purchaseRecord, { onConflict: 'purchase_token' });
+    verified_at: now,
+    updated_at: now,
+  }, { onConflict: 'purchase_token' });
   if (purchaseWriteError) return respond(503, { error: 'purchase_record_failed' });
 
   const planCode = expectedProductId === 'janani_care_plus_annual' ? 'care_plus_annual' : 'care_plus_monthly';
@@ -182,10 +168,21 @@ Deno.serve(async (request) => {
     source: 'google_play',
     source_entitlement_id: purchaseToken,
     current_period_end: expiryTime,
-    verified_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
+    verified_at: now,
+    updated_at: now,
   }, { onConflict: 'user_id' });
   if (entitlementError) return respond(503, { error: 'entitlement_update_failed' });
+
+  const shouldAcknowledge = acknowledgementState === 'ACKNOWLEDGEMENT_STATE_PENDING'
+    && (entitlementStatus === 'active' || entitlementStatus === 'grace_period');
+  if (shouldAcknowledge) {
+    const acknowledged = await acknowledgeSubscription(accessToken, expectedProductId, purchaseToken);
+    if (!acknowledged) return respond(503, { error: 'purchase_acknowledgement_failed', entitlementGranted: true });
+    acknowledgementState = 'ACKNOWLEDGEMENT_STATE_ACKNOWLEDGED';
+    await admin.from('google_play_subscription_purchases')
+      .update({ acknowledgement_state: acknowledgementState, updated_at: new Date().toISOString() })
+      .eq('purchase_token', purchaseToken).eq('user_id', userData.user.id);
+  }
 
   return respond(200, {
     verified: true,
