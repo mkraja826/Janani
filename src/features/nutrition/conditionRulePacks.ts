@@ -94,11 +94,81 @@ export const PREGNANCY_HYPERTENSION_RULE_PACK: ConditionRulePack = {
   version: '2026-08-09-draft-1',
 };
 
+export const ANEMIA_RULE_PACK: ConditionRulePack = {
+  condition: 'anemia',
+  version: '2026-08-09-draft-1',
+  status: 'source_grounded_pending_clinical_review',
+  enabledForPersonalization: false,
+  allowedGuidance: [
+    'Explain that anemia in pregnancy can have different causes and that iron deficiency is common, so evaluation belongs with the maternity care team.',
+    'Support food education around iron-containing foods and foods containing vitamin C without presenting food alone as treatment for diagnosed anemia.',
+    'Encourage keeping laboratory results, supplement instructions, and follow-up appointments together for review with the maternity care team.',
+    'Follow clinician-entered supplement and dietary instructions rather than creating a Janani-specific dose or treatment plan.',
+  ],
+  prohibitedActions: [
+    'Do not diagnose anemia or iron deficiency from symptoms or a single user-entered laboratory value.',
+    'Do not assume every anemia is caused by iron deficiency.',
+    'Do not prescribe, start, stop, increase, decrease, or substitute iron, folate, vitamin B12, or other supplements.',
+    'Do not invent hemoglobin, ferritin, supplement-dose, or treatment thresholds for personalized interpretation.',
+    'Do not claim that dietary changes alone are sufficient treatment for diagnosed anemia.',
+  ],
+  escalationGuidance: [
+    'Marked fatigue, shortness of breath, palpitations, fainting, chest pain, heavy bleeding, or rapidly worsening symptoms should prompt contact with the maternity care team or urgent-care pathway as appropriate.',
+    'Concerning laboratory results should be reviewed by the maternity care team rather than interpreted by Janani.',
+  ],
+  sourceIds: ['ACOG-ANEMIA-PB233', 'WHO-IRON-FOLATE-PREGNANCY-2024'],
+};
+
+export const HYPOTHYROIDISM_RULE_PACK: ConditionRulePack = {
+  condition: 'hypothyroidism',
+  version: '2026-08-09-draft-1',
+  status: 'source_grounded_pending_clinical_review',
+  enabledForPersonalization: false,
+  allowedGuidance: [
+    'Support recording thyroid test results, medication instructions, and upcoming follow-up dates without interpreting treatment adequacy.',
+    'Encourage following the obstetric and thyroid care team’s monitoring plan during pregnancy.',
+    'Allow general balanced-diet education only when it does not conflict with clinician instructions.',
+  ],
+  prohibitedActions: [
+    'Do not diagnose hypothyroidism from symptoms or user-entered thyroid results.',
+    'Do not invent pregnancy-specific TSH, free-T4, iodine, or medication targets for personalized interpretation.',
+    'Do not start, stop, increase, decrease, or substitute thyroid hormone or iodine-containing treatment.',
+    'Do not recommend timing changes between thyroid medication, supplements, or meals unless the instruction was entered by the user’s clinician.',
+    'Do not reassure that a thyroid result means the pregnancy is safe or treatment is adequate.',
+  ],
+  escalationGuidance: [
+    'Unexpected or concerning thyroid results should be reviewed with the obstetric or thyroid care team.',
+    'Severe illness, fainting, chest pain, difficulty breathing, marked confusion, or another emergency should bypass nutrition guidance and use the fixed urgent-care flow.',
+  ],
+  sourceIds: ['ATA-2017-THYROID-PREGNANCY'],
+};
+
+export const HYPERTHYROIDISM_RULE_PACK: ConditionRulePack = {
+  ...HYPOTHYROIDISM_RULE_PACK,
+  condition: 'hyperthyroidism',
+  version: '2026-08-09-draft-1',
+  allowedGuidance: [
+    'Support recording thyroid test results, symptoms, medication instructions, and upcoming follow-up dates without interpreting treatment adequacy.',
+    'Encourage following the obstetric and thyroid care team’s monitoring and treatment plan during pregnancy.',
+    'Allow general balanced-diet education only when it does not conflict with clinician instructions.',
+  ],
+  prohibitedActions: [
+    'Do not diagnose hyperthyroidism or thyrotoxicosis from symptoms or user-entered thyroid results.',
+    'Do not invent pregnancy-specific thyroid targets or treatment thresholds for personalized interpretation.',
+    'Do not start, stop, increase, decrease, or substitute antithyroid medication, thyroid medication, iodine, or other treatment.',
+    'Do not recommend supplement or medication changes based on diet content.',
+    'Do not reassure that a thyroid result means the pregnancy is safe or treatment is adequate.',
+  ],
+};
+
 export const CONDITION_RULE_PACKS: Partial<Record<HealthConditionCode, ConditionRulePack>> = {
   gestational_diabetes: GDM_RULE_PACK,
   preexisting_diabetes: PREEXISTING_DIABETES_RULE_PACK,
   chronic_hypertension: CHRONIC_HYPERTENSION_RULE_PACK,
   pregnancy_hypertension: PREGNANCY_HYPERTENSION_RULE_PACK,
+  anemia: ANEMIA_RULE_PACK,
+  hypothyroidism: HYPOTHYROIDISM_RULE_PACK,
+  hyperthyroidism: HYPERTHYROIDISM_RULE_PACK,
 };
 
 export function getConditionRulePack(condition: HealthConditionCode): ConditionRulePack | null {
