@@ -1,4 +1,4 @@
-import { NativeModule, requireNativeModule } from 'expo';
+import { NativeModule, requireOptionalNativeModule } from 'expo';
 
 export type PlaySubscriptionProduct = {
   productId: string;
@@ -30,7 +30,7 @@ type BillingEvents = {
   }): void;
 };
 
-declare class JananiPlayBillingNativeModule extends NativeModule<BillingEvents> {
+export declare class JananiPlayBillingNativeModule extends NativeModule<BillingEvents> {
   connect(): Promise<boolean>;
   disconnect(): Promise<boolean>;
   querySubscriptions(productIds: string[]): Promise<PlaySubscriptionProduct[]>;
@@ -38,4 +38,4 @@ declare class JananiPlayBillingNativeModule extends NativeModule<BillingEvents> 
   restoreSubscriptions(): Promise<PlayPurchase[]>;
 }
 
-export default requireNativeModule<JananiPlayBillingNativeModule>('JananiPlayBilling');
+export default requireOptionalNativeModule<JananiPlayBillingNativeModule>('JananiPlayBilling');
