@@ -1,0 +1,6 @@
+{
+  "platforms": ["android"],
+  "android": {
+    "modules": ["com.mkraja826.janani.billing.JananiPlayBillingModule"]
+  }
+}
