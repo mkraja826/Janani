@@ -198,25 +198,30 @@ export default function HealthProfileScreen() {
         </Section>
 
         <Section title="Health conditions" subtitle={`${selectedConditionCount} selected. Choose how each condition applies to you; Janani will not infer diagnoses from readings.`}>
-          {CONDITION_OPTIONS.map((item) => (
-            <View key={item.code} style={styles.conditionCard}>
-              <Text style={styles.conditionTitle}>{item.label}</Text>
-              <View style={styles.statusRow}>
-                {statuses.map((status) => {
-                  const selected = conditions[item.code] === status.value;
-                  return (
-                    <Pressable
-                      key={status.value}
-                      onPress={() => setConditionStatus(item.code, status.value)}
-                      style={[styles.statusButton, selected && styles.statusButtonSelected]}
-                    >
-                      <Text style={[styles.statusText, selected && styles.statusTextSelected]}>{status.label}</Text>
-                    </Pressable>
-                  );
-                })}
+          {CONDITION_OPTIONS.map((item) => {
+            const availableStatuses = item.historyOnly
+              ? statuses.filter((status) => status.value === 'pregnancy_history')
+              : statuses;
+            return (
+              <View key={item.code} style={styles.conditionCard}>
+                <Text style={styles.conditionTitle}>{item.label}</Text>
+                <View style={styles.statusRow}>
+                  {availableStatuses.map((status) => {
+                    const selected = conditions[item.code] === status.value;
+                    return (
+                      <Pressable
+                        key={status.value}
+                        onPress={() => setConditionStatus(item.code, status.value)}
+                        style={[styles.statusButton, selected && styles.statusButtonSelected]}
+                      >
+                        <Text style={[styles.statusText, selected && styles.statusTextSelected]}>{status.label}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
               </View>
-            </View>
-          ))}
+            );
+          })}
         </Section>
 
         <Section title="Clinician instructions" subtitle="Doctor or dietitian instructions should always take priority over generic Janani guidance.">
