@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import type { PlaySubscriptionProduct } from '@/modules/janani-play-billing';
+import type { PlaySubscriptionProduct } from '../modules/janani-play-billing';
 import {
   addPlayPurchaseListener,
   CARE_PLUS_PRODUCT_IDS,
@@ -18,6 +18,12 @@ import { colors, radius, spacing } from '@/theme/tokens';
 
 type Entitlement = { active: boolean; planCode: string | null; currentPeriodEnd: string | null };
 
+type CarePlusStatusResponse = {
+  active?: unknown;
+  planCode?: unknown;
+  currentPeriodEnd?: unknown;
+};
+
 export default function CarePlusScreen() {
   const [status, setStatus] = useState<Entitlement | null>(null);
   const [products, setProducts] = useState<PlaySubscriptionProduct[]>([]);
@@ -26,8 +32,10 @@ export default function CarePlusScreen() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase.rpc('get_own_care_plus_status');
-    const raw = data as Record<string, unknown> | null;
+    const { data } = await (supabase.rpc as unknown as (fn: string) => Promise<{ data: CarePlusStatusResponse | null }>)(
+      'get_own_care_plus_status',
+    );
+    const raw = data;
     setStatus({
       active: Boolean(raw?.active),
       planCode: typeof raw?.planCode === 'string' ? raw.planCode : null,
