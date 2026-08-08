@@ -112,9 +112,6 @@ export default function HomeScreen() {
   async function finishSignOut(discardPending = false) {
     try {
       await signOut({ discardPending });
-      // AuthGate observes the cleared session and redirects to /auth. Avoid an
-      // additional router.replace('/') while the authenticated navigator is
-      // being removed, which caused an unhandled REPLACE "index" warning.
     } catch (error) {
       if (error instanceof PendingOfflineChangesError) {
         Alert.alert(
@@ -212,6 +209,7 @@ export default function HomeScreen() {
             ? <>
                 <Feature icon="medkit-outline" title="Health profile" caption="Private care context" onPress={() => router.push('/health-profile')} />
                 <Feature icon="pulse-outline" title="Health tracker" caption="Weight, BP, glucose & labs" onPress={() => router.push('/health-tracker')} />
+                <Feature icon="calendar-outline" title="Care timeline" caption="Visits, scans & follow-ups" onPress={() => router.push('/care-timeline')} />
               </>
             : null}
           <Feature icon="nutrition-outline" title="Food guide" caption="Coming soon" />
