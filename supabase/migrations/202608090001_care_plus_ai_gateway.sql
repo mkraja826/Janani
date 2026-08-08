@@ -151,6 +151,8 @@ begin
 end;
 $$;
 
+revoke all on function public.get_own_care_plus_status() from public;
+revoke all on function public.reserve_care_plus_ai_request(uuid,text,integer,integer) from public;
 grant execute on function public.get_own_care_plus_status() to authenticated;
 grant execute on function public.reserve_care_plus_ai_request(uuid,text,integer,integer) to authenticated;
 

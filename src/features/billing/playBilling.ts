@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 
-import JananiPlayBilling, { PlayPurchase, PlaySubscriptionProduct } from '@/modules/janani-play-billing';
+import JananiPlayBilling, { PlayPurchase, PlaySubscriptionProduct } from '../../../modules/janani-play-billing';
 import { supabase } from '@/lib/supabase';
 
 export const CARE_PLUS_PRODUCT_IDS = [
@@ -9,6 +9,12 @@ export const CARE_PLUS_PRODUCT_IDS = [
 ] as const;
 
 export type CarePlusProductId = typeof CARE_PLUS_PRODUCT_IDS[number];
+
+type PurchaseUpdatedEvent = {
+  responseCode: number;
+  debugMessage: string;
+  purchases: PlayPurchase[];
+};
 
 function billingModule() {
   if (Platform.OS !== 'android') throw new Error('Google Play Billing is only available on Android.');
@@ -36,7 +42,7 @@ export async function verifyPlayPurchase(purchase: PlayPurchase) {
   if (purchase.purchaseState !== 'purchased') {
     return { verified: false, pending: purchase.purchaseState === 'pending' };
   }
-  const productId = purchase.products.find((id): id is CarePlusProductId =>
+  const productId = purchase.products.find((id: string): id is CarePlusProductId =>
     (CARE_PLUS_PRODUCT_IDS as readonly string[]).includes(id),
   );
   if (!productId) throw new Error('This Google Play purchase does not belong to a Janani Care+ plan.');
@@ -62,7 +68,7 @@ export async function restoreCarePlusPurchases() {
 }
 
 export function addPlayPurchaseListener(listener: (purchase: PlayPurchase) => void) {
-  return billingModule().addListener('onPurchaseUpdated', (event) => {
+  return billingModule().addListener('onPurchaseUpdated', (event: PurchaseUpdatedEvent) => {
     for (const purchase of event.purchases ?? []) listener(purchase);
   });
 }
