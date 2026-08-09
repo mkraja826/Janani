@@ -1,46 +1,98 @@
+<div align="center">
+
 # Janani
 
-Janani is a pregnancy-support mobile application for mothers and invited partners. It combines practical daily-care tools with a warm, reassuring voice inspired by a caring grandmother.
+### Pregnancy support designed for mothers and their partners
 
-## Current capabilities
+A privacy-conscious mobile experience that combines pregnancy progress, reminders, journaling, partner connection, offline support, notifications, and an Android home-screen widget.
+
+**React Native · Expo · TypeScript · Supabase · PostgreSQL**
+
+</div>
+
+---
+
+## Overview
+
+Janani is a pregnancy-support application built around a simple idea: everyday pregnancy support should feel useful, private, calm, and human.
+
+The product supports both mothers and invited partners, combining practical daily-care tools with a warm communication style while maintaining a clear boundary between supportive software and professional medical care.
+
+## Product Highlights
 
 - Mother and partner role-based onboarding
-- Private family invitation linking
+- Private family invitation and account linking
 - Pregnancy week, trimester, and due-date progress
 - Medicine and custom reminders with local notifications
-- Reminder completion, pause, resume, edit, and deletion
+- Reminder completion, pause, resume, editing, and deletion
 - Pregnancy journal with private-by-default partner sharing
-- Thinking-of-you messages, acknowledgements, realtime invalidation, and cross-device push support
-- Offline cache, idempotent queued writes, pending-sync indicator, and manual retry
-- Android home-screen widget with pregnancy, reminder, and partner-message state
-- JSON data export, partner unlinking or leaving, and permanent account deletion
-- In-app safety and privacy information
+- Thinking-of-you messages and acknowledgements
+- Cross-device push notifications and Realtime invalidation
+- Offline cache with idempotent queued writes and retry support
+- Android home-screen widget for pregnancy, reminder, and partner state
+- User data export, partner unlinking, and permanent account deletion
+- In-app privacy and safety information
 
-## Safety boundary
+## Architecture
 
-Janani provides supportive reminders and educational information. It does not diagnose, prescribe, monitor a medical condition, or replace a doctor, emergency service, or qualified healthcare professional.
+```text
+Mobile App (Expo / React Native)
+        │
+        ├── Expo Router
+        ├── Local encrypted state / offline queue
+        ├── Notifications
+        └── Android AppWidget
+        │
+        ▼
+Supabase
+        ├── Authentication
+        ├── PostgreSQL
+        ├── Row Level Security
+        ├── Realtime
+        └── Edge Functions
+```
+
+The application is designed around role-aware data access, private family relationships, offline resilience, and explicit ownership of personal data.
 
 ## Technology
 
-- Expo + React Native + TypeScript
-- Expo Router
-- Supabase Auth, PostgreSQL, Realtime, and Edge Functions
-- Zustand, AsyncStorage, SecureStore, and encrypted per-user local state
-- Expo Notifications
-- Native Android AppWidget generated through an Expo config plugin
-- EAS Build profiles for development APK, preview APK, and production AAB
+| Area | Technology |
+|---|---|
+| Mobile | React Native 0.81 · Expo 54 |
+| Language | TypeScript |
+| Navigation | Expo Router |
+| Backend | Supabase |
+| Database | PostgreSQL |
+| Realtime | Supabase Realtime |
+| Server logic | Supabase Edge Functions |
+| State | Zustand |
+| Local persistence | AsyncStorage · SecureStore · encrypted per-user state |
+| Notifications | Expo Notifications |
+| Native integration | Android AppWidget via Expo config plugin |
+| Builds | EAS Build |
 
-## Connected services
+## Privacy & Security
 
-- Supabase project `brdjnhfvytdmsnwexras` in the Mumbai region
-- 15 source-controlled migrations applied to the live project
-- `send-partner-nudge` and `delete-account` deployed as version 5 with JWT verification
-- EAS project `@astromicirql/janani` linked through project ID `2897dd94-47bf-4b4c-a7a9-82e40aaa65a1`
-- GitHub repository `mkraja826/Janani`
+Janani is designed for sensitive personal information, so privacy is treated as an architectural requirement rather than only a UI feature.
 
-The deployed backend includes role-aware Row Level Security, restricted column grants, private Realtime Broadcast invalidation, protected push-token registration, replay-safe partner nudges, and durable account-deletion cleanup.
+Current safeguards include:
 
-## Repository structure
+- role-aware Row Level Security;
+- restricted database grants;
+- private Realtime invalidation;
+- protected push-token registration;
+- replay-safe partner interactions;
+- encrypted per-user local state;
+- account unlinking and deletion flows;
+- user-accessible JSON data export.
+
+Production secrets, service-role keys, signing files, and database credentials must never be committed to the repository.
+
+## Safety Boundary
+
+Janani provides supportive reminders and educational information. It does **not** diagnose, prescribe, monitor a medical condition, or replace a doctor, emergency service, or qualified healthcare professional.
+
+## Repository Structure
 
 ```text
 app/                     Expo Router screens
@@ -52,35 +104,56 @@ supabase/migrations/     Versioned database schema
 docs/                    Architecture, privacy, safety, and testing
 ```
 
-## Local setup
+## Local Development
 
-1. Copy `.env.example` to `.env`.
-2. Add the Janani Supabase project URL and publishable key.
-3. Use Node.js 22 or newer and run `npm ci`.
-4. Run `npm run typecheck`.
-5. Run `npm run lint` and `npx expo-doctor`.
-6. Run `npx expo prebuild --platform android --clean`.
-7. Run `npx expo run:android` or create an EAS development build.
+### Requirements
 
-Never commit service-role keys, database passwords, Android signing files, or production secrets.
+- Node.js 22+
+- Android development environment or compatible Expo/EAS workflow
+- A configured Supabase development project
 
-## Release status
+### Setup
 
-Janani is in production-readiness verification; it has **not been publicly launched**. The live database hardening, version 5 Edge Functions, EAS linkage, legal-site source, deterministic lockfile, app assets, final static checks, clean Android prebuild, and final-source x86_64 debug build have been verified.
+```bash
+git clone https://github.com/mkraja826/Janani.git
+cd Janani
+npm ci
+cp .env.example .env
+npm run typecheck
+npm run lint
+npx expo start
+```
 
-Release approval still requires:
+Add the required Supabase development configuration to `.env` before running backend-connected functionality.
 
-- installation and end-to-end execution on working Android hardware;
-- two-device mother/partner, offline, Realtime, push, notification, widget, unlinking, export, and deletion acceptance tests;
-- enabling leaked-password protection in the live Supabase Auth settings, subject to dashboard access and plan support;
-- production Android signing and a verified AAB;
-- a passing GitHub review/CI cycle plus final Play Console declarations.
+For a native Android development build:
 
-The GitHub Pages legal/support site is live, and its home, privacy, terms, support, and account-deletion routes have been verified over HTTPS.
+```bash
+npx expo prebuild --platform android --clean
+npx expo run:android
+```
 
-See:
+## Quality & Release Process
+
+The repository includes production-readiness work covering database migrations, privacy and safety documentation, Android testing, deterministic dependency installation, static checks, account deletion, data export, and Play Console preparation.
+
+Janani is currently in **production-readiness verification** and should not be represented as publicly launched until final device acceptance testing, production signing, release AAB verification, and store approval are complete.
+
+Useful project documentation includes:
 
 - `PROJECT_PROGRESS_0_TO_100.md`
 - `docs/ANDROID_TWO_DEVICE_TEST_CHECKLIST.md`
 - `docs/PRIVACY_POLICY_DRAFT.md`
 - `docs/PLAY_CONSOLE_DATA_SAFETY.md`
+
+## Product Direction
+
+Janani is being developed as more than a pregnancy tracker. The longer-term product direction is a supportive family platform that can grow from pregnancy planning through pregnancy, delivery, and eventually early parenting experiences.
+
+---
+
+<div align="center">
+
+**Built as part of the MiCirql product portfolio.**
+
+</div>
