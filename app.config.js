@@ -1,10 +1,15 @@
 const fs = require('fs');
 const path = require('path');
 
-function materializeBase64Asset(sourceRelativePath, outputRelativePath) {
-  const sourcePath = path.join(__dirname, sourceRelativePath);
+function materializeIconFromParts(partsRelativePath, outputRelativePath) {
+  const partsPath = path.join(__dirname, partsRelativePath);
   const outputPath = path.join(__dirname, outputRelativePath);
-  const base64 = fs.readFileSync(sourcePath, 'utf8').trim();
+  const base64 = fs
+    .readdirSync(partsPath)
+    .filter((file) => file.endsWith('.b64part'))
+    .sort()
+    .map((file) => fs.readFileSync(path.join(partsPath, file), 'utf8').trim())
+    .join('');
   const image = Buffer.from(base64, 'base64');
 
   if (!fs.existsSync(outputPath) || !fs.readFileSync(outputPath).equals(image)) {
@@ -15,13 +20,9 @@ function materializeBase64Asset(sourceRelativePath, outputRelativePath) {
 }
 
 module.exports = ({ config }) => {
-  const icon = materializeBase64Asset(
-    'assets/branding/janani-app-icon.png.b64',
+  const icon = materializeIconFromParts(
+    'assets/branding/janani-app-icon.parts',
     'assets/.generated-janani-app-icon.png'
-  );
-  const adaptiveForeground = materializeBase64Asset(
-    'assets/branding/janani-adaptive-foreground.png.b64',
-    'assets/.generated-janani-adaptive-foreground.png'
   );
 
   return {
@@ -31,7 +32,7 @@ module.exports = ({ config }) => {
       ...config.android,
       adaptiveIcon: {
         ...config.android?.adaptiveIcon,
-        foregroundImage: adaptiveForeground,
+        foregroundImage: icon,
         backgroundColor: '#FFF7F2',
       },
     },
