@@ -43,4 +43,6 @@ Billing secrets/products are deliberately omitted until the final billing milest
 7. Complete final Google Play declarations and release metadata from the actual integrated artifact.
 8. Add Google Play Billing only in its dedicated final milestone before paid Care+ is activated.
 
+Billing is intentionally skipped in the current integration phase; the validator rejects `EXPO_PUBLIC_CARE_PLUS_PURCHASES_ENABLED=true` until that final milestone is complete.
+
 Never commit keystores, signing passwords, provider secrets, service-account credentials or other production secrets to the repository.
