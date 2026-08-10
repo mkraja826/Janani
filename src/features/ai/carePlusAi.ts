@@ -29,8 +29,16 @@ export type CarePlusAiResponse = {
   blockedConditions?: string[];
 };
 
+type CarePlusStatusRpcResult = {
+  data: unknown;
+  error: { message: string } | null;
+};
+
 export async function getCarePlusStatus(): Promise<CarePlusStatus> {
-  const { data, error } = await supabase.rpc('get_own_care_plus_status');
+  // The production migration adds this RPC before the generated client types are refreshed.
+  // Keep the compatibility cast narrow and remove it after regenerating types from production.
+  const rpc = supabase.rpc as unknown as (name: 'get_own_care_plus_status') => PromiseLike<CarePlusStatusRpcResult>;
+  const { data, error } = await rpc('get_own_care_plus_status');
   if (error) throw new Error(error.message);
   return (data ?? { active: false, status: 'none' }) as CarePlusStatus;
 }
