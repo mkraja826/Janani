@@ -7,6 +7,8 @@ import {
   MEDICATION_ALARM_CHANNEL_ID,
   prepareJananiNotificationChannels,
 } from '@/features/notifications/channels';
+import { readUiLanguage } from '@/i18n';
+import { systemCopy } from '@/i18n/systemSurfaces';
 import { toLocalDate } from '@/lib/date';
 import { encryptedLocalStorage } from '@/lib/encryptedLocalStorage';
 
@@ -83,7 +85,7 @@ function addDays(value: Date, days: number): Date {
   return next;
 }
 
-function scheduleSignature(input: ReminderScheduleInput) {
+function scheduleSignature(input: ReminderScheduleInput, language: string) {
   return JSON.stringify({
     title: input.title,
     instructions: input.instructions,
@@ -92,6 +94,7 @@ function scheduleSignature(input: ReminderScheduleInput) {
     startDate: input.startDate,
     endDate: input.endDate,
     daysOfWeek: [...input.daysOfWeek].sort(),
+    language,
     timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     utcOffsetMinutes: new Date().getTimezoneOffset(),
   });
@@ -143,9 +146,11 @@ async function scheduleReminderNotificationsUnlocked(
   await migrateLegacyReminderNotifications();
   await prepareReminderNotifications();
 
+  const language = await readUiLanguage();
+  const localized = systemCopy(language);
   const registry = await readRegistry(userId);
   const current = registry[input.id];
-  const signature = scheduleSignature(input);
+  const signature = scheduleSignature(input, language);
   const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const refreshThreshold = toLocalDate(addDays(today, REFRESH_THRESHOLD_DAYS));
@@ -200,10 +205,8 @@ async function scheduleReminderNotificationsUnlocked(
       if (weekdays.has(delivery.getDay()) && delivery.getTime() > Date.now()) {
         const identifier = await Notifications.scheduleNotificationAsync({
           content: {
-            title: medication ? '💊 Medicine time' : 'A gentle Janani reminder',
-            body: medication
-              ? 'It’s time for your scheduled medicine. Open Janani to view the private reminder.'
-              : 'Open Janani to view today’s private care reminder.',
+            title: medication ? localized.medicineNotificationTitle : localized.careNotificationTitle,
+            body: medication ? localized.medicineNotificationBody : localized.careNotificationBody,
             sound: 'default',
             priority: medication
               ? Notifications.AndroidNotificationPriority.MAX
