@@ -32,16 +32,22 @@ const locale = (
   clinicalStatus,
 });
 
-// Global registry. A locale may be selectable before Janani has a native UI pack;
-// in that case UI falls back safely while Care+ can still receive the preferred locale.
 export const JANANI_LOCALES: LocaleDefinition[] = [
   locale('en', 'English', 'English', 'ltr', 'native', 'reviewed', 'reviewed'),
   locale('te', 'తెలుగు', 'Telugu', 'ltr', 'native'),
   locale('hi', 'हिन्दी', 'Hindi', 'ltr', 'native'),
-  locale('ta', 'தமிழ்', 'Tamil'), locale('kn', 'ಕನ್ನಡ', 'Kannada'), locale('ml', 'മലയാളം', 'Malayalam'),
-  locale('mr', 'मराठी', 'Marathi'), locale('bn', 'বাংলা', 'Bengali'), locale('gu', 'ગુજરાતી', 'Gujarati'),
-  locale('pa', 'ਪੰਜਾਬੀ', 'Punjabi'), locale('or', 'ଓଡ଼ିଆ', 'Odia'), locale('as', 'অসমীয়া', 'Assamese'),
-  locale('ur', 'اردو', 'Urdu', 'rtl'), locale('ne', 'नेपाली', 'Nepali'), locale('si', 'සිංහල', 'Sinhala'),
+  locale('ta', 'தமிழ்', 'Tamil', 'ltr', 'machine_assisted'),
+  locale('kn', 'ಕನ್ನಡ', 'Kannada', 'ltr', 'machine_assisted'),
+  locale('ml', 'മലയാളം', 'Malayalam', 'ltr', 'machine_assisted'),
+  locale('mr', 'मराठी', 'Marathi', 'ltr', 'machine_assisted'),
+  locale('bn', 'বাংলা', 'Bengali', 'ltr', 'machine_assisted'),
+  locale('gu', 'ગુજરાતી', 'Gujarati', 'ltr', 'machine_assisted'),
+  locale('pa', 'ਪੰਜਾਬੀ', 'Punjabi', 'ltr', 'machine_assisted'),
+  locale('or', 'ଓଡ଼ିଆ', 'Odia', 'ltr', 'machine_assisted'),
+  locale('as', 'অসমীয়া', 'Assamese', 'ltr', 'machine_assisted'),
+  locale('ur', 'اردو', 'Urdu', 'rtl', 'machine_assisted'),
+  locale('ne', 'नेपाली', 'Nepali', 'ltr', 'machine_assisted'),
+  locale('si', 'සිංහල', 'Sinhala'),
   locale('ar', 'العربية', 'Arabic', 'rtl'), locale('fa', 'فارسی', 'Persian', 'rtl'), locale('he', 'עברית', 'Hebrew', 'rtl'),
   locale('es', 'Español', 'Spanish'), locale('pt', 'Português', 'Portuguese'), locale('fr', 'Français', 'French'),
   locale('de', 'Deutsch', 'German'), locale('it', 'Italiano', 'Italian'), locale('nl', 'Nederlands', 'Dutch'),
