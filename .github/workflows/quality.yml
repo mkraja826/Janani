@@ -44,8 +44,11 @@ jobs:
         run: |
           test -f android/app/src/main/java/com/mkraja826/janani/JananiWidgetModule.kt
           test -f android/app/src/main/java/com/mkraja826/janani/JananiWidgetPackage.kt
-          test -f android/app/src/main/java/com/mkraja826/janani/JananiCareWidget.kt
+          test -f android/app/src/main/java/com/mkraja826/janani/JananiWidgets.kt
           test -f android/app/src/main/res/layout/janani_care_widget.xml
+          grep -q 'class JananiCareWidget' android/app/src/main/java/com/mkraja826/janani/JananiWidgets.kt
+          grep -q 'class JananiMedicineWidget' android/app/src/main/java/com/mkraja826/janani/JananiWidgets.kt
+          grep -q 'class JananiLoveWidget' android/app/src/main/java/com/mkraja826/janani/JananiWidgets.kt
           grep -Eq '^[[:space:]]*(packages\.)?add\(JananiWidgetPackage\(\)\)[[:space:]]*$' android/app/src/main/java/com/mkraja826/janani/MainApplication.kt
       - name: Compile Android x86_64 debug APK
         working-directory: android
