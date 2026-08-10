@@ -15,7 +15,7 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#FFF7F2",
-          "image": "./assets/splash-icon.png",
+          "image": "./assets/.generated-janani-app-icon.png",
           "imageWidth": 180,
           "resizeMode": "contain"
         }
@@ -24,7 +24,7 @@
         "expo-notifications",
         {
           "defaultChannel": "janani-care-reminders",
-          "icon": "./assets/notification-icon.png",
+          "icon": "./assets/monochrome-icon-v2.png",
           "color": "#C86B7A"
         }
       ],
@@ -41,8 +41,8 @@
         "android.permission.VIBRATE"
       ],
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "monochromeImage": "./assets/monochrome-icon.png",
+        "foregroundImage": "./assets/adaptive-icon-v2.png",
+        "monochromeImage": "./assets/monochrome-icon-v2.png",
         "backgroundColor": "#FFF7F2"
       }
     },
@@ -52,7 +52,7 @@
       "supportsTablet": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/.generated-janani-app-icon.png"
     },
     "experiments": {
       "typedRoutes": true

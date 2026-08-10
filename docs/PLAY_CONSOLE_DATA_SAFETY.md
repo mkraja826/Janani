@@ -44,6 +44,12 @@ Required status:
 - account identifier, email, profile name, and selected role are required for an account;
 - membership exists only when the user creates or joins a family.
 
+Authentication credentials:
+
+- a password is submitted directly to Supabase Auth for sign-in and current-password reauthentication;
+- the Cloudflare-hosted external deletion form uses the same credential only for immediate direct browser requests to Supabase Auth and the protected deletion function and is designed not to persist it in browser storage or submit it to Cloudflare; and
+- map authentication credentials to the exact category offered by the current Play Console form rather than assuming the email/account-identifier disclosure alone is sufficient.
+
 ### Health and fitness-related information
 
 Data:
@@ -113,9 +119,13 @@ Receives account, profile, family, pregnancy, reminder, journal, partner-message
 
 Receives the Expo push token and the minimum notification payload needed for delivery. Final testing must confirm that notification payloads avoid unnecessary pregnancy, medication, journal, account, or secret data.
 
-### GitHub legal site and Issues
+### Cloudflare deletion form, GitHub legal site, and Issues
 
-The static legal site is intended to collect no form data. GitHub may process normal hosting logs. GitHub Issues are public and must never be used to post credentials, account identifiers, pregnancy or health information, journal text, medicine details, family invite codes, access tokens, or device tokens.
+Cloudflare Pages serves the reviewed static form assets at `https://janani-account-deletion.pages.dev/` and may process ordinary hosting-request logs when those files are loaded. The form does not submit to Cloudflare: browser requests carrying the email/password or access token go directly to Supabase Auth and the protected `delete-account` function.
+
+GitHub Pages hosts the legal/support files and may process normal hosting logs. Its account-deletion route is information/link-only and contains no credential fields, Auth tokens, or deletion logic. Credentials and access tokens are not intentionally sent to Cloudflare Pages, GitHub Pages, GitHub Issues, analytics, or browser storage.
+
+GitHub Issues remain public and currently report restricted issue creation. They must never be used to post credentials, account identifiers, pregnancy or health information, journal text, medicine details, family invite codes, access tokens, or device tokens. A working private support/privacy/security channel is not yet published and remains a release gate.
 
 The current implementation contains no advertising SDK and no dedicated analytics, attribution, or crash-reporting SDK. Revisit every declaration if any such dependency is added.
 
@@ -129,12 +139,15 @@ Implementation evidence currently supports:
 - private family-scoped Realtime Broadcast authorization;
 - protected push-token access;
 - encrypted per-user session/cache/offline state on device;
-- current-password reauthentication plus explicit typed confirmation for permanent deletion; and
+- current-password reauthentication plus explicit typed confirmation for permanent deletion;
+- a public external deletion form served as static files from a dedicated Cloudflare Pages origin that sends Auth and deletion requests directly from the browser to Supabase and calls the same JWT-protected deletion service as the app, while GitHub Pages remains information/link-only; and
 - an in-app JSON export.
 
 Do not select an “encrypted at rest” declaration solely from this repository. Verify the final device storage behavior and each provider's production configuration and contractual commitment first.
 
 Leaked-password protection is still disabled in the live Supabase Auth settings. It remains a production gate even though the source-controlled minimum password policy requires at least eight characters containing letters and digits.
+
+Production custom SMTP and an end-to-end password-recovery flow are also incomplete. Do not claim production-ready account recovery until the final sender/domain, email delivery, approved redirect or deep link, recovery session, password update, abuse controls, and expired/used-link behavior are verified.
 
 ## Account and data deletion
 
@@ -146,7 +159,7 @@ Implemented in the app:
 - mother deletion removes the associated family pregnancy space and dependent shared records;
 - partner deletion removes the partner account and dependent records while preserving the mother's family pregnancy space;
 - unlinking or leaving a family does not delete the Auth account; and
-- the backend records durable cleanup work and retries storage cleanup after Auth deletion.
+- the backend makes finite best-effort storage-cleanup attempts around Auth deletion and durably records any unresolved protected-file cleanup so it may continue asynchronously.
 
 Verification status:
 
@@ -156,10 +169,14 @@ Verification status:
 
 External deletion resource:
 
-- intended URL: `https://mkraja826.github.io/Janani/account-deletion/`;
-- current status: live over HTTPS and verified with HTTP 200 after the workflow deployment;
-- the source page now documents both exact `DELETE` confirmation and current-password reauthentication; and
-- before Play submission, confirm the external path satisfies Google's requirement to let a user request account and associated-data deletion even when the user cannot use the in-app path. A public issue that merely asks for help may not, by itself, prove a complete deletion-request process.
+- public information URL: `https://mkraja826.github.io/Janani/account-deletion/`; this route is link-only, with no credential form or Auth logic;
+- canonical hardened form URL: `https://janani-account-deletion.pages.dev/`;
+- compatibility URL: the former Supabase `account-deletion-page` endpoint returns only a no-body `302` redirect to the canonical form;
+- live verification: the canonical static assets, source integrity, anti-framing/no-store headers, compatibility redirect, and exact-origin Supabase Auth/`delete-account` CORS preflights passed;
+- processing design: Cloudflare serves the static files but does not receive the form submission; the browser authenticates directly with Supabase Auth, keeps credentials and returned Auth tokens in memory only, uses the access token to invoke the existing JWT-protected `delete-account` Edge Function, clears sensitive fields, discards response tokens after the attempt, and treats only an explicit backend success as completed deletion; and
+- remaining evidence: verify successful deletion, role-specific data effects, and rejected sign-in after deletion with an exact disposable account.
+
+This authenticated form removes reliance on a public GitHub Issue as the external deletion mechanism. Before Play submission, still confirm the deployed page satisfies the exact account-and-associated-data deletion questions shown in the current Play Console.
 
 ## Retention
 
@@ -175,9 +192,11 @@ Before submission, document concrete provider retention and deletion windows whe
 - [ ] Exercise every permission and network flow while capturing privacy-safe evidence.
 - [ ] Verify notification payloads contain only the minimum non-sensitive content.
 - [ ] Confirm leaked-password protection and final production Auth settings.
+- [ ] Configure custom SMTP and verify signup confirmation, recovery email delivery, approved redirects/deep links, password update, and abuse/rate-limit controls.
 - [ ] Complete mother, partner, and no-family deletion on disposable devices.
 - [ ] Confirm data export is role-scoped and excludes mother-private fields for partners.
-- [ ] Publish and verify the privacy-policy and external account-deletion URLs.
-- [ ] Make the external deletion-request path operational for users who cannot sign in.
-- [ ] Reconcile retention statements with Supabase, Expo, GitHub, and operational practice.
+- [x] Deploy the canonical Cloudflare form and Supabase compatibility redirect; verify static source integrity, public URLs, anti-framing/no-store headers, and exact-origin Supabase CORS preflights.
+- [ ] Complete the Cloudflare-hosted external deletion form with a disposable account, prove rejected sign-in and expected data effects, and confirm credentials/tokens are neither persisted in the browser nor submitted to Cloudflare Pages, GitHub Pages, or any unrelated origin.
+- [ ] Publish a private support/privacy/security channel and keep sensitive requests out of public GitHub Issues.
+- [ ] Reconcile retention statements with Supabase, Expo, Cloudflare, GitHub, and operational practice.
 - [ ] Answer the current Play Console collection, sharing, purpose, optionality, security, and deletion questions from the final evidence.

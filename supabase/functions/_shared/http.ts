@@ -1,6 +1,8 @@
 const ALLOWED_HEADERS =
   "authorization, apikey, content-type, idempotency-key, x-client-info";
-const BUILT_IN_ALLOWED_ORIGINS = ["https://mkraja826.github.io"];
+const BUILT_IN_ALLOWED_ORIGINS = [
+  "https://janani-account-deletion.pages.dev",
+];
 
 export type CorsHeaders = Record<string, string>;
 

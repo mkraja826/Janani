@@ -31,6 +31,7 @@ The product supports both mothers and invited partners, combining practical dail
 - Offline cache with idempotent queued writes and retry support
 - Android home-screen widget for pregnancy, reminder, and partner state
 - User data export, partner unlinking, and permanent account deletion
+- Authenticated account deletion in the app, with a hardened external form on a dedicated Cloudflare Pages origin and an information-only GitHub Pages entry point
 - In-app privacy and safety information
 
 ## Architecture
@@ -84,6 +85,7 @@ Current safeguards include:
 - replay-safe partner interactions;
 - encrypted per-user local state;
 - account unlinking and deletion flows;
+- an authenticated external deletion path served as static files from a dedicated Cloudflare Pages origin that sends Auth and deletion requests directly from the browser to Supabase, while GitHub Pages remains information/link-only;
 - user-accessible JSON data export.
 
 Production secrets, service-role keys, signing files, and database credentials must never be committed to the repository.
@@ -137,7 +139,20 @@ npx expo run:android
 
 The repository includes production-readiness work covering database migrations, privacy and safety documentation, Android testing, deterministic dependency installation, static checks, account deletion, data export, and Play Console preparation.
 
-Janani is currently in **production-readiness verification** and should not be represented as publicly launched until final device acceptance testing, production signing, release AAB verification, and store approval are complete.
+The exact user-approved 1254 x 1254 general icon is preserved as validated source parts and reconstructed for the general app icon, splash, and favicon. Separate 1254 x 1254 adaptive-foreground and monochrome assets are wired for Android adaptive and notification contexts. The build configuration rejects an incomplete, malformed, truncated, or undersized reconstructed icon.
+
+The hardened public account-deletion form for users without the app is live at `https://janani-account-deletion.pages.dev/` on a dedicated Cloudflare Pages origin. Cloudflare serves static files only: the browser sends the email/password directly to Supabase Auth and sends the access token plus current password directly to the protected `delete-account` Edge Function with the same exact `DELETE` confirmation used in-app. Neither Cloudflare nor the information/link-only GitHub Pages site receives the form submission. The former Supabase `account-deletion-page` URL now provides only a no-body `302` compatibility redirect to the canonical form. The repository Supabase smoke test has also been corrected to send its generated disposable-account password to the protected deletion function.
+
+Janani is currently in **production-readiness verification** and should not be represented as publicly launched. Remaining gates include:
+
+- rebuilding and testing the final branded Android source on physical devices, including two-device, notification, push, reboot, and widget scenarios;
+- production signing, release AAB verification, closed testing, Data Safety review, and store approval;
+- completing a successful disposable-account browser deletion and proving rejected sign-in afterward on the live Cloudflare-hosted form;
+- enabling Supabase leaked-password protection;
+- configuring production custom SMTP and completing an end-to-end password-recovery flow; and
+- publishing a private, non-GitHub-Issues support and privacy-contact channel.
+
+The information-only GitHub Pages route, canonical Cloudflare form, security headers, and Supabase CORS boundary have passed live checks. The external flow is not treated as complete store-listing evidence until a successful deletion and rejected sign-in are verified with an explicitly disposable account.
 
 Useful project documentation includes:
 
