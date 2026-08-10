@@ -36,37 +36,35 @@ jobs:
       - run: npx expo-doctor
       - run: node .github/scripts/validate-legal-site.mjs
       - run: npx expo config --type public
-      - name: Diagnose Expo PNG assets
+      - name: Repair and verify approved launcher icon
         run: |
-          node - <<'NODE'
-          const fs = require('fs');
+          set -euo pipefail
+          if node - <<'NODE'
           const Jimp = require('jimp-compact');
-          const files = [
-            'assets/.generated-janani-app-icon.png',
-            'assets/icon.png',
-            'assets/adaptive-icon.png',
-            'assets/monochrome-icon.png',
-            'assets/splash-icon.png',
-            'assets/notification-icon.png',
-          ];
-          (async () => {
-            let failed = false;
-            for (const file of files) {
-              if (!fs.existsSync(file)) {
-                console.log(`PNG_DIAG MISSING ${file}`);
-                continue;
-              }
-              try {
-                const image = await Jimp.read(file);
-                console.log(`PNG_DIAG OK ${file} ${image.bitmap.width}x${image.bitmap.height}`);
-              } catch (error) {
-                failed = true;
-                console.error(`PNG_DIAG FAIL ${file}: ${error instanceof Error ? error.message : String(error)}`);
-              }
-            }
-            if (failed) process.exitCode = 2;
-          })();
+          Jimp.read('assets/.generated-janani-app-icon.png')
+            .then(() => process.exit(0))
+            .catch((error) => { console.error(error.message); process.exit(1); });
           NODE
+          then
+            cp assets/.generated-janani-app-icon.png assets/.verified-janani-app-icon.png
+          else
+            command -v convert
+            convert assets/.generated-janani-app-icon.png -strip PNG32:assets/.verified-janani-app-icon.png
+          fi
+          node - <<'NODE'
+          const Jimp = require('jimp-compact');
+          Jimp.read('assets/.verified-janani-app-icon.png')
+            .then((image) => console.log(`PNG_REPAIR_OK ${image.bitmap.width}x${image.bitmap.height}`))
+            .catch((error) => { console.error(`PNG_REPAIR_FAIL ${error.message}`); process.exit(2); });
+          NODE
+          cp assets/.verified-janani-app-icon.png assets/.generated-janani-app-icon.png
+      - name: Upload verified approved launcher icon
+        uses: actions/upload-artifact@v4
+        with:
+          name: janani-approved-icon-verified
+          path: assets/.verified-janani-app-icon.png
+          if-no-files-found: error
+          retention-days: 1
       - run: npx expo prebuild --platform android --clean --no-install
       - name: Verify widget generation
         run: |
