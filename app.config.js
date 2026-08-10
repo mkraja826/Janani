@@ -7,7 +7,7 @@ function materializeIconFromParts(partsRelativePath, outputRelativePath) {
   const base64 = fs
     .readdirSync(partsPath)
     .filter((file) => file.endsWith('.b64part'))
-    .sort()
+    .sort((a, b) => a.localeCompare(b, undefined, { numeric: true }))
     .map((file) => fs.readFileSync(path.join(partsPath, file), 'utf8').trim())
     .join('');
   const image = Buffer.from(base64, 'base64');
