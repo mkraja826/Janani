@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { prepareJananiNotificationChannels } from '@/features/notifications/channels';
 import { OfflineQueueSync } from '@/features/offline/OfflineQueueSync';
 import { SyncStatus } from '@/features/offline/SyncStatus';
 import { ReminderScheduleSync } from '@/features/reminders/ReminderScheduleSync';
@@ -23,6 +24,8 @@ Notifications.setNotificationHandler({
 
 function NotificationNavigation() {
   useEffect(() => {
+    void prepareJananiNotificationChannels().catch(() => undefined);
+
     function openFromResponse(response: Notifications.NotificationResponse | null) {
       const screen = response?.notification.request.content.data?.screen;
       if (screen === '/reminders' || screen === '/thinking-of-you' || screen === '/home') {
