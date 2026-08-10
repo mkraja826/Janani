@@ -2,20 +2,28 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
+import {
+  CARE_REMINDER_CHANNEL_ID,
+  MEDICATION_ALARM_CHANNEL_ID,
+  prepareJananiNotificationChannels,
+} from '@/features/notifications/channels';
 import { toLocalDate } from '@/lib/date';
 import { encryptedLocalStorage } from '@/lib/encryptedLocalStorage';
 
-export const REMINDER_CHANNEL_ID = 'janani-care-reminders';
+export const REMINDER_CHANNEL_ID = CARE_REMINDER_CHANNEL_ID;
 const REGISTRY_PREFIX = 'janani:reminder-notifications:v2:';
 const LEGACY_CLEANUP_KEY = 'janani:reminder-notifications:v2:migrated';
 const REFRESH_THRESHOLD_DAYS = 7;
 const scheduleLocks = new Map<string, Promise<unknown>>();
 let legacyMigration: Promise<void> | null = null;
 
+export type ReminderKind = 'medication' | 'appointment' | 'hydration' | 'nutrition' | 'custom';
+
 export type ReminderScheduleInput = {
   id: string;
   title: string;
   instructions: string | null;
+  kind: ReminderKind;
   localTime: string;
   startDate: string;
   endDate: string | null;
@@ -79,6 +87,7 @@ function scheduleSignature(input: ReminderScheduleInput) {
   return JSON.stringify({
     title: input.title,
     instructions: input.instructions,
+    kind: input.kind,
     localTime: input.localTime.slice(0, 5),
     startDate: input.startDate,
     endDate: input.endDate,
@@ -97,15 +106,7 @@ async function cancelIdentifiers(identifiers: string[]) {
 }
 
 export async function prepareReminderNotifications(): Promise<void> {
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync(REMINDER_CHANNEL_ID, {
-      name: 'Janani care reminders',
-      description: 'Private, gentle care alerts from Janani.',
-      importance: Notifications.AndroidImportance.HIGH,
-      vibrationPattern: [0, 180, 120, 180],
-      lockscreenVisibility: Notifications.AndroidNotificationVisibility.PRIVATE,
-    });
-  }
+  await prepareJananiNotificationChannels();
 
   const current = await Notifications.getPermissionsAsync();
   if (current.granted) return;
@@ -190,6 +191,7 @@ async function scheduleReminderNotificationsUnlocked(
     ? Math.max(0, 60 - pendingAfterCancel)
     : Number.POSITIVE_INFINITY;
   let processedThrough = addDays(cursor, -1);
+  const medication = input.kind === 'medication';
 
   try {
     while (cursor <= finalDate && identifiers.length < availableSlots) {
@@ -198,11 +200,17 @@ async function scheduleReminderNotificationsUnlocked(
       if (weekdays.has(delivery.getDay()) && delivery.getTime() > Date.now()) {
         const identifier = await Notifications.scheduleNotificationAsync({
           content: {
-            title: 'A gentle Janani reminder',
-            body: 'Open Janani to view today’s private care reminder.',
-            sound: true,
+            title: medication ? '💊 Medicine time' : 'A gentle Janani reminder',
+            body: medication
+              ? 'It’s time for your scheduled medicine. Open Janani to view the private reminder.'
+              : 'Open Janani to view today’s private care reminder.',
+            sound: 'default',
+            priority: medication
+              ? Notifications.AndroidNotificationPriority.MAX
+              : Notifications.AndroidNotificationPriority.HIGH,
             data: {
-              kind: 'janani-reminder',
+              kind: medication ? 'janani-medication-alarm' : 'janani-reminder',
+              reminderKind: input.kind,
               ownerUserId: userId,
               screen: '/reminders',
               reminderId: input.id,
@@ -211,7 +219,9 @@ async function scheduleReminderNotificationsUnlocked(
           trigger: {
             type: Notifications.SchedulableTriggerInputTypes.DATE,
             date: delivery,
-            channelId: Platform.OS === 'android' ? REMINDER_CHANNEL_ID : undefined,
+            channelId: Platform.OS === 'android'
+              ? medication ? MEDICATION_ALARM_CHANNEL_ID : CARE_REMINDER_CHANNEL_ID
+              : undefined,
           },
         });
         identifiers.push(identifier);
@@ -258,7 +268,7 @@ export async function cancelStaleReminderNotifications(
     const scheduled = await Notifications.getAllScheduledNotificationsAsync().catch(() => []);
     const orphaned = scheduled.filter((request) => {
       const data = request.content.data;
-      return data?.kind === 'janani-reminder'
+      return (data?.kind === 'janani-reminder' || data?.kind === 'janani-medication-alarm')
         && data.ownerUserId === userId
         && typeof data.reminderId === 'string'
         && !activeReminderIds.has(data.reminderId);
@@ -274,7 +284,8 @@ export async function cancelAllUserReminderNotifications(userId: string): Promis
     const scheduled = await Notifications.getAllScheduledNotificationsAsync().catch(() => []);
     const ownedOrphans = scheduled.filter((request) => {
       const data = request.content.data;
-      return data?.kind === 'janani-reminder' && data.ownerUserId === userId;
+      return (data?.kind === 'janani-reminder' || data?.kind === 'janani-medication-alarm')
+        && data.ownerUserId === userId;
     });
     await cancelIdentifiers([
       ...Object.values(registry).flatMap((item) => item.identifiers),
