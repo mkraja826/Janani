@@ -5,6 +5,8 @@ import { ActivityIndicator, Alert, AppState, Pressable, ScrollView, StyleSheet, 
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { loadPartnerCarePlusCopy, type PartnerCarePlusCopy } from '@/features/localization/partnerCarePlusLocale';
+import { directionalIconName, rtlLayoutFor } from '@/i18n/rtl';
+import { readGlobalUiLocale } from '@/i18n/uiLocale';
 import { readCache, writeCache } from '@/lib/cache';
 import { isTransientError } from '@/lib/errors';
 import { enqueueMutation } from '@/lib/offlineQueue';
@@ -16,80 +18,31 @@ import { colors, radius, spacing } from '@/theme/tokens';
 
 type Nudge = { id: string; sender_id: string; message: string; created_at: string; acknowledged_at: string | null };
 const CACHE_KEY = 'partner-nudges';
-const fallbackCopy: PartnerCarePlusCopy = {
-  connectionEyebrow:'A SMALL CONNECTION',connectionTitle:'Thinking of you',connectionHeroTitle:'Sometimes one little tap says enough.',connectionHeroText:'Send a gentle note to your partner without needing to start a conversation.',recentWarmth:'Recent warmth',noWarmth:'Your shared moments will appear here.',fromPartner:'From your partner',sentByYou:'Sent by you',heartBack:'Send a heart back',savedMessages:'Showing the last saved messages. New updates will appear when you reconnect.',thinking:'Thinking of you',notAlone:'You are not alone',rest:'Please take a little rest',proud:'I am proud of you',carePlusTitle:'Personalised support from the information you choose to save',today:'Today',appointment:'Appointment',trends:'My trends',mealIdeas:'Meal ideas',askCarePlus:'Ask Janani Care+',ask:'Ask Care+',preparing:'Preparing…',placeholder:'Example: Help me prepare questions for my next appointment.'
-};
+const fallbackCopy: PartnerCarePlusCopy = { connectionEyebrow:'A SMALL CONNECTION',connectionTitle:'Thinking of you',connectionHeroTitle:'Sometimes one little tap says enough.',connectionHeroText:'Send a gentle note to your partner without needing to start a conversation.',recentWarmth:'Recent warmth',noWarmth:'Your shared moments will appear here.',fromPartner:'From your partner',sentByYou:'Sent by you',heartBack:'Send a heart back',savedMessages:'Showing the last saved messages. New updates will appear when you reconnect.',thinking:'Thinking of you',notAlone:'You are not alone',rest:'Please take a little rest',proud:'I am proud of you',carePlusTitle:'Personalised support from the information you choose to save',today:'Today',appointment:'Appointment',trends:'My trends',mealIdeas:'Meal ideas',askCarePlus:'Ask Janani Care+',ask:'Ask Care+',preparing:'Preparing…',placeholder:'Example: Help me prepare questions for my next appointment.' };
 
 export default function ThinkingOfYouScreen() {
-  const { session } = useAuth();
-  const { onFamilyInvalidation } = useMembership();
-  const [copy, setCopy] = useState<PartnerCarePlusCopy>(fallbackCopy);
-  const [nudges, setNudges] = useState<Nudge[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState<string | null>(null);
-  const [offlineCopy, setOfflineCopy] = useState(false);
-  const userId = session?.user.id;
-  const loadRevision = useRef(0);
+  const { session } = useAuth(); const { onFamilyInvalidation } = useMembership();
+  const [copy, setCopy] = useState<PartnerCarePlusCopy>(fallbackCopy); const [locale,setLocale]=useState('en'); const [nudges, setNudges] = useState<Nudge[]>([]); const [loading, setLoading] = useState(true); const [sending, setSending] = useState<string | null>(null); const [offlineCopy, setOfflineCopy] = useState(false); const userId = session?.user.id; const loadRevision = useRef(0); const rtl=rtlLayoutFor(locale);
 
-  useEffect(() => { void loadPartnerCarePlusCopy().then(setCopy); }, []);
+  useEffect(() => { void Promise.all([loadPartnerCarePlusCopy(),readGlobalUiLocale()]).then(([nextCopy,nextLocale])=>{setCopy(nextCopy);setLocale(nextLocale);}); }, []);
   useEffect(() => { loadRevision.current += 1; setNudges([]); setOfflineCopy(false); setLoading(Boolean(userId)); }, [userId]);
 
-  const load = useCallback(async () => {
-    if (!userId) return;
-    const revision = ++loadRevision.current;
-    const cached = await readCache<Nudge[]>(userId, CACHE_KEY);
-    if (revision !== loadRevision.current) return;
-    if (cached?.length) { setNudges((current) => current.length === 0 ? cached : current); setLoading(false); }
-    const { data, error } = await supabase.from('partner_nudges').select('id, sender_id, message, created_at, acknowledged_at').order('created_at', { ascending: false }).limit(30);
-    if (revision !== loadRevision.current) return;
-    if (error) { setOfflineCopy(Boolean(cached)); if (!cached) Alert.alert('Could not load messages', error.message); }
-    else { const next = (data ?? []) as Nudge[]; setNudges(next); setOfflineCopy(false); await writeCache(userId, CACHE_KEY, next); }
-    setLoading(false);
-  }, [userId]);
+  const load = useCallback(async () => { if (!userId) return; const revision = ++loadRevision.current; const cached = await readCache<Nudge[]>(userId, CACHE_KEY); if (revision !== loadRevision.current) return; if (cached?.length) { setNudges((current) => current.length === 0 ? cached : current); setLoading(false); } const { data, error } = await supabase.from('partner_nudges').select('id, sender_id, message, created_at, acknowledged_at').order('created_at', { ascending: false }).limit(30); if (revision !== loadRevision.current) return; if (error) { setOfflineCopy(Boolean(cached)); if (!cached) Alert.alert('Could not load messages', error.message); } else { const next = (data ?? []) as Nudge[]; setNudges(next); setOfflineCopy(false); await writeCache(userId, CACHE_KEY, next); } setLoading(false); }, [userId]);
 
-  useFocusEffect(useCallback(() => { void load(); void loadPartnerCarePlusCopy().then(setCopy); }, [load]));
-  useEffect(() => {
-    const stopInvalidations = onFamilyInvalidation(['partner_nudges'], () => void load());
-    const appState = AppState.addEventListener('change', (state) => { if (state === 'active') void load(); });
-    return () => { stopInvalidations(); appState.remove(); };
-  }, [load, onFamilyInvalidation]);
+  useFocusEffect(useCallback(() => { void load(); void Promise.all([loadPartnerCarePlusCopy(),readGlobalUiLocale()]).then(([nextCopy,nextLocale])=>{setCopy(nextCopy);setLocale(nextLocale);}); }, [load]));
+  useEffect(() => { const stopInvalidations = onFamilyInvalidation(['partner_nudges'], () => void load()); const appState = AppState.addEventListener('change', (state) => { if (state === 'active') void load(); }); return () => { stopInvalidations(); appState.remove(); }; }, [load, onFamilyInvalidation]);
 
   const messages = [copy.thinking, copy.notAlone, copy.rest, copy.proud];
-
-  async function send(message: string) {
-    if (!userId) return;
-    setSending(message);
-    const clientMutationId = randomUuid();
-    const { data, error } = await supabase.functions.invoke('send-partner-nudge', { body: { message, client_mutation_id: clientMutationId } });
-    setSending(null);
-    if (error) {
-      if (isTransientError(error)) { await enqueueMutation(userId, 'partner_nudge_send', { message, client_mutation_id: clientMutationId }); Alert.alert('Saved for later', 'Janani will send this note when the connection returns.'); }
-      else Alert.alert('Could not send warmth', error.message);
-      return;
-    }
-    const acceptedByExpo = typeof data?.accepted_by_expo === 'number' ? data.accepted_by_expo : 0;
-    Alert.alert('Sent with love', acceptedByExpo > 0 ? 'The phone alert was accepted for delivery, and your partner will also see the note in Janani.' : 'Your partner will see it in Janani. Phone alerts begin after their device registers.');
-    void load();
-  }
-
-  async function acknowledge(id: string) {
-    if (!userId) return;
-    const previous = nudges;
-    const next = nudges.map((item) => item.id === id ? { ...item, acknowledged_at: new Date().toISOString() } : item);
-    setNudges(next); await writeCache(userId, CACHE_KEY, next);
-    const { error } = await supabase.rpc('acknowledge_partner_nudge', { p_nudge_id: id });
-    if (!error) return;
-    if (isTransientError(error)) { await enqueueMutation(userId, 'partner_acknowledgement', { nudgeId: id }); setOfflineCopy(true); return; }
-    setNudges(previous); await writeCache(userId, CACHE_KEY, previous); Alert.alert('Could not send acknowledgement', error.message);
-  }
+  async function send(message: string) { if (!userId) return; setSending(message); const clientMutationId = randomUuid(); const { data, error } = await supabase.functions.invoke('send-partner-nudge', { body: { message, client_mutation_id: clientMutationId } }); setSending(null); if (error) { if (isTransientError(error)) { await enqueueMutation(userId, 'partner_nudge_send', { message, client_mutation_id: clientMutationId }); Alert.alert('Saved for later', 'Janani will send this note when the connection returns.'); } else Alert.alert('Could not send warmth', error.message); return; } const acceptedByExpo = typeof data?.accepted_by_expo === 'number' ? data.accepted_by_expo : 0; Alert.alert('Sent with love', acceptedByExpo > 0 ? 'The phone alert was accepted for delivery, and your partner will also see the note in Janani.' : 'Your partner will see it in Janani. Phone alerts begin after their device registers.'); void load(); }
+  async function acknowledge(id: string) { if (!userId) return; const previous = nudges; const next = nudges.map((item) => item.id === id ? { ...item, acknowledged_at: new Date().toISOString() } : item); setNudges(next); await writeCache(userId, CACHE_KEY, next); const { error } = await supabase.rpc('acknowledge_partner_nudge', { p_nudge_id: id }); if (!error) return; if (isTransientError(error)) { await enqueueMutation(userId, 'partner_acknowledgement', { nudgeId: id }); setOfflineCopy(true); return; } setNudges(previous); await writeCache(userId, CACHE_KEY, previous); Alert.alert('Could not send acknowledgement', error.message); }
 
   return <SafeAreaView style={styles.page}><ScrollView contentContainerStyle={styles.content}>
-    <View style={styles.header}><Pressable onPress={() => router.back()} style={styles.iconButton}><Ionicons name="arrow-back" size={22} color={colors.ink} /></Pressable><View style={styles.flex}><Text style={styles.eyebrow}>{copy.connectionEyebrow}</Text><Text style={styles.title}>{copy.connectionTitle}</Text></View></View>
-    {offlineCopy && <View style={styles.offline}><Ionicons name="cloud-offline-outline" size={18} color={colors.roseDark} /><Text style={styles.offlineText}>{copy.savedMessages}</Text></View>}
+    <View style={[styles.header,rtl.row]}><Pressable onPress={() => router.back()} style={styles.iconButton}><Ionicons name={directionalIconName(locale,'arrow-back','arrow-forward') as keyof typeof Ionicons.glyphMap} size={22} color={colors.ink} /></Pressable><View style={styles.flex}><Text style={[styles.eyebrow,rtl.startText]}>{copy.connectionEyebrow}</Text><Text style={[styles.title,rtl.startText]}>{copy.connectionTitle}</Text></View></View>
+    {offlineCopy && <View style={[styles.offline,rtl.row]}><Ionicons name="cloud-offline-outline" size={18} color={colors.roseDark} /><Text style={[styles.offlineText,rtl.startText]}>{copy.savedMessages}</Text></View>}
     <View style={styles.hero}><View style={styles.heart}><Ionicons name="heart" size={34} color={colors.rose} /></View><Text style={styles.heroTitle}>{copy.connectionHeroTitle}</Text><Text style={styles.heroText}>{copy.connectionHeroText}</Text></View>
-    <View style={styles.messageGrid}>{messages.map((message) => <Pressable key={message} disabled={!!sending} onPress={() => void send(message)} style={styles.messageCard}><Ionicons name="heart-outline" size={22} color={colors.rose} /><Text style={styles.messageText}>{message}</Text>{sending === message && <ActivityIndicator size="small" color={colors.rose} />}</Pressable>)}</View>
-    <Text style={styles.sectionTitle}>{copy.recentWarmth}</Text>
-    {loading ? <ActivityIndicator color={colors.rose} /> : nudges.length === 0 ? <View style={styles.empty}><Text style={styles.emptyText}>{copy.noWarmth}</Text></View> : nudges.map((nudge) => { const incoming = nudge.sender_id !== session?.user.id; return <View key={nudge.id} style={[styles.nudge, incoming && styles.incoming]}><View style={styles.nudgeTop}><Text style={styles.nudgeFrom}>{incoming ? copy.fromPartner : copy.sentByYou}</Text><Text style={styles.time}>{new Date(nudge.created_at).toLocaleString([], { day:'numeric', month:'short', hour:'numeric', minute:'2-digit' })}</Text></View><Text style={styles.nudgeMessage}>{nudge.message}</Text>{incoming && !nudge.acknowledged_at && <Pressable onPress={() => void acknowledge(nudge.id)} style={styles.ack}><Text style={styles.ackText}>{copy.heartBack}</Text><Ionicons name="heart" size={16} color={colors.surface} /></Pressable>}</View>; })}
+    <View style={styles.messageGrid}>{messages.map((message) => <Pressable key={message} disabled={!!sending} onPress={() => void send(message)} style={[styles.messageCard,rtl.row]}><Ionicons name="heart-outline" size={22} color={colors.rose} /><Text style={[styles.messageText,rtl.startText]}>{message}</Text>{sending === message && <ActivityIndicator size="small" color={colors.rose} />}</Pressable>)}</View>
+    <Text style={[styles.sectionTitle,rtl.startText]}>{copy.recentWarmth}</Text>
+    {loading ? <ActivityIndicator color={colors.rose} /> : nudges.length === 0 ? <View style={styles.empty}><Text style={styles.emptyText}>{copy.noWarmth}</Text></View> : nudges.map((nudge) => { const incoming = nudge.sender_id !== session?.user.id; return <View key={nudge.id} style={[styles.nudge, incoming && styles.incoming]}><View style={[styles.nudgeTop,rtl.row]}><Text style={[styles.nudgeFrom,rtl.startText]}>{incoming ? copy.fromPartner : copy.sentByYou}</Text><Text style={styles.time}>{new Date(nudge.created_at).toLocaleString([], { day:'numeric', month:'short', hour:'numeric', minute:'2-digit' })}</Text></View><Text style={[styles.nudgeMessage,rtl.startText]}>{nudge.message}</Text>{incoming && !nudge.acknowledged_at && <Pressable onPress={() => void acknowledge(nudge.id)} style={[styles.ack,rtl.row]}><Text style={styles.ackText}>{copy.heartBack}</Text><Ionicons name="heart" size={16} color={colors.surface} /></Pressable>}</View>; })}
   </ScrollView></SafeAreaView>;
 }
 
