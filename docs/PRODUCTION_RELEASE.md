@@ -11,6 +11,7 @@ Janani 1.0 production release must be built from the integrated production branc
 - Android release tasks fail closed unless production signing credentials are supplied.
 - Firebase Analytics, Crashlytics and Performance from current `main` are preserved in the integrated release configuration.
 - Supabase Edge Function secrets, redacted logging rules, launch alert thresholds and backend deployment order are defined in `docs/PRODUCTION_BACKEND_OPERATIONS.md`.
+- Database/RPC privilege and RLS audit findings are documented in `docs/PRODUCTION_DATABASE_AUDIT.md`.
 
 ## Required GitHub production environment values
 
@@ -35,12 +36,21 @@ Supabase Edge Function secrets are intentionally managed in Supabase rather than
 
 Billing secrets/products are deliberately omitted until the final billing milestone.
 
+## Release blockers that must be zero
+
+- `package.json` and `package-lock.json` must be in sync and `npm ci` must succeed from a clean checkout.
+- The full Supabase migration chain must apply successfully to a clean staging database.
+- Production Edge Function secrets must match `docs/PRODUCTION_BACKEND_OPERATIONS.md`.
+- The database/RPC verification checklist in `docs/PRODUCTION_DATABASE_AUDIT.md` must pass.
+- All Janani Quality checks must pass on the exact release head.
+- Clinical rule packs and safety-critical translations must remain blocked until appropriately reviewed.
+
 ## Release sequence
 
-1. Run `npm ci`.
+1. Regenerate and commit `package-lock.json` if the dependency manifest changed; verify with clean `npm ci`.
 2. Run `npm run validate:production-config` with production public configuration.
 3. Run TypeScript, lint and Expo Doctor.
-4. Apply and verify the reviewed Supabase migration chain and Edge Function secret contract from `docs/PRODUCTION_BACKEND_OPERATIONS.md`.
+4. Apply the full Supabase migration chain to clean staging and execute `docs/PRODUCTION_DATABASE_AUDIT.md`.
 5. Deploy backend functions with Care+ generation initially fail-closed, then complete authenticated backend smoke tests and log-redaction verification.
 6. Perform a clean Android prebuild.
 7. Build the signed release AAB through `.github/workflows/release-aab.yml`.
