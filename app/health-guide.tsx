@@ -1,0 +1,109 @@
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { colors, radius, spacing } from '@/theme/tokens';
+
+const topics = [
+  {
+    icon: 'water-outline' as const,
+    title: 'Blood pressure',
+    text: 'If your clinician has asked you to monitor blood pressure, use their target ranges and follow-up plan. Janani should not decide whether a reading is safe or change treatment.',
+  },
+  {
+    icon: 'analytics-outline' as const,
+    title: 'Diabetes / gestational diabetes',
+    text: 'Follow the glucose targets, meal plan, medicines and testing schedule given by your maternity or diabetes team. General food ideas in Janani should never override that plan.',
+  },
+  {
+    icon: 'pulse-outline' as const,
+    title: 'Thyroid conditions',
+    text: 'Continue thyroid medicines and blood tests exactly as prescribed. Pregnancy can change monitoring needs, so dose changes should come from your clinician.',
+  },
+  {
+    icon: 'fitness-outline' as const,
+    title: 'Anemia and other conditions',
+    text: 'Use prescribed iron, folate or other supplements as directed and keep recommended blood tests. Tell your clinician about significant fatigue, dizziness, breathlessness or other new concerns.',
+  },
+];
+
+export default function HealthGuideScreen() {
+  return (
+    <SafeAreaView style={styles.page}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.header}>
+          <Pressable accessibilityLabel="Go back" onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={22} color={colors.ink} />
+          </Pressable>
+          <View style={styles.headerCopy}>
+            <Text style={styles.eyebrow}>HEALTH & CONDITIONS</Text>
+            <Text style={styles.title}>Support for the things your care team is already watching</Text>
+          </View>
+        </View>
+
+        <View style={styles.hero}>
+          <Ionicons name="medical-outline" size={38} color={colors.rose} />
+          <Text style={styles.heroTitle}>Track with your doctor, not instead of your doctor.</Text>
+          <Text style={styles.body}>Janani can help you remember care routines and understand general information, but it does not diagnose or set medical targets.</Text>
+        </View>
+
+        {topics.map((item) => (
+          <View key={item.title} style={styles.card}>
+            <View style={styles.iconWrap}><Ionicons name={item.icon} size={24} color={colors.rose} /></View>
+            <View style={styles.cardCopy}>
+              <Text style={styles.cardTitle}>{item.title}</Text>
+              <Text style={styles.body}>{item.text}</Text>
+            </View>
+          </View>
+        ))}
+
+        <View style={styles.warningCard}>
+          <Ionicons name="warning-outline" size={26} color={colors.danger} />
+          <View style={styles.cardCopy}>
+            <Text style={styles.warningTitle}>Urgent symptoms need urgent care</Text>
+            <Text style={styles.body}>Heavy bleeding, severe abdominal pain, trouble breathing, seizures, fainting/loss of consciousness, severe headache with visual changes, or feeling seriously unwell should not be assessed by Janani AI. Seek urgent medical care.</Text>
+          </View>
+        </View>
+
+        <View style={styles.actions}>
+          <Pressable onPress={() => router.push('/reminders')} style={styles.primaryButton}>
+            <Ionicons name="alarm-outline" size={19} color={colors.surface} />
+            <Text style={styles.primaryButtonText}>Set a care reminder</Text>
+          </Pressable>
+          <Pressable onPress={() => router.push('/food-guide')} style={styles.secondaryButton}>
+            <Ionicons name="nutrition-outline" size={19} color={colors.roseDark} />
+            <Text style={styles.secondaryButtonText}>Open food guide</Text>
+          </Pressable>
+        </View>
+
+        <Text style={styles.disclaimer}>Janani provides supportive educational information and does not diagnose, prescribe, or replace professional medical care.</Text>
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  page: { flex: 1, backgroundColor: colors.background },
+  content: { padding: spacing.lg, paddingBottom: spacing.xxl, gap: spacing.md },
+  header: { flexDirection: 'row', gap: spacing.md, alignItems: 'flex-start', marginBottom: spacing.sm },
+  headerCopy: { flex: 1 },
+  backButton: { width: 44, height: 44, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  eyebrow: { fontSize: 12, letterSpacing: 1.8, fontWeight: '800', color: colors.rose },
+  title: { marginTop: spacing.xs, fontSize: 28, lineHeight: 35, fontWeight: '900', color: colors.ink },
+  hero: { gap: spacing.sm, padding: spacing.lg, borderRadius: radius.lg, backgroundColor: colors.blush, borderWidth: 1, borderColor: colors.border },
+  heroTitle: { fontSize: 18, lineHeight: 25, fontWeight: '800', color: colors.ink },
+  body: { fontSize: 14, lineHeight: 21, color: colors.muted },
+  card: { flexDirection: 'row', gap: spacing.md, padding: spacing.lg, borderRadius: radius.lg, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  warningCard: { flexDirection: 'row', gap: spacing.md, padding: spacing.lg, borderRadius: radius.lg, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.danger },
+  iconWrap: { width: 46, height: 46, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.blush },
+  cardCopy: { flex: 1, gap: spacing.sm },
+  cardTitle: { fontSize: 17, fontWeight: '800', color: colors.ink },
+  warningTitle: { fontSize: 17, fontWeight: '800', color: colors.danger },
+  actions: { gap: spacing.sm },
+  primaryButton: { minHeight: 52, borderRadius: radius.pill, backgroundColor: colors.rose, flexDirection: 'row', gap: spacing.sm, alignItems: 'center', justifyContent: 'center' },
+  primaryButtonText: { fontSize: 15, fontWeight: '800', color: colors.surface },
+  secondaryButton: { minHeight: 52, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.rose, flexDirection: 'row', gap: spacing.sm, alignItems: 'center', justifyContent: 'center' },
+  secondaryButtonText: { fontSize: 15, fontWeight: '800', color: colors.roseDark },
+  disclaimer: { marginTop: spacing.sm, textAlign: 'center', fontSize: 12, lineHeight: 18, color: colors.muted },
+});
