@@ -14,6 +14,7 @@
     "smoke:supabase": "node --env-file=.env scripts/supabase-smoke.mjs",
     "validate:production-config": "node scripts/validate-production-config.mjs",
     "test:image-size": "node vendor/image-size-compat/test.cjs",
+    "audit:production": "npm run test:image-size && node scripts/audit-production.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint"
   },
