@@ -3,6 +3,7 @@ import { loadHealthProfile, type HealthCondition, type HealthConditionCode } fro
 import { loadHealthTracker, type HealthTrackerSnapshot } from '@/features/health/healthTracker';
 import { listCareAppointments, type CareAppointment } from '@/features/care/careTimeline';
 import { personalizeNutrition } from '@/features/nutrition/personalizationEngine';
+import { loadPrivateCareContext, type CareMedication, type SupportedLanguage } from '@/features/profile/careContext';
 import { supabase } from '@/lib/supabase';
 
 export type JananiProfile = {
@@ -18,6 +19,9 @@ export type JananiProfile = {
     currentWeightKg: number | null;
     activityLevel: string;
     conditions: HealthCondition[];
+    relevantMedicalHistory: string | null;
+    previousPregnancyHistory: string | null;
+    broaderClinicianInstructions: string | null;
   };
   nutrition: {
     dietaryPattern: string;
@@ -25,6 +29,18 @@ export type JananiProfile = {
     allergies: string[];
     foodsAvoided: string[];
     clinicianInstructions: string | null;
+    regionPreference: string | null;
+  };
+  preferences: {
+    preferredLanguage: SupportedLanguage;
+  };
+  privacy: {
+    shareCareTimelineWithPartner: boolean;
+    sharePregnancyProgressWithPartner: boolean;
+  };
+  medications: {
+    active: CareMedication[];
+    inactive: CareMedication[];
   };
   trends: {
     latestWeightKg: number | null;
@@ -39,24 +55,52 @@ export type JananiProfile = {
   };
 };
 
-export type NutritionContext = Pick<JananiProfile, 'pregnancy' | 'nutrition'> & {
+export type NutritionContext = Pick<JananiProfile, 'pregnancy' | 'nutrition' | 'preferences'> & {
   activeConditions: HealthConditionCode[];
   latestWeightKg: number | null;
   blockedConditionCodes: HealthConditionCode[];
   safetyNotes: string[];
+  activeMedicationsAndSupplements: CareMedication[];
 };
 
-export type HealthTrendContext = Pick<JananiProfile, 'pregnancy' | 'trends'> & {
+export type HealthTrendContext = Pick<JananiProfile, 'pregnancy' | 'trends' | 'preferences'> & {
   activeConditions: HealthConditionCode[];
+  clinicianInstructions: string | null;
+  activeMedicationsAndSupplements: CareMedication[];
 };
 
-export type AppointmentContext = Pick<JananiProfile, 'pregnancy'> & {
+export type AppointmentContext = Pick<JananiProfile, 'pregnancy' | 'preferences'> & {
   activeConditions: HealthConditionCode[];
   upcoming: CareAppointment[];
   recentCompleted: CareAppointment[];
   recentSymptoms: JananiProfile['trends']['recentSymptoms'];
   recentBloodPressure: JananiProfile['trends']['recentBloodPressure'];
   recentGlucose: JananiProfile['trends']['recentGlucose'];
+  activeMedicationsAndSupplements: CareMedication[];
+  medicalHistory: string | null;
+  previousPregnancyHistory: string | null;
+  clinicianInstructions: string | null;
+};
+
+export type DailyCareContext = Pick<JananiProfile, 'pregnancy' | 'preferences'> & {
+  activeConditions: HealthConditionCode[];
+  latestWeightKg: number | null;
+  recentSymptoms: JananiProfile['trends']['recentSymptoms'];
+  upcomingCare: CareAppointment[];
+  activeMedicationsAndSupplements: CareMedication[];
+  clinicianInstructions: string | null;
+};
+
+export type EducationContext = Pick<JananiProfile, 'pregnancy' | 'preferences'> & {
+  activeConditions: HealthConditionCode[];
+  medicalHistory: string | null;
+  clinicianInstructions: string | null;
+};
+
+export type PartnerSupportContext = Pick<JananiProfile, 'pregnancy' | 'preferences'> & {
+  canSharePregnancyProgress: boolean;
+  canShareCareTimeline: boolean;
+  sharedUpcomingCare: CareAppointment[];
 };
 
 function activeConditionCodes(conditions: HealthCondition[]): HealthConditionCode[] {
@@ -109,11 +153,12 @@ function summarizeCare(items: CareAppointment[]): JananiProfile['care'] {
 }
 
 export async function buildJananiProfile(pregnancyId: string): Promise<JananiProfile> {
-  const [{ data: pregnancy, error: pregnancyError }, profile, tracker, careAppointments] = await Promise.all([
+  const [{ data: pregnancy, error: pregnancyError }, profile, tracker, careAppointments, privateCare] = await Promise.all([
     supabase.from('pregnancies').select('id,due_date,status').eq('id', pregnancyId).maybeSingle(),
     loadHealthProfile(pregnancyId),
     loadHealthTracker(pregnancyId),
     listCareAppointments(pregnancyId),
+    loadPrivateCareContext(pregnancyId),
   ]);
 
   if (pregnancyError) throw new Error(pregnancyError.message);
@@ -133,6 +178,9 @@ export async function buildJananiProfile(pregnancyId: string): Promise<JananiPro
       currentWeightKg: profile.current_weight_kg,
       activityLevel: profile.activity_level,
       conditions: profile.conditions,
+      relevantMedicalHistory: privateCare.relevant_medical_history,
+      previousPregnancyHistory: privateCare.previous_pregnancy_history,
+      broaderClinicianInstructions: privateCare.broader_clinician_instructions,
     },
     nutrition: {
       dietaryPattern: profile.dietary_pattern,
@@ -140,6 +188,18 @@ export async function buildJananiProfile(pregnancyId: string): Promise<JananiPro
       allergies: profile.allergies,
       foodsAvoided: profile.foods_avoided,
       clinicianInstructions: profile.clinician_dietary_instructions,
+      regionPreference: privateCare.region_preference,
+    },
+    preferences: {
+      preferredLanguage: privateCare.preferred_language,
+    },
+    privacy: {
+      shareCareTimelineWithPartner: privateCare.share_care_timeline_with_partner,
+      sharePregnancyProgressWithPartner: privateCare.share_pregnancy_progress_with_partner,
+    },
+    medications: {
+      active: privateCare.medications.filter((item) => item.active),
+      inactive: privateCare.medications.filter((item) => !item.active),
     },
     trends: trimTracker(tracker),
     care: summarizeCare(careAppointments),
@@ -160,10 +220,12 @@ export function buildNutritionContext(profile: JananiProfile): NutritionContext 
   return {
     pregnancy: profile.pregnancy,
     nutrition: profile.nutrition,
+    preferences: profile.preferences,
     activeConditions,
     latestWeightKg: profile.trends.latestWeightKg ?? profile.health.currentWeightKg,
     blockedConditionCodes: personalization.blockedConditionCodes,
     safetyNotes: personalization.safetyNotes,
+    activeMedicationsAndSupplements: profile.medications.active,
   };
 }
 
@@ -171,18 +233,59 @@ export function buildHealthTrendContext(profile: JananiProfile): HealthTrendCont
   return {
     pregnancy: profile.pregnancy,
     trends: profile.trends,
+    preferences: profile.preferences,
     activeConditions: activeConditionCodes(profile.health.conditions),
+    clinicianInstructions: profile.health.broaderClinicianInstructions,
+    activeMedicationsAndSupplements: profile.medications.active,
   };
 }
 
 export function buildAppointmentContext(profile: JananiProfile): AppointmentContext {
   return {
     pregnancy: profile.pregnancy,
+    preferences: profile.preferences,
     activeConditions: activeConditionCodes(profile.health.conditions),
     upcoming: profile.care.upcoming,
     recentCompleted: profile.care.recentCompleted,
     recentSymptoms: profile.trends.recentSymptoms,
     recentBloodPressure: profile.trends.recentBloodPressure,
     recentGlucose: profile.trends.recentGlucose,
+    activeMedicationsAndSupplements: profile.medications.active,
+    medicalHistory: profile.health.relevantMedicalHistory,
+    previousPregnancyHistory: profile.health.previousPregnancyHistory,
+    clinicianInstructions: profile.health.broaderClinicianInstructions,
+  };
+}
+
+export function buildDailyCareContext(profile: JananiProfile): DailyCareContext {
+  return {
+    pregnancy: profile.pregnancy,
+    preferences: profile.preferences,
+    activeConditions: activeConditionCodes(profile.health.conditions),
+    latestWeightKg: profile.trends.latestWeightKg ?? profile.health.currentWeightKg,
+    recentSymptoms: profile.trends.recentSymptoms.slice(0, 8),
+    upcomingCare: profile.care.upcoming.slice(0, 3),
+    activeMedicationsAndSupplements: profile.medications.active,
+    clinicianInstructions: profile.health.broaderClinicianInstructions,
+  };
+}
+
+export function buildEducationContext(profile: JananiProfile): EducationContext {
+  return {
+    pregnancy: profile.pregnancy,
+    preferences: profile.preferences,
+    activeConditions: activeConditionCodes(profile.health.conditions),
+    medicalHistory: profile.health.relevantMedicalHistory,
+    clinicianInstructions: profile.health.broaderClinicianInstructions,
+  };
+}
+
+export function buildPartnerSupportContext(profile: JananiProfile): PartnerSupportContext {
+  return {
+    pregnancy: profile.pregnancy,
+    preferences: profile.preferences,
+    canSharePregnancyProgress: profile.privacy.sharePregnancyProgressWithPartner,
+    canShareCareTimeline: profile.privacy.shareCareTimelineWithPartner,
+    sharedUpcomingCare: profile.privacy.shareCareTimelineWithPartner ? profile.care.upcoming.slice(0, 3) : [],
   };
 }
