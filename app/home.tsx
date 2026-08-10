@@ -112,9 +112,6 @@ export default function HomeScreen() {
   async function finishSignOut(discardPending = false) {
     try {
       await signOut({ discardPending });
-      // AuthGate observes the cleared session and redirects to /auth. Avoid an
-      // additional router.replace('/') while the authenticated navigator is
-      // being removed, which caused an unhandled REPLACE "index" warning.
     } catch (error) {
       if (error instanceof PendingOfflineChangesError) {
         Alert.alert(
@@ -181,7 +178,8 @@ export default function HomeScreen() {
             </Pressable>
           </View>
         </View>
-        <View style={styles.heroCard}>
+
+        <Pressable onPress={() => router.push('/pregnancy-guide')} style={styles.heroCard}>
           <Ionicons name="heart-circle" size={52} color={colors.rose} />
           <View style={styles.flex}>
             <Text style={styles.cardEyebrow}>TODAY WITH JANANI</Text>
@@ -194,10 +192,15 @@ export default function HomeScreen() {
                       ? 'Your due date has arrived. Keep in touch with your maternity care team.'
                       : `${progress.daysRemaining} days until the estimated due date`}
                   </Text>
+                  <Text style={styles.heroLink}>Open pregnancy guide →</Text>
                 </>
-              : <Text style={styles.cardTitle}>Drink a glass of water and take one quiet minute for yourself.</Text>}
+              : <>
+                  <Text style={styles.cardTitle}>Drink a glass of water and take one quiet minute for yourself.</Text>
+                  <Text style={styles.heroLink}>Open pregnancy guide →</Text>
+                </>}
           </View>
-        </View>
+        </Pressable>
+
         {summary?.inviteCode
           ? <View style={styles.inviteCard}>
               <Text style={styles.inviteLabel}>Partner invite code</Text>
@@ -205,15 +208,32 @@ export default function HomeScreen() {
               <Text style={styles.inviteHelp}>Share this privately with your partner. It links both of you to the same family space.</Text>
             </View>
           : null}
+
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Your Janani tools</Text>
+          <Text style={styles.sectionCaption}>Pregnancy, care, food, memories and partner support in one place.</Text>
+        </View>
+
         <View style={styles.grid}>
+          <Feature icon="calendar-outline" title="Pregnancy guide" caption="Trimester care" onPress={() => router.push('/pregnancy-guide')} />
+          <Feature icon="medical-outline" title="Health guide" caption="BP, diabetes, thyroid" onPress={() => router.push('/health-guide')} />
           <Feature icon="alarm-outline" title="Reminders" caption="Medicines and care" onPress={() => router.push('/reminders')} />
-          <Feature icon="book-outline" title="Journal" caption="Keep every memory" onPress={() => router.push('/journal')} />
           <Feature icon="nutrition-outline" title="Food guide" caption="Pregnancy nutrition" onPress={() => router.push('/food-guide')} />
           <Feature icon="sparkles-outline" title="Janani AI" caption="Ask a gentle question" onPress={() => router.push('/ai-companion')} />
-          <Feature icon="heart-outline" title="Thinking of you" caption="Send partner warmth" onPress={() => router.push('/thinking-of-you')} />
+          <Feature icon="book-outline" title="Journal" caption="Keep every memory" onPress={() => router.push('/journal')} />
+          <Feature icon="heart-outline" title="Thinking of you" caption={summary?.role === 'partner' ? 'Send her some warmth' : 'Share a little warmth'} onPress={() => router.push('/thinking-of-you')} />
           <Feature icon="shield-checkmark-outline" title="Safety & privacy" caption="Know your choices" onPress={() => router.push('/safety-privacy')} />
-          <Feature icon="settings-outline" title="Settings" caption="Export and account" onPress={() => router.push('/settings')} />
+          <Feature icon="settings-outline" title="Settings" caption="Export, unlink, account" onPress={() => router.push('/settings')} />
         </View>
+
+        <View style={styles.backgroundFeatures}>
+          <Text style={styles.backgroundTitle}>Working quietly in the background</Text>
+          <BackgroundFeature icon="notifications-outline" text="Local medicine and care notifications" />
+          <BackgroundFeature icon="cloud-offline-outline" text="Offline cache and queued changes" />
+          <BackgroundFeature icon="phone-portrait-outline" text="Android home-screen widget sync" />
+          <BackgroundFeature icon="people-outline" text="Private mother–partner family linking" />
+        </View>
+
         <Text style={styles.disclaimer}>Janani supports daily care and does not replace advice from your doctor.</Text>
       </ScrollView>
     </SafeAreaView>
@@ -235,6 +255,15 @@ function Feature({ icon, title, caption, onPress }: {
   );
 }
 
+function BackgroundFeature({ icon, text }: { icon: keyof typeof Ionicons.glyphMap; text: string }) {
+  return (
+    <View style={styles.backgroundRow}>
+      <Ionicons name={icon} size={19} color={colors.sage} />
+      <Text style={styles.backgroundText}>{text}</Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   page:{flex:1,backgroundColor:colors.background},
   center:{flex:1,alignItems:'center',justifyContent:'center',gap:spacing.md,padding:spacing.xl,backgroundColor:colors.background},
@@ -250,16 +279,24 @@ const styles = StyleSheet.create({
   week:{marginTop:spacing.sm,fontSize:30,fontWeight:'900',color:colors.ink},
   cardTitle:{marginTop:4,fontSize:17,lineHeight:24,fontWeight:'700',color:colors.ink},
   cardMeta:{marginTop:spacing.md,fontSize:13,lineHeight:19,color:colors.muted},
+  heroLink:{marginTop:spacing.md,fontSize:13,fontWeight:'800',color:colors.roseDark},
   inviteCard:{padding:spacing.lg,borderRadius:radius.lg,backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border},
   inviteLabel:{fontSize:13,fontWeight:'700',color:colors.muted},
   inviteCode:{marginVertical:spacing.sm,fontSize:25,letterSpacing:2.5,fontWeight:'900',color:colors.roseDark},
   inviteHelp:{fontSize:13,lineHeight:19,color:colors.muted},
+  sectionHeader:{gap:spacing.xs},
+  sectionTitle:{fontSize:20,fontWeight:'900',color:colors.ink},
+  sectionCaption:{fontSize:13,lineHeight:19,color:colors.muted},
   grid:{flexDirection:'row',flexWrap:'wrap',gap:spacing.md},
   feature:{width:'47.5%',minHeight:145,padding:spacing.md,borderRadius:radius.lg,backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border},
   featureDisabled:{opacity:0.65},
   featureIcon:{width:44,height:44,borderRadius:radius.md,alignItems:'center',justifyContent:'center',backgroundColor:colors.blush},
   featureTitle:{marginTop:spacing.md,fontSize:16,fontWeight:'800',color:colors.ink},
-  featureCaption:{marginTop:spacing.xs,fontSize:13,color:colors.muted},
+  featureCaption:{marginTop:spacing.xs,fontSize:13,lineHeight:18,color:colors.muted},
+  backgroundFeatures:{gap:spacing.md,padding:spacing.lg,borderRadius:radius.lg,backgroundColor:colors.sageSoft,borderWidth:1,borderColor:colors.border},
+  backgroundTitle:{fontSize:16,fontWeight:'800',color:colors.ink},
+  backgroundRow:{flexDirection:'row',alignItems:'center',gap:spacing.sm},
+  backgroundText:{flex:1,fontSize:13,lineHeight:19,color:colors.muted},
   disclaimer:{textAlign:'center',fontSize:12,lineHeight:18,color:colors.muted},
   errorTitle:{textAlign:'center',fontSize:20,fontWeight:'800',color:colors.ink},
   errorText:{maxWidth:340,textAlign:'center',fontSize:14,lineHeight:21,color:colors.muted},
