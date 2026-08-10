@@ -6,20 +6,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { addHealthTrackerEntry, deleteHealthTrackerEntry, loadHealthTracker, parseCommaList, type HealthTrackerSnapshot, type TrackerKind } from '@/features/health/healthTracker';
 import { resolveActivePregnancyId } from '@/features/pregnancy/activePregnancy';
+import { readUiLanguage, type JananiLanguage } from '@/i18n';
+import { healthT } from '@/i18n/health';
 import { useAuth } from '@/providers/AuthProvider';
 import { colors, radius, spacing } from '@/theme/tokens';
 
 const EMPTY: HealthTrackerSnapshot = { weight: [], blood_pressure: [], glucose: [], labs: [], symptoms: [] };
-const kinds: Array<{ value: TrackerKind; label: string }> = [
-  { value: 'weight', label: 'Weight' },
-  { value: 'blood_pressure', label: 'Blood pressure' },
-  { value: 'glucose', label: 'Glucose' },
-  { value: 'lab', label: 'Lab result' },
-  { value: 'symptom', label: 'Symptom' },
-];
 
 export default function HealthTrackerScreen() {
   const { session } = useAuth();
+  const [language, setLanguage] = useState<JananiLanguage>('en');
   const [pregnancyId, setPregnancyId] = useState<string | null>(null);
   const [snapshot, setSnapshot] = useState<HealthTrackerSnapshot>(EMPTY);
   const [kind, setKind] = useState<TrackerKind>('weight');
@@ -30,13 +26,18 @@ export default function HealthTrackerScreen() {
   const [context, setContext] = useState<'fasting'|'before_meal'|'after_meal'|'random'|'other'>('fasting');
   const [severity, setSeverity] = useState(1);
   const [contactedCare, setContactedCare] = useState(false);
+  const tr = (key: Parameters<typeof healthT>[1]) => healthT(language, key);
+  const kinds = useMemo<Array<{ value: TrackerKind; label: string }>>(() => [
+    { value: 'weight', label: tr('weight') }, { value: 'blood_pressure', label: tr('bloodPressure') }, { value: 'glucose', label: tr('glucose') }, { value: 'lab', label: tr('labResult') }, { value: 'symptom', label: tr('symptom') },
+  ], [language]);
+  const contextLabel = (value: typeof context) => ({ fasting: tr('fasting'), before_meal: tr('beforeMeal'), after_meal: tr('afterMeal'), random: tr('random'), other: tr('other') })[value];
 
   async function refresh(id: string) { setSnapshot(await loadHealthTracker(id)); }
-
   useEffect(() => {
     let mounted = true;
     void (async () => {
       try {
+        const locale = await readUiLanguage(); if (mounted) setLanguage(locale);
         const userId = session?.user.id; if (!userId) return;
         const id = await resolveActivePregnancyId(userId); if (!id) throw new Error('No active pregnancy was found.');
         const data = await loadHealthTracker(id); if (!mounted) return;
@@ -50,17 +51,16 @@ export default function HealthTrackerScreen() {
   const recent = useMemo(() => {
     if (kind === 'weight') return snapshot.weight.slice(0, 8).map((x) => ({ id:x.id, title:`${x.weight_kg} kg`, meta:formatDate(x.recorded_at) }));
     if (kind === 'blood_pressure') return snapshot.blood_pressure.slice(0, 8).map((x) => ({ id:x.id, title:`${x.systolic}/${x.diastolic} mmHg`, meta:formatDate(x.recorded_at) }));
-    if (kind === 'glucose') return snapshot.glucose.slice(0, 8).map((x) => ({ id:x.id, title:`${x.value_mg_dl} mg/dL`, meta:`${x.context.replaceAll('_',' ')} · ${formatDate(x.recorded_at)}` }));
+    if (kind === 'glucose') return snapshot.glucose.slice(0, 8).map((x) => ({ id:x.id, title:`${x.value_mg_dl} mg/dL`, meta:`${contextLabel(x.context)} · ${formatDate(x.recorded_at)}` }));
     if (kind === 'lab') return snapshot.labs.slice(0, 8).map((x) => ({ id:x.id, title:`${x.test_name}: ${x.result_value}${x.unit ? ` ${x.unit}` : ''}`, meta:x.tested_on }));
     return snapshot.symptoms.slice(0, 8).map((x) => ({ id:x.id, title:x.symptom, meta:`Severity ${x.severity}/5 · ${formatDate(x.started_at)}` }));
-  }, [kind, snapshot]);
+  }, [kind, snapshot, language]);
 
   function number(value: string, min: number, max: number, label: string) {
     const parsed = Number(value);
     if (!value.trim() || !Number.isFinite(parsed) || parsed < min || parsed > max) { Alert.alert(`Check ${label}`, `Enter a value between ${min} and ${max}.`); return null; }
     return parsed;
   }
-
   function reset() { setA(''); setB(''); setC(''); setD(''); setNote(''); setSeverity(1); setContactedCare(false); }
 
   async function save() {
@@ -80,19 +80,20 @@ export default function HealthTrackerScreen() {
   function remove(id:string){Alert.alert('Delete this entry?','Use this only to correct a mistaken record.',[{text:'Cancel',style:'cancel'},{text:'Delete',style:'destructive',onPress:()=>void(async()=>{if(!pregnancyId)return;try{await deleteHealthTrackerEntry(kind,id);await refresh(pregnancyId);}catch(error){Alert.alert('Could not delete entry',error instanceof Error?error.message:'Please try again.');}})()}]);}
 
   if(loading)return <View style={styles.center}><ActivityIndicator color={colors.rose}/></View>;
+  const kindLabel = kinds.find((x)=>x.value===kind)?.label ?? '';
   return <SafeAreaView style={styles.page}><ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-    <View style={styles.header}><Pressable accessibilityLabel="Back" onPress={()=>router.back()} style={styles.icon}><Ionicons name="arrow-back" size={22} color={colors.ink}/></Pressable><View style={styles.flex}><Text style={styles.eyebrow}>PRIVATE HEALTH TRACKER</Text><Text style={styles.title}>Keep your readings together.</Text></View></View>
+    <View style={styles.header}><Pressable accessibilityLabel="Back" onPress={()=>router.back()} style={styles.icon}><Ionicons name="arrow-back" size={22} color={colors.ink}/></Pressable><View style={styles.flex}><Text style={styles.eyebrow}>{tr('trackerEyebrow')}</Text><Text style={styles.title}>{tr('trackerTitle')}</Text></View></View>
     <View style={styles.notice}><Ionicons name="information-circle-outline" size={22} color={colors.roseDark}/><Text style={styles.noticeText}>Janani records what you enter. It does not diagnose a condition or decide whether a reading is safe.</Text></View>
     <View style={styles.tabs}>{kinds.map((item)=><Pressable key={item.value} onPress={()=>{setKind(item.value);reset();}} style={[styles.tab,kind===item.value&&styles.tabSelected]}><Text style={[styles.tabText,kind===item.value&&styles.tabTextSelected]}>{item.label}</Text></Pressable>)}</View>
-    <View style={styles.card}><Text style={styles.cardTitle}>Add {kinds.find((x)=>x.value===kind)?.label.toLowerCase()}</Text><View style={styles.form}>
-      {kind==='weight'&&<Field label="Weight (kg)" value={a} onChangeText={setA} keyboardType="decimal-pad" placeholder="62.5"/>}
-      {kind==='blood_pressure'&&<><Field label="Systolic" value={a} onChangeText={setA} keyboardType="number-pad"/><Field label="Diastolic" value={b} onChangeText={setB} keyboardType="number-pad"/><Field label="Pulse (optional)" value={c} onChangeText={setC} keyboardType="number-pad"/><Field label="Symptoms at the time (optional)" value={d} onChangeText={setD} placeholder="Headache, dizziness"/></>}
-      {kind==='glucose'&&<><Field label="Glucose (mg/dL)" value={a} onChangeText={setA} keyboardType="decimal-pad"/><View style={styles.tabs}>{(['fasting','before_meal','after_meal','random','other'] as const).map((x)=><Pressable key={x} onPress={()=>setContext(x)} style={[styles.tab,context===x&&styles.tabSelected]}><Text style={[styles.tabText,context===x&&styles.tabTextSelected]}>{x.replaceAll('_',' ')}</Text></Pressable>)}</View>{context==='after_meal'?<Field label="Minutes after meal (optional)" value={b} onChangeText={setB} keyboardType="number-pad"/>:null}</>}
-      {kind==='lab'&&<><Field label="Test name" value={a} onChangeText={setA}/><Field label="Result" value={b} onChangeText={setB}/><Field label="Unit (optional)" value={c} onChangeText={setC}/><Field label="Reference range from report (optional)" value={d} onChangeText={setD}/></>}
-      {kind==='symptom'&&<><Field label="Symptom" value={a} onChangeText={setA}/><Text style={styles.label}>Severity</Text><View style={styles.tabs}>{[1,2,3,4,5].map((x)=><Pressable key={x} onPress={()=>setSeverity(x)} style={[styles.tab,severity===x&&styles.tabSelected]}><Text style={[styles.tabText,severity===x&&styles.tabTextSelected]}>{x}</Text></Pressable>)}</View><Field label="Duration in minutes (optional)" value={b} onChangeText={setB} keyboardType="number-pad"/><Pressable onPress={()=>setContactedCare((v)=>!v)} style={styles.check}><Ionicons name={contactedCare?'checkbox':'square-outline'} size={22} color={colors.roseDark}/><Text style={styles.checkText}>I contacted my care team</Text></Pressable></>}
-      <Field label="Note (optional)" value={note} onChangeText={setNote} multiline maxLength={500}/><Pressable disabled={saving} onPress={()=>void save()} style={[styles.save,saving&&styles.disabled]}>{saving?<ActivityIndicator color={colors.surface}/>:<Text style={styles.saveText}>Save entry</Text>}</Pressable>
+    <View style={styles.card}><Text style={styles.cardTitle}>{tr('add')} {kindLabel}</Text><View style={styles.form}>
+      {kind==='weight'&&<Field label={`${tr('weight')} (kg)`} value={a} onChangeText={setA} keyboardType="decimal-pad" placeholder="62.5"/>}
+      {kind==='blood_pressure'&&<><Field label={tr('systolic')} value={a} onChangeText={setA} keyboardType="number-pad"/><Field label={tr('diastolic')} value={b} onChangeText={setB} keyboardType="number-pad"/><Field label={tr('pulseOptional')} value={c} onChangeText={setC} keyboardType="number-pad"/><Field label={tr('symptomsOptional')} value={d} onChangeText={setD} placeholder="Headache, dizziness"/></>}
+      {kind==='glucose'&&<><Field label={tr('glucoseMgDl')} value={a} onChangeText={setA} keyboardType="decimal-pad"/><View style={styles.tabs}>{(['fasting','before_meal','after_meal','random','other'] as const).map((x)=><Pressable key={x} onPress={()=>setContext(x)} style={[styles.tab,context===x&&styles.tabSelected]}><Text style={[styles.tabText,context===x&&styles.tabTextSelected]}>{contextLabel(x)}</Text></Pressable>)}</View>{context==='after_meal'?<Field label={tr('minutesAfterMeal')} value={b} onChangeText={setB} keyboardType="number-pad"/>:null}</>}
+      {kind==='lab'&&<><Field label={tr('testName')} value={a} onChangeText={setA}/><Field label={tr('result')} value={b} onChangeText={setB}/><Field label={tr('unitOptional')} value={c} onChangeText={setC}/><Field label={tr('referenceRangeOptional')} value={d} onChangeText={setD}/></>}
+      {kind==='symptom'&&<><Field label={tr('symptom')} value={a} onChangeText={setA}/><Text style={styles.label}>{tr('severity')}</Text><View style={styles.tabs}>{[1,2,3,4,5].map((x)=><Pressable key={x} onPress={()=>setSeverity(x)} style={[styles.tab,severity===x&&styles.tabSelected]}><Text style={[styles.tabText,severity===x&&styles.tabTextSelected]}>{x}</Text></Pressable>)}</View><Field label={tr('durationMinutesOptional')} value={b} onChangeText={setB} keyboardType="number-pad"/><Pressable onPress={()=>setContactedCare((v)=>!v)} style={styles.check}><Ionicons name={contactedCare?'checkbox':'square-outline'} size={22} color={colors.roseDark}/><Text style={styles.checkText}>{tr('contactedCareTeam')}</Text></Pressable></>}
+      <Field label={tr('noteOptional')} value={note} onChangeText={setNote} multiline maxLength={500}/><Pressable disabled={saving} onPress={()=>void save()} style={[styles.save,saving&&styles.disabled]}>{saving?<ActivityIndicator color={colors.surface}/>:<Text style={styles.saveText}>{tr('saveEntry')}</Text>}</Pressable>
     </View></View>
-    <View style={styles.card}><Text style={styles.cardTitle}>Recent entries</Text>{recent.length===0?<Text style={styles.empty}>No entries yet.</Text>:recent.map((item)=><View key={item.id} style={styles.entry}><View style={styles.flex}><Text style={styles.entryTitle}>{item.title}</Text><Text style={styles.entryMeta}>{item.meta}</Text></View><Pressable accessibilityLabel="Delete entry" onPress={()=>remove(item.id)}><Ionicons name="trash-outline" size={19} color={colors.muted}/></Pressable></View>)}</View>
+    <View style={styles.card}><Text style={styles.cardTitle}>{tr('recentEntries')}</Text>{recent.length===0?<Text style={styles.empty}>{tr('noEntries')}</Text>:recent.map((item)=><View key={item.id} style={styles.entry}><View style={styles.flex}><Text style={styles.entryTitle}>{item.title}</Text><Text style={styles.entryMeta}>{item.meta}</Text></View><Pressable accessibilityLabel={tr('deleteEntry')} onPress={()=>remove(item.id)}><Ionicons name="trash-outline" size={19} color={colors.muted}/></Pressable></View>)}</View>
     <Text style={styles.disclaimer}>If you feel seriously unwell or have urgent pregnancy concerns, contact your maternity care team or local emergency service rather than waiting for Janani to interpret a reading.</Text>
   </ScrollView></SafeAreaView>;
 }
