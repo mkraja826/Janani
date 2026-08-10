@@ -1,0 +1,17 @@
+{
+  "name": "@janani/image-size-compat",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Metro-compatible path adapter around the patched official image-size package.",
+  "main": "index.cjs",
+  "files": [
+    "index.cjs",
+    "test.cjs"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "image-size-upstream": "npm:image-size@2.0.2"
+  }
+}
