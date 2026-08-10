@@ -1,6 +1,6 @@
 import { supabase } from '@/lib/supabase';
 
-export type SupportedLanguage = 'en' | 'te' | 'hi';
+export type SupportedLanguage = string;
 export type MedicationKind = 'medication' | 'supplement';
 
 export type CareMedication = {
