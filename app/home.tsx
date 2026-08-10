@@ -8,6 +8,7 @@ import { productionConfig } from '@/config/production';
 import { flushJananiOfflineQueue } from '@/features/offline/OfflineQueueSync';
 import { cacheActivePregnancyId } from '@/features/pregnancy/activePregnancy';
 import { getPregnancyProgress, trimesterLabel } from '@/features/pregnancy/progress';
+import { readUiLanguage, t, type JananiLanguage } from '@/i18n';
 import { readCache, writeCache } from '@/lib/cache';
 import { supabase } from '@/lib/supabase';
 import { useMembership } from '@/providers/AuthGate';
@@ -23,7 +24,9 @@ export default function HomeScreen() {
   const [summary, setSummary] = useState<FamilySummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [language, setLanguage] = useState<JananiLanguage>('en');
   const userId = session?.user.id;
+  const tr = useCallback((key: Parameters<typeof t>[1]) => t(language, key), [language]);
 
   const load = useCallback(async () => {
     if (!userId) return;
@@ -48,7 +51,10 @@ export default function HomeScreen() {
     await Promise.all([writeCache(userId, CACHE_KEY, next), cacheActivePregnancyId(userId, activePregnancy?.id ?? null)]);
   }, [markMembership, userId]);
 
-  useFocusEffect(useCallback(() => { void load(); }, [load]));
+  useFocusEffect(useCallback(() => {
+    void readUiLanguage().then(setLanguage).catch(() => setLanguage('en'));
+    void load();
+  }, [load]));
 
   async function finishSignOut(discardPending=false) {
     try { await signOut({ discardPending }); }
@@ -72,23 +78,23 @@ export default function HomeScreen() {
   const isMother = summary?.role === 'mother';
   const showCarePlus = isMother && productionConfig.carePlusVisible;
   return <SafeAreaView style={styles.page}><ScrollView contentContainerStyle={styles.content}>
-    <View style={styles.topRow}><View style={styles.flex}><Text style={styles.eyebrow}>{summary?.familyName.toUpperCase()}</Text><Text style={styles.title}>{isMother ? 'How are you feeling today?' : 'A little care goes a long way.'}</Text></View><View style={styles.topActions}><Pressable accessibilityLabel="Settings" onPress={() => router.push('/settings')} style={styles.iconButton}><Ionicons name="settings-outline" size={21} color={colors.muted}/></Pressable><Pressable accessibilityLabel="Sign out" onPress={() => void finishSignOut()} style={styles.iconButton}><Ionicons name="log-out-outline" size={22} color={colors.muted}/></Pressable></View></View>
-    <Pressable onPress={() => router.push('/pregnancy-guide')} style={styles.heroCard}><Ionicons name="heart-circle" size={52} color={colors.rose}/><View style={styles.flex}><Text style={styles.cardEyebrow}>TODAY WITH JANANI</Text>{progress ? <><Text style={styles.week}>Week {progress.gestationalWeek}</Text><Text style={styles.cardTitle}>{trimesterLabel(progress.trimester)} · day {progress.gestationalDay}</Text><Text style={styles.cardMeta}>{progress.isPastDue ? 'Your due date has arrived. Keep in touch with your maternity care team.' : `${progress.daysRemaining} days until the estimated due date`}</Text><Text style={styles.heroLink}>Open pregnancy guide →</Text></> : <><Text style={styles.cardTitle}>Drink a glass of water and take one quiet minute for yourself.</Text><Text style={styles.heroLink}>Open pregnancy guide →</Text></>}</View></Pressable>
-    {summary?.inviteCode ? <View style={styles.inviteCard}><Text style={styles.inviteLabel}>Partner invite code</Text><Text selectable style={styles.inviteCode}>{summary.inviteCode}</Text><Text style={styles.inviteHelp}>Share this privately with your partner. It links both of you to the same family space.</Text></View> : null}
-    <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>Your Janani tools</Text><Text style={styles.sectionCaption}>Pregnancy, care, food, memories and partner support in one place.</Text></View>
+    <View style={styles.topRow}><View style={styles.flex}><Text style={styles.eyebrow}>{summary?.familyName.toUpperCase()}</Text><Text style={styles.title}>{tr(isMother ? 'homeGreetingMother' : 'homeGreetingPartner')}</Text></View><View style={styles.topActions}><Pressable accessibilityLabel="Settings" onPress={() => router.push('/settings')} style={styles.iconButton}><Ionicons name="settings-outline" size={21} color={colors.muted}/></Pressable><Pressable accessibilityLabel="Sign out" onPress={() => void finishSignOut()} style={styles.iconButton}><Ionicons name="log-out-outline" size={22} color={colors.muted}/></Pressable></View></View>
+    <Pressable onPress={() => router.push('/pregnancy-guide')} style={styles.heroCard}><Ionicons name="heart-circle" size={52} color={colors.rose}/><View style={styles.flex}><Text style={styles.cardEyebrow}>{tr('todayWithJanani')}</Text>{progress ? <><Text style={styles.week}>{tr('week')} {progress.gestationalWeek}</Text><Text style={styles.cardTitle}>{trimesterLabel(progress.trimester)} · {tr('day')} {progress.gestationalDay}</Text><Text style={styles.cardMeta}>{progress.isPastDue ? 'Your due date has arrived. Keep in touch with your maternity care team.' : `${progress.daysRemaining} days until the estimated due date`}</Text><Text style={styles.heroLink}>{tr('openPregnancyGuide')}</Text></> : <><Text style={styles.cardTitle}>{tr('hydrationPrompt')}</Text><Text style={styles.heroLink}>{tr('openPregnancyGuide')}</Text></>}</View></Pressable>
+    {summary?.inviteCode ? <View style={styles.inviteCard}><Text style={styles.inviteLabel}>{tr('partnerInviteCode')}</Text><Text selectable style={styles.inviteCode}>{summary.inviteCode}</Text><Text style={styles.inviteHelp}>{tr('partnerInviteHelp')}</Text></View> : null}
+    <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>{tr('toolsTitle')}</Text><Text style={styles.sectionCaption}>{tr('toolsCaption')}</Text></View>
     <View style={styles.grid}>
-      <Feature icon="calendar-outline" title="Pregnancy guide" caption="Trimester care" onPress={() => router.push('/pregnancy-guide')} />
-      <Feature icon="medical-outline" title="Health guide" caption="BP, diabetes, thyroid" onPress={() => router.push('/health-guide')} />
-      {isMother ? <><Feature icon="medkit-outline" title="Health profile" caption="Private health context" onPress={() => router.push('/health-profile')} /><Feature icon="document-text-outline" title="Care context" caption="Medicines, history & sharing" onPress={() => router.push('/care-context')} /><Feature icon="pulse-outline" title="Health tracker" caption="Weight, BP, glucose & labs" onPress={() => router.push('/health-tracker')} /><Feature icon="calendar-clear-outline" title="Care timeline" caption="Visits, scans & follow-ups" onPress={() => router.push('/care-timeline')} /></> : null}
-      {showCarePlus ? <Feature icon="sparkles-outline" title="Janani Care+" caption={productionConfig.aiUiEnabled ? 'Personalised AI support' : 'Care+ coming online'} onPress={() => router.push('/ai-companion')} /> : null}
-      <Feature icon="alarm-outline" title="Reminders" caption="Medicines and care" onPress={() => router.push('/reminders')} />
-      <Feature icon="nutrition-outline" title="Food guide" caption="Pregnancy nutrition" onPress={() => router.push('/food-guide')} />
-      <Feature icon="book-outline" title="Journal" caption="Keep every memory" onPress={() => router.push('/journal')} />
-      <Feature icon="heart-outline" title="Thinking of you" caption={summary?.role === 'partner' ? 'Send her some warmth' : 'Share a little warmth'} onPress={() => router.push('/thinking-of-you')} />
-      <Feature icon="shield-checkmark-outline" title="Safety & privacy" caption="Know your choices" onPress={() => router.push('/safety-privacy')} />
-      <Feature icon="settings-outline" title="Settings" caption="Export, unlink, account" onPress={() => router.push('/settings')} />
+      <Feature icon="calendar-outline" title={tr('pregnancyGuide')} caption={tr('pregnancyGuideCaption')} onPress={() => router.push('/pregnancy-guide')} />
+      <Feature icon="medical-outline" title={tr('healthGuide')} caption={tr('healthGuideCaption')} onPress={() => router.push('/health-guide')} />
+      {isMother ? <><Feature icon="medkit-outline" title={tr('healthProfile')} caption={tr('healthProfileCaption')} onPress={() => router.push('/health-profile')} /><Feature icon="document-text-outline" title={tr('careContext')} caption={tr('careContextCaption')} onPress={() => router.push('/care-context')} /><Feature icon="pulse-outline" title={tr('healthTracker')} caption={tr('healthTrackerCaption')} onPress={() => router.push('/health-tracker')} /><Feature icon="calendar-clear-outline" title={tr('careTimeline')} caption={tr('careTimelineCaption')} onPress={() => router.push('/care-timeline')} /></> : null}
+      {showCarePlus ? <Feature icon="sparkles-outline" title={tr('carePlus')} caption={tr(productionConfig.aiUiEnabled ? 'carePlusCaption' : 'carePlusOfflineCaption')} onPress={() => router.push('/ai-companion')} /> : null}
+      <Feature icon="alarm-outline" title={tr('reminders')} caption={tr('remindersCaption')} onPress={() => router.push('/reminders')} />
+      <Feature icon="nutrition-outline" title={tr('foodGuide')} caption={tr('foodGuideCaption')} onPress={() => router.push('/food-guide')} />
+      <Feature icon="book-outline" title={tr('journal')} caption={tr('journalCaption')} onPress={() => router.push('/journal')} />
+      <Feature icon="heart-outline" title={tr('thinkingOfYou')} caption={tr(summary?.role === 'partner' ? 'thinkingPartnerCaption' : 'thinkingMotherCaption')} onPress={() => router.push('/thinking-of-you')} />
+      <Feature icon="shield-checkmark-outline" title={tr('safetyPrivacy')} caption={tr('safetyCaption')} onPress={() => router.push('/safety-privacy')} />
+      <Feature icon="settings-outline" title={tr('settings')} caption={tr('settingsCaption')} onPress={() => router.push('/settings')} />
     </View>
-    <View style={styles.backgroundFeatures}><Text style={styles.backgroundTitle}>Working quietly in the background</Text><BackgroundFeature icon="notifications-outline" text="Local medicine and care notifications" /><BackgroundFeature icon="cloud-offline-outline" text="Offline cache and queued changes" /><BackgroundFeature icon="phone-portrait-outline" text="Android home-screen widget sync" /><BackgroundFeature icon="people-outline" text="Private mother–partner family linking" /></View>
+    <View style={styles.backgroundFeatures}><Text style={styles.backgroundTitle}>{tr('backgroundTitle')}</Text><BackgroundFeature icon="notifications-outline" text={tr('backgroundNotifications')} /><BackgroundFeature icon="cloud-offline-outline" text={tr('backgroundOffline')} /><BackgroundFeature icon="phone-portrait-outline" text={tr('backgroundWidget')} /><BackgroundFeature icon="people-outline" text={tr('backgroundFamily')} /></View>
     <Text style={styles.disclaimer}>Janani supports daily care and does not replace advice from your doctor.</Text>
   </ScrollView></SafeAreaView>;
 }
