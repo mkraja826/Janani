@@ -77,10 +77,9 @@ export default function HomeScreen() {
     <View style={styles.grid}>
       <Feature icon="calendar-outline" title="Pregnancy guide" caption="Trimester care" onPress={() => router.push('/pregnancy-guide')} />
       <Feature icon="medical-outline" title="Health guide" caption="BP, diabetes, thyroid" onPress={() => router.push('/health-guide')} />
-      {isMother ? <><Feature icon="medkit-outline" title="Health profile" caption="Private care context" onPress={() => router.push('/health-profile')} /><Feature icon="pulse-outline" title="Health tracker" caption="Weight, BP, glucose & labs" onPress={() => router.push('/health-tracker')} /><Feature icon="calendar-clear-outline" title="Care timeline" caption="Visits, scans & follow-ups" onPress={() => router.push('/care-timeline')} /></> : null}
+      {isMother ? <><Feature icon="medkit-outline" title="Health profile" caption="Private care context" onPress={() => router.push('/health-profile')} /><Feature icon="pulse-outline" title="Health tracker" caption="Weight, BP, glucose & labs" onPress={() => router.push('/health-tracker')} /><Feature icon="calendar-clear-outline" title="Care timeline" caption="Visits, scans & follow-ups" onPress={() => router.push('/care-timeline')} /><Feature icon="sparkles-outline" title="Janani Care+" caption="Personalised AI support" onPress={() => router.push('/ai-companion')} /></> : null}
       <Feature icon="alarm-outline" title="Reminders" caption="Medicines and care" onPress={() => router.push('/reminders')} />
       <Feature icon="nutrition-outline" title="Food guide" caption="Pregnancy nutrition" onPress={() => router.push('/food-guide')} />
-      <Feature icon="sparkles-outline" title="Janani AI" caption="Ask a gentle question" onPress={() => router.push('/ai-companion')} />
       <Feature icon="book-outline" title="Journal" caption="Keep every memory" onPress={() => router.push('/journal')} />
       <Feature icon="heart-outline" title="Thinking of you" caption={summary?.role === 'partner' ? 'Send her some warmth' : 'Share a little warmth'} onPress={() => router.push('/thinking-of-you')} />
       <Feature icon="shield-checkmark-outline" title="Safety & privacy" caption="Know your choices" onPress={() => router.push('/safety-privacy')} />
