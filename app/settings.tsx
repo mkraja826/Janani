@@ -7,7 +7,7 @@ import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, Text
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { formsAccountCopy } from '@/i18n/formsAccount';
-import { readUiLanguage } from '@/i18n';
+import { readGlobalUiLocale } from '@/i18n/uiLocale';
 import { supabase } from '@/lib/supabase';
 import { useMembership } from '@/providers/AuthGate';
 import { useAuth } from '@/providers/AuthProvider';
@@ -28,7 +28,7 @@ export default function SettingsScreen() {
   const [copy, setCopy] = useState(() => formsAccountCopy('en'));
   const userId = session?.user.id;
 
-  useEffect(() => { void readUiLanguage().then((language) => setCopy(formsAccountCopy(language))); }, []);
+  useEffect(() => { void readGlobalUiLocale().then((locale) => setCopy(formsAccountCopy(locale))); }, []);
 
   const load = useCallback(async () => {
     if (!userId) { setLoading(false); return; }
@@ -42,7 +42,7 @@ export default function SettingsScreen() {
     setLoading(false);
   }, [markMembership, userId]);
 
-  useFocusEffect(useCallback(() => { void load(); }, [load]));
+  useFocusEffect(useCallback(() => { void load(); void readGlobalUiLocale().then((locale) => setCopy(formsAccountCopy(locale))); }, [load]));
 
   async function exportData() {
     if (!session) return; setBusy('export'); let exportFile: File | null = null;
