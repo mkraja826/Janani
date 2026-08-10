@@ -6,8 +6,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { deleteCareMedication, loadPrivateCareContext, saveCareMedication, savePrivateCareContext, type CareMedication, type MedicationKind, type SupportedLanguage } from '@/features/profile/careContext';
 import { resolveActivePregnancyId } from '@/features/pregnancy/activePregnancy';
-import { t, writeUiLanguage } from '@/i18n';
-import { getLocaleDefinition, searchLocales, uiTranslationLanguageFor } from '@/i18n/localeRegistry';
+import { type MessageKey } from '@/i18n';
+import { tg } from '@/i18n/globalUi';
+import { getLocaleDefinition, searchLocales } from '@/i18n/localeRegistry';
+import { writeGlobalUiLocale } from '@/i18n/uiLocale';
 import { useAuth } from '@/providers/AuthProvider';
 import { colors, radius, spacing } from '@/theme/tokens';
 
@@ -31,8 +33,7 @@ export default function CareContextScreen() {
   const [strength, setStrength] = useState('');
   const [schedule, setSchedule] = useState('');
   const [medInstructions, setMedInstructions] = useState('');
-  const uiLanguage = uiTranslationLanguageFor(language);
-  const tr = (key: Parameters<typeof t>[1]) => t(uiLanguage, key);
+  const tr = (key: MessageKey) => tg(language, key);
   const selectedLocale = getLocaleDefinition(language);
   const localeResults = useMemo(() => searchLocales(languageQuery), [languageQuery]);
 
@@ -45,7 +46,7 @@ export default function CareContextScreen() {
       const context = await loadPrivateCareContext(id);
       setPregnancyId(id);
       setLanguage(context.preferred_language);
-      await writeUiLanguage(uiTranslationLanguageFor(context.preferred_language));
+      await writeGlobalUiLocale(context.preferred_language);
       setRegion(context.region_preference ?? '');
       setClinicianInstructions(context.broader_clinician_instructions ?? '');
       setMedicalHistory(context.relevant_medical_history ?? '');
@@ -64,7 +65,7 @@ export default function CareContextScreen() {
     setLanguage(next);
     setShowLanguages(false);
     setLanguageQuery('');
-    await writeUiLanguage(uiTranslationLanguageFor(next));
+    await writeGlobalUiLocale(next);
   }
 
   async function saveContext() {
@@ -80,7 +81,7 @@ export default function CareContextScreen() {
         share_care_timeline_with_partner: shareTimeline,
         share_pregnancy_progress_with_partner: shareProgress,
       });
-      await writeUiLanguage(uiTranslationLanguageFor(language));
+      await writeGlobalUiLocale(language);
       Alert.alert(tr('saved'), tr('savedBody'));
     } catch (error) {
       Alert.alert('Could not save', error instanceof Error ? error.message : 'Please try again.');
