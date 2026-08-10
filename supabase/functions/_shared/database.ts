@@ -6,18 +6,21 @@ export type EdgeDatabase = {
           expo_push_token: string;
           is_active: boolean;
           last_seen_at: string;
+          locale_code: string;
           user_id: string;
         };
         Insert: {
           expo_push_token: string;
           is_active?: boolean;
           last_seen_at?: string;
+          locale_code?: string;
           user_id: string;
         };
         Update: {
           expo_push_token?: string;
           is_active?: boolean;
           last_seen_at?: string;
+          locale_code?: string;
           user_id?: string;
         };
         Relationships: [];
