@@ -6,8 +6,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { addHealthTrackerEntry, deleteHealthTrackerEntry, loadHealthTracker, parseCommaList, type HealthTrackerSnapshot, type TrackerKind } from '@/features/health/healthTracker';
 import { resolveActivePregnancyId } from '@/features/pregnancy/activePregnancy';
-import { readUiLanguage, type JananiLanguage } from '@/i18n';
-import { healthT } from '@/i18n/health';
+import { healthGlobalT } from '@/i18n/healthGlobal';
+import { readGlobalUiLocale } from '@/i18n/uiLocale';
 import { useAuth } from '@/providers/AuthProvider';
 import { colors, radius, spacing } from '@/theme/tokens';
 
@@ -15,7 +15,7 @@ const EMPTY: HealthTrackerSnapshot = { weight: [], blood_pressure: [], glucose: 
 
 export default function HealthTrackerScreen() {
   const { session } = useAuth();
-  const [language, setLanguage] = useState<JananiLanguage>('en');
+  const [language, setLanguage] = useState('en');
   const [pregnancyId, setPregnancyId] = useState<string | null>(null);
   const [snapshot, setSnapshot] = useState<HealthTrackerSnapshot>(EMPTY);
   const [kind, setKind] = useState<TrackerKind>('weight');
@@ -26,7 +26,7 @@ export default function HealthTrackerScreen() {
   const [context, setContext] = useState<'fasting'|'before_meal'|'after_meal'|'random'|'other'>('fasting');
   const [severity, setSeverity] = useState(1);
   const [contactedCare, setContactedCare] = useState(false);
-  const tr = (key: Parameters<typeof healthT>[1]) => healthT(language, key);
+  const tr = (key: Parameters<typeof healthGlobalT>[1]) => healthGlobalT(language, key);
   const kinds = useMemo<Array<{ value: TrackerKind; label: string }>>(() => [
     { value: 'weight', label: tr('weight') }, { value: 'blood_pressure', label: tr('bloodPressure') }, { value: 'glucose', label: tr('glucose') }, { value: 'lab', label: tr('labResult') }, { value: 'symptom', label: tr('symptom') },
   ], [language]);
@@ -37,7 +37,7 @@ export default function HealthTrackerScreen() {
     let mounted = true;
     void (async () => {
       try {
-        const locale = await readUiLanguage(); if (mounted) setLanguage(locale);
+        const locale = await readGlobalUiLocale(); if (mounted) setLanguage(locale);
         const userId = session?.user.id; if (!userId) return;
         const id = await resolveActivePregnancyId(userId); if (!id) throw new Error('No active pregnancy was found.');
         const data = await loadHealthTracker(id); if (!mounted) return;
