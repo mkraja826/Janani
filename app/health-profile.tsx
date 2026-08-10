@@ -4,52 +4,18 @@ import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import {
-  CONDITION_OPTIONS,
-  joinList,
-  loadHealthProfile,
-  parseList,
-  saveHealthProfile,
-  type ActivityLevel,
-  type ConditionStatus,
-  type DietaryPattern,
-  type HealthConditionCode,
-  type PregnancyType,
-} from '@/features/health/healthProfile';
+import { CONDITION_OPTIONS, joinList, loadHealthProfile, parseList, saveHealthProfile, type ActivityLevel, type ConditionStatus, type DietaryPattern, type HealthConditionCode, type PregnancyType } from '@/features/health/healthProfile';
 import { resolveActivePregnancyId } from '@/features/pregnancy/activePregnancy';
+import { readUiLanguage, type JananiLanguage } from '@/i18n';
+import { healthT } from '@/i18n/health';
 import { useAuth } from '@/providers/AuthProvider';
 import { colors, radius, spacing } from '@/theme/tokens';
 
 type ConditionMap = Partial<Record<HealthConditionCode, ConditionStatus>>;
 
-const pregnancyTypes: Array<{ value: PregnancyType; label: string }> = [
-  { value: 'singleton', label: 'One baby' },
-  { value: 'twins', label: 'Twins' },
-  { value: 'higher_multiple', label: '3+ babies' },
-  { value: 'unknown', label: 'Not confirmed' },
-];
-const diets: Array<{ value: DietaryPattern; label: string }> = [
-  { value: 'vegetarian', label: 'Vegetarian' },
-  { value: 'eggetarian', label: 'Vegetarian + eggs' },
-  { value: 'non_vegetarian', label: 'Non-vegetarian' },
-  { value: 'vegan', label: 'Vegan' },
-  { value: 'no_preference', label: 'No preference' },
-];
-const activities: Array<{ value: ActivityLevel; label: string }> = [
-  { value: 'low', label: 'Low' },
-  { value: 'moderate', label: 'Moderate' },
-  { value: 'high', label: 'High' },
-  { value: 'clinician_restricted', label: 'Doctor restricted' },
-  { value: 'not_set', label: 'Not sure' },
-];
-const statuses: Array<{ value: ConditionStatus; label: string }> = [
-  { value: 'doctor_diagnosed', label: 'Diagnosed' },
-  { value: 'under_evaluation', label: 'Checking' },
-  { value: 'pregnancy_history', label: 'History' },
-];
-
 export default function HealthProfileScreen() {
   const { session } = useAuth();
+  const [language, setLanguage] = useState<JananiLanguage>('en');
   const [pregnancyId, setPregnancyId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -62,11 +28,14 @@ export default function HealthProfileScreen() {
   const [foodsAvoided, setFoodsAvoided] = useState('');
   const [instructions, setInstructions] = useState('');
   const [conditions, setConditions] = useState<ConditionMap>({});
+  const tr = (key: Parameters<typeof healthT>[1]) => healthT(language, key);
 
   useEffect(() => {
     let mounted = true;
     void (async () => {
       try {
+        const [locale] = await Promise.all([readUiLanguage()]);
+        if (mounted) setLanguage(locale);
         const userId = session?.user.id;
         if (!userId) return;
         const id = await resolveActivePregnancyId(userId);
@@ -85,13 +54,23 @@ export default function HealthProfileScreen() {
         setConditions(Object.fromEntries(profile.conditions.map((item) => [item.condition_code, item.status])) as ConditionMap);
       } catch (error) {
         Alert.alert('Health profile unavailable', error instanceof Error ? error.message : 'Please try again.');
-      } finally {
-        if (mounted) setLoading(false);
-      }
+      } finally { if (mounted) setLoading(false); }
     })();
     return () => { mounted = false; };
   }, [session?.user.id]);
 
+  const pregnancyTypes = useMemo<Array<{ value: PregnancyType; label: string }>>(() => [
+    { value: 'singleton', label: tr('oneBaby') }, { value: 'twins', label: tr('twins') }, { value: 'higher_multiple', label: tr('threePlusBabies') }, { value: 'unknown', label: tr('notConfirmed') },
+  ], [language]);
+  const diets = useMemo<Array<{ value: DietaryPattern; label: string }>>(() => [
+    { value: 'vegetarian', label: tr('vegetarian') }, { value: 'eggetarian', label: tr('vegetarianEggs') }, { value: 'non_vegetarian', label: tr('nonVegetarian') }, { value: 'vegan', label: tr('vegan') }, { value: 'no_preference', label: tr('noPreference') },
+  ], [language]);
+  const activities = useMemo<Array<{ value: ActivityLevel; label: string }>>(() => [
+    { value: 'low', label: tr('activityLow') }, { value: 'moderate', label: tr('activityModerate') }, { value: 'high', label: tr('activityHigh') }, { value: 'clinician_restricted', label: tr('doctorRestricted') }, { value: 'not_set', label: tr('notSure') },
+  ], [language]);
+  const statuses: Array<{ value: ConditionStatus; label: string }> = [
+    { value: 'doctor_diagnosed', label: 'Diagnosed' }, { value: 'under_evaluation', label: 'Checking' }, { value: 'pregnancy_history', label: 'History' },
+  ];
   const selectedCount = useMemo(() => Object.values(conditions).filter(Boolean).length, [conditions]);
 
   async function save() {
@@ -104,38 +83,26 @@ export default function HealthProfileScreen() {
     setSaving(true);
     try {
       await saveHealthProfile(pregnancyId, {
-        current_weight_kg: currentWeight,
-        pregnancy_type: pregnancyType,
-        dietary_pattern: diet,
-        activity_level: activity,
-        cuisine_preferences: parseList(cuisines),
-        allergies: parseList(allergies),
-        foods_avoided: parseList(foodsAvoided),
-        clinician_dietary_instructions: instructions.trim() || null,
-        conditions: Object.entries(conditions)
-          .filter((entry): entry is [HealthConditionCode, ConditionStatus] => Boolean(entry[1]))
-          .map(([condition_code, status]) => ({ condition_code, status })),
+        current_weight_kg: currentWeight, pregnancy_type: pregnancyType, dietary_pattern: diet, activity_level: activity,
+        cuisine_preferences: parseList(cuisines), allergies: parseList(allergies), foods_avoided: parseList(foodsAvoided), clinician_dietary_instructions: instructions.trim() || null,
+        conditions: Object.entries(conditions).filter((entry): entry is [HealthConditionCode, ConditionStatus] => Boolean(entry[1])).map(([condition_code, status]) => ({ condition_code, status })),
       });
       Alert.alert('Health profile saved', 'These details remain private to the mother unless Janani explicitly says otherwise.');
-    } catch (error) {
-      Alert.alert('Could not save health profile', error instanceof Error ? error.message : 'Please try again.');
-    } finally {
-      setSaving(false);
-    }
+    } catch (error) { Alert.alert('Could not save health profile', error instanceof Error ? error.message : 'Please try again.'); }
+    finally { setSaving(false); }
   }
 
   if (loading) return <View style={styles.center}><ActivityIndicator color={colors.rose} /></View>;
-
   return <SafeAreaView style={styles.page}><ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-    <View style={styles.header}><Pressable accessibilityLabel="Back" onPress={() => router.back()} style={styles.iconButton}><Ionicons name="arrow-back" size={22} color={colors.ink} /></Pressable><View style={styles.flex}><Text style={styles.eyebrow}>PRIVATE HEALTH PROFILE</Text><Text style={styles.title}>Your care context, kept together.</Text></View></View>
+    <View style={styles.header}><Pressable accessibilityLabel="Back" onPress={() => router.back()} style={styles.iconButton}><Ionicons name="arrow-back" size={22} color={colors.ink} /></Pressable><View style={styles.flex}><Text style={styles.eyebrow}>{tr('profileEyebrow')}</Text><Text style={styles.title}>{tr('profileTitle')}</Text></View></View>
     <View style={styles.notice}><Ionicons name="lock-closed-outline" size={22} color={colors.roseDark} /><Text style={styles.noticeText}>These details are mother-only by default. Janani records what you report and does not diagnose a condition or change treatment.</Text></View>
 
-    <Section title="Pregnancy & body"><Field label="Current weight (kg)" value={weight} onChangeText={setWeight} keyboardType="decimal-pad" placeholder="62.5" /><Choice label="Pregnancy" items={pregnancyTypes} value={pregnancyType} onChange={setPregnancyType} /><Choice label="Activity level" items={activities} value={activity} onChange={setActivity} /></Section>
-    <Section title="Food preferences"><Choice label="Food pattern" items={diets} value={diet} onChange={setDiet} /><Field label="Cuisine preferences" value={cuisines} onChangeText={setCuisines} placeholder="Telangana, South Indian" /><Field label="Food allergies or intolerances" value={allergies} onChangeText={setAllergies} placeholder="Peanut, lactose" /><Field label="Foods you avoid" value={foodsAvoided} onChangeText={setFoodsAvoided} placeholder="Mushrooms, seafood" /></Section>
-    <Section title="Health conditions" subtitle={`${selectedCount} selected. Janani will never infer a diagnosis from your readings.`}>{CONDITION_OPTIONS.map((item) => <View key={item.code} style={styles.condition}><Text style={styles.conditionTitle}>{item.label}</Text><View style={styles.row}>{statuses.filter((status) => !item.historyOnly || status.value === 'pregnancy_history').map((status) => { const selected = conditions[item.code] === status.value; return <Pressable key={status.value} onPress={() => setConditions((current) => ({ ...current, [item.code]: selected ? undefined : status.value }))} style={[styles.pill, selected && styles.pillSelected]}><Text style={[styles.pillText, selected && styles.pillTextSelected]}>{status.label}</Text></Pressable>; })}</View></View>)}</Section>
-    <Section title="Clinician instructions" subtitle="Doctor or dietitian instructions always take priority over generic Janani guidance."><Field label="Dietary or activity instructions" value={instructions} onChangeText={setInstructions} placeholder="Enter only instructions your care team has given you" multiline maxLength={2000} /></Section>
+    <Section title={tr('pregnancyBody')}><Field label={tr('currentWeight')} value={weight} onChangeText={setWeight} keyboardType="decimal-pad" placeholder="62.5" /><Choice label={tr('pregnancy')} items={pregnancyTypes} value={pregnancyType} onChange={setPregnancyType} /><Choice label={tr('activityLevel')} items={activities} value={activity} onChange={setActivity} /></Section>
+    <Section title={tr('foodPreferences')}><Choice label={tr('foodPattern')} items={diets} value={diet} onChange={setDiet} /><Field label={tr('cuisinePreferences')} value={cuisines} onChangeText={setCuisines} placeholder="Telangana, South Indian" /><Field label={tr('foodAllergies')} value={allergies} onChangeText={setAllergies} placeholder="Peanut, lactose" /><Field label={tr('foodsAvoided')} value={foodsAvoided} onChangeText={setFoodsAvoided} placeholder="Mushrooms, seafood" /></Section>
+    <Section title={tr('healthConditions')} subtitle={`${selectedCount} selected. Janani will never infer a diagnosis from your readings.`}>{CONDITION_OPTIONS.map((item) => <View key={item.code} style={styles.condition}><Text style={styles.conditionTitle}>{item.label}</Text><View style={styles.row}>{statuses.filter((status) => !item.historyOnly || status.value === 'pregnancy_history').map((status) => { const selected = conditions[item.code] === status.value; return <Pressable key={status.value} onPress={() => setConditions((current) => ({ ...current, [item.code]: selected ? undefined : status.value }))} style={[styles.pill, selected && styles.pillSelected]}><Text style={[styles.pillText, selected && styles.pillTextSelected]}>{status.label}</Text></Pressable>; })}</View></View>)}</Section>
+    <Section title={tr('clinicianInstructions')} subtitle="Doctor or dietitian instructions always take priority over generic Janani guidance."><Field label={tr('dietaryActivityInstructions')} value={instructions} onChangeText={setInstructions} placeholder="Enter only instructions your care team has given you" multiline maxLength={2000} /></Section>
 
-    <Pressable disabled={saving} onPress={() => void save()} style={[styles.save, saving && styles.disabled]}>{saving ? <ActivityIndicator color={colors.surface} /> : <><Text style={styles.saveText}>Save health profile</Text><Ionicons name="shield-checkmark-outline" size={20} color={colors.surface} /></>}</Pressable>
+    <Pressable disabled={saving} onPress={() => void save()} style={[styles.save, saving && styles.disabled]}>{saving ? <ActivityIndicator color={colors.surface} /> : <><Text style={styles.saveText}>{tr('saveHealthProfile')}</Text><Ionicons name="shield-checkmark-outline" size={20} color={colors.surface} /></>}</Pressable>
     <Text style={styles.disclaimer}>Medication, glucose targets, blood-pressure targets, diet restrictions and activity restrictions should follow your qualified care team.</Text>
   </ScrollView></SafeAreaView>;
 }
