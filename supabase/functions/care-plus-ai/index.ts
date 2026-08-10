@@ -32,27 +32,53 @@ Rules:
 - Never diagnose, prescribe, recommend medication/supplement doses, change medication, or set glucose/BP/thyroid targets.
 - Never claim that a mother or baby is safe, normal, or free of a condition.
 - Clinician instructions in the supplied context always take priority.
-- Do not invent missing readings, appointments, conditions, allergies, test results, or clinician instructions.
+- Do not invent missing readings, appointments, conditions, allergies, test results, medication details, pregnancy history, or clinician instructions.
+- Recorded medications and supplements are context only; never infer a dose change, interaction, indication, or adherence from them.
 - For health trends, summarize recorded data without deciding whether values are medically safe.
 - For appointments, help organize recorded information and questions; do not decide which tests or scans are required.
-- For nutrition, respect recorded allergies, avoided foods, diet pattern, and clinician instructions. Do not provide condition-specific personalization unless the server has allowed the request.
+- For nutrition, respect recorded allergies, avoided foods, diet pattern, region preference, and clinician instructions. Do not provide condition-specific personalization unless the server has allowed the request.
+- Respond in the recorded preferred language when possible, while preserving medical-safety meaning.
 - Keep responses concise, warm, practical, and pregnancy-focused.
 - If the supplied request suggests urgent symptoms, do not continue with ordinary AI advice.`;
 
-function selectContext(category: string, pregnancy: Record<string, unknown>, profile: Record<string, unknown>, tracker: Record<string, unknown>, care: unknown[]) {
+function compactMedications(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item: any) => item?.active !== false).slice(0, 30).map((item: any) => ({
+    kind: compactString(item?.kind, 20),
+    name: compactString(item?.name, 160),
+    strength: compactString(item?.strength, 120),
+    schedule: compactString(item?.schedule_text, 500),
+    clinicianInstructions: compactString(item?.clinician_instructions, 700),
+  }));
+}
+
+function selectContext(
+  category: string,
+  pregnancy: Record<string, unknown>,
+  profile: Record<string, unknown>,
+  tracker: Record<string, unknown>,
+  care: unknown[],
+  privateCare: Record<string, unknown>,
+) {
   const base = {
     pregnancy: {
       dueDate: compactString(pregnancy.due_date, 40),
       pregnancyType: compactString(profile.pregnancy_type, 40),
     },
+    preferences: {
+      language: compactString(privateCare.preferred_language, 8) ?? 'en',
+      region: compactString(privateCare.region_preference, 120),
+    },
     conditions: Array.isArray(profile.conditions) ? profile.conditions.slice(0, 20) : [],
+    clinicianInstructions: compactString(privateCare.broader_clinician_instructions, 1200),
   };
   const nutrition = {
     dietaryPattern: compactString(profile.dietary_pattern, 40),
     cuisinePreferences: compactArray(profile.cuisine_preferences, 10, 80),
     allergies: compactArray(profile.allergies, 20, 80),
     foodsAvoided: compactArray(profile.foods_avoided, 20, 80),
-    clinicianInstructions: compactString(profile.clinician_dietary_instructions, 700),
+    regionPreference: compactString(privateCare.region_preference, 120),
+    clinicianDietaryInstructions: compactString(profile.clinician_dietary_instructions, 700),
   };
   const trends = {
     latestWeight: Array.isArray(tracker.weight) ? tracker.weight.slice(0, 1) : [],
@@ -73,12 +99,17 @@ function selectContext(category: string, pregnancy: Record<string, unknown>, pro
     nextFollowupAt: compactString(item?.next_followup_at, 50),
     status: compactString(item?.status, 30),
   }));
+  const medications = compactMedications(privateCare.medications);
+  const history = {
+    relevantMedicalHistory: compactString(privateCare.relevant_medical_history, 1200),
+    previousPregnancyHistory: compactString(privateCare.previous_pregnancy_history, 1200),
+  };
 
-  if (category === 'weekly_meal_ideas' || category === 'meal_alternative') return { ...base, nutrition };
-  if (category === 'appointment_summary') return { ...base, appointments };
-  if (category === 'health_trend_summary') return { ...base, trends };
-  if (category === 'daily_summary') return { ...base, nutrition, trends, appointments: appointments.slice(0, 5) };
-  return { ...base, nutrition, trends: { symptoms: trends.symptoms.slice(0, 8) }, appointments: appointments.slice(0, 5) };
+  if (category === 'weekly_meal_ideas' || category === 'meal_alternative') return { ...base, nutrition, medications };
+  if (category === 'appointment_summary') return { ...base, history, medications, appointments, trends: { symptoms: trends.symptoms, bloodPressure: trends.bloodPressure, glucose: trends.glucose } };
+  if (category === 'health_trend_summary') return { ...base, history, medications, trends };
+  if (category === 'daily_summary') return { ...base, medications, nutrition, trends, appointments: appointments.slice(0, 5) };
+  return { ...base, history, medications, nutrition, trends: { symptoms: trends.symptoms.slice(0, 8) }, appointments: appointments.slice(0, 5) };
 }
 
 Deno.serve(async (request) => {
@@ -120,13 +151,14 @@ Deno.serve(async (request) => {
   if (entitlementError) return respond(503, { error: 'entitlement_check_failed' });
   if (!entitlement?.active) return respond(402, { error: 'care_plus_required' });
 
-  const [pregnancyResult, profileResult, trackerResult, careResult] = await Promise.all([
+  const [pregnancyResult, profileResult, trackerResult, careResult, privateCareResult] = await Promise.all([
     userClient.from('pregnancies').select('id,due_date,status').eq('id', pregnancyId).maybeSingle(),
     userClient.rpc('get_own_health_profile', { p_pregnancy_id: pregnancyId }),
     userClient.rpc('get_own_health_tracker', { p_pregnancy_id: pregnancyId }),
     userClient.rpc('list_own_care_appointments', { p_pregnancy_id: pregnancyId }),
+    userClient.rpc('get_own_private_care_context', { p_pregnancy_id: pregnancyId }),
   ]);
-  if (pregnancyResult.error || !pregnancyResult.data || profileResult.error || !profileResult.data) {
+  if (pregnancyResult.error || !pregnancyResult.data || profileResult.error || !profileResult.data || privateCareResult.error || !privateCareResult.data) {
     return respond(403, { error: 'mother_profile_unavailable' });
   }
   if (trackerResult.error || careResult.error) return respond(503, { error: 'context_load_failed' });
@@ -156,6 +188,7 @@ Deno.serve(async (request) => {
     profile,
     (trackerResult.data ?? {}) as Record<string, unknown>,
     Array.isArray(careResult.data) ? careResult.data : [],
+    privateCareResult.data as Record<string, unknown>,
   );
   const userPrompt = JSON.stringify({ category, context, request: userText || null });
   const estimatedInput = Math.min(12000, Math.ceil((SYSTEM_PROMPT.length + userPrompt.length) / 4));
