@@ -208,6 +208,9 @@ export default function HomeScreen() {
         <View style={styles.grid}>
           <Feature icon="alarm-outline" title="Reminders" caption="Medicines and care" onPress={() => router.push('/reminders')} />
           <Feature icon="book-outline" title="Journal" caption="Keep every memory" onPress={() => router.push('/journal')} />
+          {summary?.role === 'mother'
+            ? <Feature icon="medkit-outline" title="Health profile" caption="Private care context" onPress={() => router.push('/health-profile')} />
+            : null}
           <Feature icon="nutrition-outline" title="Food guide" caption="Coming soon" />
           <Feature icon="heart-outline" title="Thinking of you" caption="Send partner warmth" onPress={() => router.push('/thinking-of-you')} />
           <Feature icon="shield-checkmark-outline" title="Safety & privacy" caption="Know your choices" onPress={() => router.push('/safety-privacy')} />
