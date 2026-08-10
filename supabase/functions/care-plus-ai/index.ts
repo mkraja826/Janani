@@ -1,12 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
 import { generateWithConfiguredProvider } from './provider.ts';
-import {
-  CONDITION_SENSITIVE_CATEGORIES,
-  SERVER_APPROVED_CONDITION_PACKS,
-  isAiCategory,
-  isUrgentInput,
-  validateGeneratedText,
-} from './policy.ts';
+import { CONDITION_SENSITIVE_CATEGORIES, isAiCategory, isUrgentInput, validateGeneratedText } from './policy.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -26,21 +20,6 @@ function compactArray(value: unknown, maxItems: number, maxChars = 120): string[
   if (!Array.isArray(value)) return [];
   return value.slice(0, maxItems).map((item) => compactString(item, maxChars)).filter((item): item is string => Boolean(item));
 }
-
-const SYSTEM_PROMPT = `You are Janani Care+, a calm maternal-support assistant. Use only the supplied Janani context and general supportive knowledge.
-Rules:
-- Never diagnose, prescribe, recommend medication/supplement doses, change medication, or set glucose/BP/thyroid targets.
-- Never claim that a mother or baby is safe, normal, or free of a condition.
-- Clinician instructions in the supplied context always take priority.
-- Do not invent missing readings, appointments, conditions, allergies, test results, medication details, pregnancy history, or clinician instructions.
-- Recorded medications and supplements are context only; never infer a dose change, interaction, indication, or adherence from them.
-- For health trends, summarize recorded data without deciding whether values are medically safe.
-- For appointments, help organize recorded information and questions; do not decide which tests or scans are required.
-- For nutrition, respect recorded allergies, avoided foods, diet pattern, region preference, and clinician instructions. Do not provide condition-specific personalization unless the server has allowed the request.
-- Respond in the recorded preferred language when possible, while preserving medical-safety meaning.
-- Keep responses concise, warm, practical, and pregnancy-focused.
-- If the supplied request suggests urgent symptoms, do not continue with ordinary AI advice.`;
-
 function compactMedications(value: unknown) {
   if (!Array.isArray(value)) return [];
   return value.filter((item: any) => item?.active !== false).slice(0, 30).map((item: any) => ({
@@ -52,6 +31,20 @@ function compactMedications(value: unknown) {
   }));
 }
 
+const SYSTEM_PROMPT = `You are Janani Care+, a calm maternal-support assistant. Use only the supplied Janani context and general supportive knowledge.
+Rules:
+- Never diagnose, prescribe, recommend medication/supplement doses, change medication, or set glucose/BP/thyroid targets.
+- Never claim that a mother or baby is safe, normal, or free of a condition.
+- Clinician instructions in the supplied context always take priority.
+- Do not invent missing readings, appointments, conditions, allergies, test results, medication details, pregnancy history, or clinician instructions.
+- Recorded medications and supplements are context only; never infer a dose change, interaction, indication, or adherence from them.
+- For health trends, summarize recorded data without deciding whether values are medically safe.
+- For appointments, help organize recorded information and questions; do not decide which tests or scans are required.
+- For nutrition, respect recorded allergies, avoided foods, diet pattern, region preference, and clinician instructions. Do not provide condition-specific personalization unless the server supplied an approved clinical rule version.
+- Respond in the recorded preferred language when possible, while preserving medical-safety meaning.
+- Keep responses concise, warm, practical, and pregnancy-focused.
+- If the supplied request suggests urgent symptoms, do not continue with ordinary AI advice.`;
+
 function selectContext(
   category: string,
   pregnancy: Record<string, unknown>,
@@ -59,6 +52,7 @@ function selectContext(
   tracker: Record<string, unknown>,
   care: unknown[],
   privateCare: Record<string, unknown>,
+  approvedRulePacks: unknown[],
 ) {
   const base = {
     pregnancy: {
@@ -70,6 +64,7 @@ function selectContext(
       region: compactString(privateCare.region_preference, 120),
     },
     conditions: Array.isArray(profile.conditions) ? profile.conditions.slice(0, 20) : [],
+    approvedClinicalRulePacks: approvedRulePacks,
     clinicianInstructions: compactString(privateCare.broader_clinician_instructions, 1200),
   };
   const nutrition = {
@@ -170,7 +165,21 @@ Deno.serve(async (request) => {
         .map((item: any) => compactString(item?.condition_code, 80))
         .filter((value: string | null): value is string => Boolean(value))
     : [];
-  const blockedConditions = activeConditions.filter((condition) => !SERVER_APPROVED_CONDITION_PACKS.has(condition));
+
+  let approvedRulePacks: Array<Record<string, unknown>> = [];
+  if (activeConditions.length > 0) {
+    const { data: approved, error: approvalError } = await serviceClient.rpc('get_active_clinical_rule_packs_server', {
+      p_condition_codes: activeConditions,
+    });
+    if (approvalError) return respond(503, { error: 'clinical_rule_registry_unavailable' });
+    approvedRulePacks = Array.isArray(approved) ? approved : [];
+  }
+  const approvedCodes = new Set(
+    approvedRulePacks
+      .map((item) => compactString(item?.conditionCode, 80))
+      .filter((value): value is string => Boolean(value)),
+  );
+  const blockedConditions = activeConditions.filter((condition) => !approvedCodes.has(condition));
   if (CONDITION_SENSITIVE_CATEGORIES.has(category) && blockedConditions.length > 0) {
     return respond(409, { error: 'condition_rule_pack_not_approved', blockedConditions, safety: 'blocked' });
   }
@@ -189,6 +198,7 @@ Deno.serve(async (request) => {
     (trackerResult.data ?? {}) as Record<string, unknown>,
     Array.isArray(careResult.data) ? careResult.data : [],
     privateCareResult.data as Record<string, unknown>,
+    approvedRulePacks,
   );
   const userPrompt = JSON.stringify({ category, context, request: userText || null });
   const estimatedInput = Math.min(12000, Math.ceil((SYSTEM_PROMPT.length + userPrompt.length) / 4));
