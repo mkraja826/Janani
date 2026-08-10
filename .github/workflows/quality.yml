@@ -36,6 +36,37 @@ jobs:
       - run: npx expo-doctor
       - run: node .github/scripts/validate-legal-site.mjs
       - run: npx expo config --type public
+      - name: Diagnose Expo PNG assets
+        run: |
+          node - <<'NODE'
+          const fs = require('fs');
+          const Jimp = require('jimp-compact');
+          const files = [
+            'assets/.generated-janani-app-icon.png',
+            'assets/icon.png',
+            'assets/adaptive-icon.png',
+            'assets/monochrome-icon.png',
+            'assets/splash-icon.png',
+            'assets/notification-icon.png',
+          ];
+          (async () => {
+            let failed = false;
+            for (const file of files) {
+              if (!fs.existsSync(file)) {
+                console.log(`PNG_DIAG MISSING ${file}`);
+                continue;
+              }
+              try {
+                const image = await Jimp.read(file);
+                console.log(`PNG_DIAG OK ${file} ${image.bitmap.width}x${image.bitmap.height}`);
+              } catch (error) {
+                failed = true;
+                console.error(`PNG_DIAG FAIL ${file}: ${error instanceof Error ? error.message : String(error)}`);
+              }
+            }
+            if (failed) process.exitCode = 2;
+          })();
+          NODE
       - run: npx expo prebuild --platform android --clean --no-install
       - name: Verify widget generation
         run: |
