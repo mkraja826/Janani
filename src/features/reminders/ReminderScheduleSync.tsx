@@ -16,6 +16,7 @@ type ReminderRow = {
   id: string;
   title: string;
   instructions: string | null;
+  kind: 'medication' | 'appointment' | 'hydration' | 'nutrition' | 'custom';
   local_time: string;
   start_date: string;
   end_date: string | null;
@@ -50,7 +51,7 @@ export function ReminderScheduleSync() {
           await migrateLegacyReminderNotifications();
           const { data, error } = await supabase
             .from('reminders')
-            .select('id,title,instructions,local_time,start_date,end_date,days_of_week')
+            .select('id,title,instructions,kind,local_time,start_date,end_date,days_of_week')
             .eq('is_active', true)
             .order('local_time');
           if (error || disposed) return;
@@ -65,6 +66,7 @@ export function ReminderScheduleSync() {
               id: reminder.id,
               title: reminder.title,
               instructions: reminder.instructions,
+              kind: reminder.kind,
               localTime: reminder.local_time,
               startDate: reminder.start_date,
               endDate: reminder.end_date,
