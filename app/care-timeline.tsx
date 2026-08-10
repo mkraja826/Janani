@@ -8,13 +8,13 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { APPOINTMENT_TYPES, type AppointmentStatus, type AppointmentType, type CareAppointment, deleteCareAppointment, listCareAppointments, saveCareAppointment, splitLines } from '@/features/care/careTimeline';
 import { resolveActivePregnancyId } from '@/features/pregnancy/activePregnancy';
 import { careFoodT } from '@/i18n/careFood';
-import { readUiLanguage, type JananiLanguage } from '@/i18n';
+import { readGlobalUiLocale } from '@/i18n/uiLocale';
 import { useAuth } from '@/providers/AuthProvider';
 import { colors, radius, spacing } from '@/theme/tokens';
 
 export default function CareTimelineScreen() {
   const { session } = useAuth();
-  const [language, setLanguage] = useState<JananiLanguage>('en');
+  const [language, setLanguage] = useState('en');
   const [pregnancyId, setPregnancyId] = useState<string | null>(null);
   const [items, setItems] = useState<CareAppointment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,7 +32,7 @@ export default function CareTimelineScreen() {
   const [pickerMode, setPickerMode] = useState<'date' | 'time' | null>(null);
   const tr = (key: Parameters<typeof careFoodT>[1]) => careFoodT(language, key);
 
-  useEffect(() => { void readUiLanguage().then(setLanguage); }, []);
+  useEffect(() => { void readGlobalUiLocale().then(setLanguage); }, []);
 
   const load = useCallback(async () => {
     const userId = session?.user.id;
@@ -48,7 +48,7 @@ export default function CareTimelineScreen() {
     } finally { setLoading(false); }
   }, [session?.user.id]);
 
-  useFocusEffect(useCallback(() => { void load(); void readUiLanguage().then(setLanguage); }, [load]));
+  useFocusEffect(useCallback(() => { void load(); void readGlobalUiLocale().then(setLanguage); }, [load]));
 
   function reset() { setEditingId(null); setType('doctor_visit'); setStatus('scheduled'); setScheduledAt(new Date(Date.now() + 86400000)); setProvider(''); setFacility(''); setPurpose(''); setQuestions(''); setNotes(''); setTests(''); setPickerMode(null); }
   function edit(item: CareAppointment) { setEditingId(item.id); setType(item.appointment_type); setStatus(item.status); setScheduledAt(new Date(item.scheduled_at)); setProvider(item.provider_name ?? ''); setFacility(item.facility_name ?? ''); setPurpose(item.purpose ?? ''); setQuestions(item.questions.join('\n')); setNotes(item.notes_after ?? ''); setTests(item.tests_prescribed.join('\n')); }
