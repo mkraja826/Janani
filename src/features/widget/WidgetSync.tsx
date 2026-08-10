@@ -3,13 +3,12 @@ import { AppState } from 'react-native';
 
 import { getPregnancyProgress } from '@/features/pregnancy/progress';
 import { canUpdateNativeWidget, clearPrivateWidgetContent, updateNativeWidget } from '@/features/widget/widgetState';
+import { readUiLanguage } from '@/i18n';
+import { systemCopy } from '@/i18n/systemSurfaces';
 import { toLocalDate } from '@/lib/date';
 import { supabase } from '@/lib/supabase';
 import { useMembership } from '@/providers/AuthGate';
 import { useAuth } from '@/providers/AuthProvider';
-
-const babyMessages = ['Your little journey is growing day by day.','Tiny changes are happening every day.','Another week of growing together.'];
-const wellnessMessages = ['Hydrate gently, eat regularly, and make room for rest.','A balanced plate and a little movement can support your day.','Small meals, enough fluids, and good rest are meaningful care.'];
 
 export function WidgetSync() {
   const { session } = useAuth();
@@ -22,6 +21,8 @@ export function WidgetSync() {
     const userId=session.user.id; let disposed=false,running=false,rerunRequested=false;
     const current=()=>!disposed&&syncGeneration.current===generation;
     async function performSync(){
+      const language = await readUiLanguage();
+      const localized = systemCopy(language);
       const membership=await supabase.from('family_members').select('role,families(name,pregnancies(due_date,status))').eq('user_id',userId).maybeSingle(); if(!current())return;
       const family=Array.isArray(membership.data?.families)?membership.data?.families[0]:membership.data?.families;
       const ps=family?.pregnancies; const list=Array.isArray(ps)?ps:ps?[ps]:[]; const pregnancy=list.find((x)=>x.status==='active')??list[0]; const progress=pregnancy?.due_date?getPregnancyProgress(pregnancy.due_date):null;
@@ -32,14 +33,26 @@ export function WidgetSync() {
       const next=reminders.data?.find(valid); const med=reminders.data?.find((x:any)=>x.kind==='medication'&&valid(x)); const appt=reminders.data?.find((x:any)=>x.kind==='appointment'&&valid(x));
       const nudge=await supabase.from('partner_nudges').select('id').neq('sender_id',userId).order('created_at',{ascending:false}).limit(1).maybeSingle(); if(!current())return;
       const week=progress?.gestationalWeek??0;
+      const babyMessages=localized.babyMessages;
+      const wellnessMessages=localized.wellnessMessages;
       await updateNativeWidget({
-        week_label:progress?`Week ${week} · ${progress.gestationalDay} days`:'Janani', family_label:family?.name??'Our little family',
-        next_reminder:next?`${next.title} · ${next.local_time.slice(0,5)}`:'Open Janani for upcoming reminders',
-        next_medicine:med?`${med.title} · ${med.local_time.slice(0,5)}`:'No medicine due soon',
-        next_appointment:appt?`${appt.title} · ${appt.local_time.slice(0,5)}`:'No appointment scheduled',
-        partner_message:nudge.data?'A little heart from your partner is waiting 💗':'Send a little warmth 💗',
+        week_label:progress?`${localized.week} ${week} · ${progress.gestationalDay} ${localized.days}`:'Janani', family_label:family?.name??localized.familyFallback,
+        next_reminder:next?`${next.title} · ${next.local_time.slice(0,5)}`:localized.upcomingReminders,
+        next_medicine:med?`${med.title} · ${med.local_time.slice(0,5)}`:localized.noMedicine,
+        next_appointment:appt?`${appt.title} · ${appt.local_time.slice(0,5)}`:localized.noAppointment,
+        partner_message:nudge.data?localized.partnerWaiting:localized.sendWarmth,
         baby_message:babyMessages[week%babyMessages.length], wellness_message:wellnessMessages[week%wellnessMessages.length],
-        daily_message:progress?`You are ${week} weeks into this journey. Be gentle with yourself today.`:'Open Janani for your pregnancy journey.',
+        daily_message:progress?localized.dailyJourney(week):localized.openJourney,
+        widget_today_title:localized.widgetTodayTitle,
+        widget_medicine_title:localized.widgetMedicineTitle,
+        widget_love_title:localized.widgetLoveTitle,
+        widget_appointment_title:localized.widgetAppointmentTitle,
+        widget_wellness_title:localized.widgetWellnessTitle,
+        widget_care_fallback:localized.widgetCareFallback,
+        widget_medicine_fallback:localized.widgetMedicineFallback,
+        widget_appointment_fallback:localized.widgetAppointmentFallback,
+        widget_baby_fallback:localized.widgetBabyFallback,
+        widget_wellness_fallback:localized.widgetWellnessFallback,
       });
     }
     async function sync(){if(disposed)return;if(running){rerunRequested=true;return;}running=true;try{do{rerunRequested=false;await performSync();}while(rerunRequested&&!disposed);}catch{}finally{running=false;if(rerunRequested&&!disposed)void sync();}}
