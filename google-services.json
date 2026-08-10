@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "976106645634",
+    "project_id": "janani-5e272",
+    "storage_bucket": "janani-5e272.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:976106645634:android:23b0fde13041e393c22c9b",
+        "android_client_info": {
+          "package_name": "com.mkraja826.janani"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBYk2KiUWuDYZlJkYF62L6bALSugA7LN_g"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
