@@ -39,10 +39,17 @@ export default function FoodGuideScreen() {
         const pregnancyId = await resolveActivePregnancyId(userId);
         if (!pregnancyId) return;
         const context = buildNutritionContext(await buildJananiProfile(pregnancyId));
-        const result = personalizeNutrition(context);
+        const result = personalizeNutrition({
+          trimester: context.pregnancy.trimester,
+          dietaryPattern: context.nutrition.dietaryPattern,
+          allergies: context.nutrition.allergies,
+          foodsAvoided: context.nutrition.foodsAvoided,
+          activeConditions: context.activeConditions,
+          clinicianInstructions: context.nutrition.clinicianInstructions,
+        });
         if (!active) return;
         setTopics(result.topics.length ? result.topics : fallbackGroups);
-        if (result.blockedConditions.length) setNotice('Condition-specific food personalisation is not enabled until the relevant Janani clinical rule pack is approved. Follow your maternity team or dietitian plan first.');
+        if (result.blockedConditionCodes.length) setNotice('Condition-specific food personalisation is not enabled until the relevant Janani clinical rule pack is approved. Follow your maternity team or dietitian plan first.');
         else if (context.nutrition.clinicianInstructions) setNotice('Your saved clinician instructions take priority over all general Janani food guidance.');
       } catch {
         // General reviewed guidance remains available if private context is unavailable.
