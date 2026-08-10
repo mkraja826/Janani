@@ -6,11 +6,17 @@ export type ProviderResult = {
   outputTokens: number;
 };
 
+function requiredProviderValue(name: string): string {
+  const value = Deno.env.get(name)?.trim();
+  if (!value) throw new Error('provider_not_configured');
+  return value;
+}
+
 export async function generateWithConfiguredProvider(input: {
   systemPrompt: string;
   userPrompt: string;
 }): Promise<ProviderResult> {
-  const provider = Deno.env.get('JANANI_AI_PROVIDER') ?? 'disabled';
+  const provider = Deno.env.get('JANANI_AI_PROVIDER')?.trim() || 'disabled';
   if (provider === 'disabled') throw new Error('provider_disabled');
 
   // The production gateway currently supports any OpenAI-compatible chat endpoint.
@@ -18,12 +24,19 @@ export async function generateWithConfiguredProvider(input: {
   // provider can be selected server-side without changing the mobile app.
   if (provider !== 'openai_compatible') throw new Error('unsupported_provider');
 
-  const apiUrl = Deno.env.get('JANANI_AI_API_URL');
-  const apiKey = Deno.env.get('JANANI_AI_API_KEY');
-  const model = Deno.env.get('JANANI_AI_MODEL');
-  if (!apiUrl || !apiKey || !model) throw new Error('provider_not_configured');
+  const apiUrl = requiredProviderValue('JANANI_AI_API_URL');
+  const apiKey = requiredProviderValue('JANANI_AI_API_KEY');
+  const model = requiredProviderValue('JANANI_AI_MODEL');
 
-  const response = await fetch(apiUrl, {
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(apiUrl);
+  } catch {
+    throw new Error('provider_invalid_url');
+  }
+  if (parsedUrl.protocol !== 'https:') throw new Error('provider_invalid_url');
+
+  const response = await fetch(parsedUrl, {
     method: 'POST',
     headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -35,6 +48,7 @@ export async function generateWithConfiguredProvider(input: {
       temperature: 0.2,
       max_tokens: 700,
     }),
+    signal: AbortSignal.timeout(30_000),
   });
 
   if (!response.ok) throw new Error(`provider_http_${response.status}`);
