@@ -8,7 +8,9 @@ import { productionConfig } from '@/config/production';
 import { flushJananiOfflineQueue } from '@/features/offline/OfflineQueueSync';
 import { cacheActivePregnancyId } from '@/features/pregnancy/activePregnancy';
 import { getPregnancyProgress, trimesterLabel } from '@/features/pregnancy/progress';
-import { readUiLanguage, t, type JananiLanguage } from '@/i18n';
+import { type MessageKey } from '@/i18n';
+import { tg } from '@/i18n/globalUi';
+import { readGlobalUiLocale } from '@/i18n/uiLocale';
 import { readCache, writeCache } from '@/lib/cache';
 import { supabase } from '@/lib/supabase';
 import { useMembership } from '@/providers/AuthGate';
@@ -24,9 +26,9 @@ export default function HomeScreen() {
   const [summary, setSummary] = useState<FamilySummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
-  const [language, setLanguage] = useState<JananiLanguage>('en');
+  const [localeCode, setLocaleCode] = useState('en');
   const userId = session?.user.id;
-  const tr = useCallback((key: Parameters<typeof t>[1]) => t(language, key), [language]);
+  const tr = useCallback((key: MessageKey) => tg(localeCode, key), [localeCode]);
 
   const load = useCallback(async () => {
     if (!userId) return;
@@ -52,7 +54,7 @@ export default function HomeScreen() {
   }, [markMembership, userId]);
 
   useFocusEffect(useCallback(() => {
-    void readUiLanguage().then(setLanguage).catch(() => setLanguage('en'));
+    void readGlobalUiLocale().then(setLocaleCode).catch(() => setLocaleCode('en'));
     void load();
   }, [load]));
 
