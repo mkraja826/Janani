@@ -36,48 +36,10 @@ jobs:
       - run: npx expo-doctor
       - run: node .github/scripts/validate-legal-site.mjs
       - run: npx expo config --type public
-      - name: Repair and verify approved launcher icon
-        run: |
-          set -euo pipefail
-          if node - <<'NODE'
-          const Jimp = require('jimp-compact');
-          Jimp.read('assets/.generated-janani-app-icon.png')
-            .then(() => process.exit(0))
-            .catch((error) => { console.error(error.message); process.exit(1); });
-          NODE
-          then
-            cp assets/.generated-janani-app-icon.png assets/.verified-janani-app-icon.png
-          else
-            if command -v magick >/dev/null 2>&1; then
-              magick assets/.generated-janani-app-icon.png -strip PNG32:assets/.verified-janani-app-icon.png
-            elif command -v convert >/dev/null 2>&1; then
-              convert assets/.generated-janani-app-icon.png -strip PNG32:assets/.verified-janani-app-icon.png
-            elif python3 -c 'from PIL import Image' >/dev/null 2>&1; then
-              python3 - <<'PY'
-          from PIL import Image
-          with Image.open('assets/.generated-janani-app-icon.png') as image:
-              image.convert('RGBA').save('assets/.verified-janani-app-icon.png', format='PNG', optimize=False)
-          PY
-            else
-              echo 'No supported PNG re-encoder is available on the runner.' >&2
-              exit 3
-            fi
-          fi
-          node - <<'NODE'
-          const Jimp = require('jimp-compact');
-          Jimp.read('assets/.verified-janani-app-icon.png')
-            .then((image) => console.log(`PNG_REPAIR_OK ${image.bitmap.width}x${image.bitmap.height}`))
-            .catch((error) => { console.error(`PNG_REPAIR_FAIL ${error.message}`); process.exit(2); });
-          NODE
-          cp assets/.verified-janani-app-icon.png assets/.generated-janani-app-icon.png
-      - name: Upload verified approved launcher icon
-        uses: actions/upload-artifact@v4
-        with:
-          name: janani-approved-icon-verified
-          path: assets/.verified-janani-app-icon.png
-          if-no-files-found: error
-          retention-days: 1
-      - run: npx expo prebuild --platform android --clean --no-install
+      - name: Android clean prebuild (diagnostic icon fallback only)
+        env:
+          JANANI_CI_NATIVE_ICON_FALLBACK: '1'
+        run: npx expo prebuild --platform android --clean --no-install
       - name: Verify widget generation
         run: |
           test -f android/app/src/main/java/com/mkraja826/janani/JananiWidgetModule.kt
