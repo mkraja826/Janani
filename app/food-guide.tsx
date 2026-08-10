@@ -9,7 +9,7 @@ import type { NutritionTopic } from '@/features/nutrition/content';
 import { buildJananiProfile, buildNutritionContext } from '@/features/profile/jananiProfile';
 import { resolveActivePregnancyId } from '@/features/pregnancy/activePregnancy';
 import { careFoodT } from '@/i18n/careFood';
-import { readUiLanguage, type JananiLanguage } from '@/i18n';
+import { readGlobalUiLocale } from '@/i18n/uiLocale';
 import { useAuth } from '@/providers/AuthProvider';
 import { colors, radius, spacing } from '@/theme/tokens';
 
@@ -21,14 +21,14 @@ const fallbackGroups = [
 
 export default function FoodGuideScreen() {
   const { session } = useAuth();
-  const [language, setLanguage] = useState<JananiLanguage>('en');
+  const [language, setLanguage] = useState('en');
   const [topics, setTopics] = useState<Array<Pick<NutritionTopic,'id'|'title'|'summary'>>>(fallbackGroups);
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const tr = (key: Parameters<typeof careFoodT>[1]) => careFoodT(language, key);
 
-  useEffect(() => { void readUiLanguage().then(setLanguage); }, []);
-  useFocusEffect(useCallback(() => { void readUiLanguage().then(setLanguage); }, []));
+  useEffect(() => { void readGlobalUiLocale().then(setLanguage); }, []);
+  useFocusEffect(useCallback(() => { void readGlobalUiLocale().then(setLanguage); }, []));
 
   useEffect(() => {
     let active = true;
