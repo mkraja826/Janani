@@ -3,8 +3,9 @@ import { AppState } from 'react-native';
 
 import { getPregnancyProgress } from '@/features/pregnancy/progress';
 import { canUpdateNativeWidget, clearPrivateWidgetContent, updateNativeWidget } from '@/features/widget/widgetState';
-import { readUiLanguage } from '@/i18n';
+import { uiTranslationLanguageFor } from '@/i18n/localeRegistry';
 import { systemCopy } from '@/i18n/systemSurfaces';
+import { readGlobalUiLocale } from '@/i18n/uiLocale';
 import { toLocalDate } from '@/lib/date';
 import { supabase } from '@/lib/supabase';
 import { useMembership } from '@/providers/AuthGate';
@@ -21,8 +22,8 @@ export function WidgetSync() {
     const userId=session.user.id; let disposed=false,running=false,rerunRequested=false;
     const current=()=>!disposed&&syncGeneration.current===generation;
     async function performSync(){
-      const language = await readUiLanguage();
-      const localized = systemCopy(language);
+      const locale=await readGlobalUiLocale();
+      const localized=systemCopy(uiTranslationLanguageFor(locale));
       const membership=await supabase.from('family_members').select('role,families(name,pregnancies(due_date,status))').eq('user_id',userId).maybeSingle(); if(!current())return;
       const family=Array.isArray(membership.data?.families)?membership.data?.families[0]:membership.data?.families;
       const ps=family?.pregnancies; const list=Array.isArray(ps)?ps:ps?[ps]:[]; const pregnancy=list.find((x)=>x.status==='active')??list[0]; const progress=pregnancy?.due_date?getPregnancyProgress(pregnancy.due_date):null;
