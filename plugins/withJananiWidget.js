@@ -3,32 +3,28 @@ const fs = require('fs');
 const path = require('path');
 
 const PACKAGE = 'com.mkraja826.janani';
-const RECEIVER = `${PACKAGE}.JananiCareWidget`;
+const WIDGETS = [
+  ['JananiCareWidget', 'Janani Today', 'janani_care_widget_info'],
+  ['JananiMedicineWidget', 'Janani Medicine', 'janani_medicine_widget_info'],
+  ['JananiLoveWidget', 'Thinking of You', 'janani_love_widget_info'],
+  ['JananiBabyWidget', 'Baby This Week', 'janani_baby_widget_info'],
+  ['JananiAppointmentWidget', 'Next Appointment', 'janani_appointment_widget_info'],
+  ['JananiWellnessWidget', 'Daily Wellness', 'janani_wellness_widget_info'],
+];
 
-function write(filePath, content) {
-  fs.mkdirSync(path.dirname(filePath), { recursive: true });
-  fs.writeFileSync(filePath, content);
-}
+function write(filePath, content) { fs.mkdirSync(path.dirname(filePath), { recursive: true }); fs.writeFileSync(filePath, content); }
+function receiver(name, label, info) { return { $: { 'android:name': `${PACKAGE}.${name}`, 'android:exported': 'false', 'android:label': label }, 'intent-filter': [{ action: [{ $: { 'android:name': 'android.appwidget.action.APPWIDGET_UPDATE' } }] }], 'meta-data': [{ $: { 'android:name': 'android.appwidget.provider', 'android:resource': `@xml/${info}` } }] }; }
 
 module.exports = function withJananiWidget(config) {
   config = withAndroidManifest(config, (mod) => {
     const application = AndroidConfig.Manifest.getMainApplicationOrThrow(mod.modResults);
     application.receiver = application.receiver || [];
-    let receiver = application.receiver.find((item) => item.$?.['android:name'] === RECEIVER);
-    if (!receiver) {
-      receiver = {
-        $: { 'android:name': RECEIVER, 'android:exported': 'false', 'android:label': 'Janani care' },
-        'intent-filter': [{ action: [{ $: { 'android:name': 'android.appwidget.action.APPWIDGET_UPDATE' } }] }],
-        'meta-data': [{ $: { 'android:name': 'android.appwidget.provider', 'android:resource': '@xml/janani_care_widget_info' } }],
-      };
-      application.receiver.push(receiver);
-    }
-    receiver.$ = {
-      ...receiver.$,
-      'android:name': RECEIVER,
-      'android:exported': 'false',
-      'android:label': 'Janani care',
-    };
+    WIDGETS.forEach(([name, label, info]) => {
+      const full = `${PACKAGE}.${name}`;
+      const index = application.receiver.findIndex((item) => item.$?.['android:name'] === full);
+      const value = receiver(name, label, info);
+      if (index >= 0) application.receiver[index] = value; else application.receiver.push(value);
+    });
     return mod;
   });
 
@@ -38,29 +34,14 @@ module.exports = function withJananiWidget(config) {
       const packageLine = contents.match(/^package .*$/m)?.[0];
       if (packageLine) contents = contents.replace(packageLine, `${packageLine}\n\nimport com.mkraja826.janani.JananiWidgetPackage`);
     }
-    const hasRegistration = /^\s*(?:packages\.)?add\(JananiWidgetPackage\(\)\)\s*$/m.test(contents);
-    if (!hasRegistration) {
-      const sdk54Packages = /^(\s*)PackageList\(this\)\.packages\.apply\s*\{/m;
-      const legacyPackages = /^(\s*)val packages = PackageList\(this\)\.packages\s*$/m;
-
-      if (sdk54Packages.test(contents)) {
-        contents = contents.replace(
-          sdk54Packages,
-          (match, indentation) => `${match}\n${indentation}  add(JananiWidgetPackage())`,
-        );
-      } else if (legacyPackages.test(contents)) {
-        contents = contents.replace(
-          legacyPackages,
-          (match, indentation) => `${match}\n${indentation}packages.add(JananiWidgetPackage())`,
-        );
-      } else {
-        throw new Error(
-          'Janani widget package registration failed: unsupported Android MainApplication template.',
-        );
-      }
+    if (!/^\s*(?:packages\.)?add\(JananiWidgetPackage\(\)\)\s*$/m.test(contents)) {
+      const sdk54 = /^(\s*)PackageList\(this\)\.packages\.apply\s*\{/m;
+      const legacy = /^(\s*)val packages = PackageList\(this\)\.packages\s*$/m;
+      if (sdk54.test(contents)) contents = contents.replace(sdk54, (m, i) => `${m}\n${i}  add(JananiWidgetPackage())`);
+      else if (legacy.test(contents)) contents = contents.replace(legacy, (m, i) => `${m}\n${i}packages.add(JananiWidgetPackage())`);
+      else throw new Error('Janani widget package registration failed: unsupported Android MainApplication template.');
     }
-    mod.modResults.contents = contents;
-    return mod;
+    mod.modResults.contents = contents; return mod;
   });
 
   return withDangerousMod(config, ['android', async (mod) => {
@@ -68,15 +49,20 @@ module.exports = function withJananiWidget(config) {
     const javaRoot = path.join(root, 'app/src/main/java/com/mkraja826/janani');
     const res = path.join(root, 'app/src/main/res');
 
-    write(path.join(javaRoot, 'JananiWidgetModule.kt'), `package ${PACKAGE}\n\nimport android.appwidget.AppWidgetManager\nimport android.content.ComponentName\nimport android.content.Context\nimport com.facebook.react.bridge.Promise\nimport com.facebook.react.bridge.ReactApplicationContext\nimport com.facebook.react.bridge.ReactContextBaseJavaModule\nimport com.facebook.react.bridge.ReactMethod\nimport com.facebook.react.bridge.ReadableMap\n\nclass JananiWidgetModule(private val reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {\n  override fun getName() = "JananiWidget"\n\n  @ReactMethod\n  fun update(state: ReadableMap, promise: Promise) {\n    try {\n      val editor = reactContext.getSharedPreferences("janani_widget", Context.MODE_PRIVATE).edit()\n      state.toHashMap().forEach { (key, value) -> editor.putString(key, value?.toString() ?: "") }\n      editor.apply()\n      val manager = AppWidgetManager.getInstance(reactContext)\n      val component = ComponentName(reactContext, JananiCareWidget::class.java)\n      val ids = manager.getAppWidgetIds(component)\n      JananiCareWidget().onUpdate(reactContext, manager, ids)\n      promise.resolve(null)\n    } catch (error: Exception) {\n      promise.reject("JANANI_WIDGET_UPDATE", error)\n    }\n  }\n}\n`);
+    write(path.join(javaRoot, 'JananiWidgetModule.kt'), `package ${PACKAGE}\n\nimport android.appwidget.AppWidgetManager\nimport android.content.ComponentName\nimport android.content.Context\nimport com.facebook.react.bridge.*\n\nclass JananiWidgetModule(private val reactContext: ReactApplicationContext) : ReactContextBaseJavaModule(reactContext) {\n override fun getName() = "JananiWidget"\n @ReactMethod fun update(state: ReadableMap, promise: Promise) { try {\n  val editor=reactContext.getSharedPreferences("janani_widget",Context.MODE_PRIVATE).edit(); state.toHashMap().forEach{(k,v)->editor.putString(k,v?.toString()?:"")}; editor.apply()\n  val manager=AppWidgetManager.getInstance(reactContext)\n  listOf(JananiCareWidget::class.java,JananiMedicineWidget::class.java,JananiLoveWidget::class.java,JananiBabyWidget::class.java,JananiAppointmentWidget::class.java,JananiWellnessWidget::class.java).forEach { klass -> val ids=manager.getAppWidgetIds(ComponentName(reactContext,klass)); if(ids.isNotEmpty()){ val provider=klass.getDeclaredConstructor().newInstance(); provider.onUpdate(reactContext,manager,ids) } }\n  promise.resolve(null)\n } catch(error:Exception){ promise.reject("JANANI_WIDGET_UPDATE",error) } }\n}\n`);
+    write(path.join(javaRoot, 'JananiWidgetPackage.kt'), `package ${PACKAGE}\n\nimport com.facebook.react.ReactPackage\nimport com.facebook.react.bridge.*\nimport com.facebook.react.uimanager.ViewManager\nclass JananiWidgetPackage:ReactPackage{ override fun createNativeModules(c:ReactApplicationContext):List<NativeModule> = listOf(JananiWidgetModule(c)); override fun createViewManagers(c:ReactApplicationContext):List<ViewManager<*,*>> = emptyList() }\n`);
+    write(path.join(javaRoot, 'JananiWidgets.kt'), `package ${PACKAGE}\n\nimport android.app.PendingIntent\nimport android.appwidget.*\nimport android.content.*\nimport android.net.Uri\nimport android.widget.RemoteViews\n\nabstract class JananiBaseWidget:AppWidgetProvider(){ fun p(c:Context,n:Int,r:String)=PendingIntent.getActivity(c,n,Intent(Intent.ACTION_VIEW,Uri.parse("janani://$r")).apply{flags=Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP},PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE); fun s(c:Context)=c.getSharedPreferences("janani_widget",Context.MODE_PRIVATE) }\nclass JananiCareWidget:JananiBaseWidget(){override fun onUpdate(c:Context,m:AppWidgetManager,ids:IntArray){val x=s(c);ids.forEach{id->val v=RemoteViews(c.packageName,R.layout.janani_care_widget);v.setTextViewText(R.id.title,x.getString("week_label","Janani Today"));v.setTextViewText(R.id.line1,x.getString("daily_message","A gentle day, one step at a time."));v.setTextViewText(R.id.line2,x.getString("next_reminder","Open Janani for today's care"));v.setOnClickPendingIntent(R.id.root,p(c,id*10,"home"));m.updateAppWidget(id,v)}}}\nclass JananiMedicineWidget:JananiBaseWidget(){override fun onUpdate(c:Context,m:AppWidgetManager,ids:IntArray){val x=s(c);ids.forEach{id->val v=RemoteViews(c.packageName,R.layout.janani_small_widget);v.setTextViewText(R.id.emoji,"💊");v.setTextViewText(R.id.title,"Next medicine");v.setTextViewText(R.id.line1,x.getString("next_medicine","No medicine due soon"));v.setOnClickPendingIntent(R.id.root,p(c,id*10+1,"reminders"));m.updateAppWidget(id,v)}}}\nclass JananiLoveWidget:JananiBaseWidget(){override fun onUpdate(c:Context,m:AppWidgetManager,ids:IntArray){val x=s(c);ids.forEach{id->val v=RemoteViews(c.packageName,R.layout.janani_small_widget);v.setTextViewText(R.id.emoji,"❤");v.setTextViewText(R.id.title,"Thinking of you");v.setTextViewText(R.id.line1,x.getString("partner_message","Send a little warmth"));v.setOnClickPendingIntent(R.id.root,p(c,id*10+2,"thinking-of-you"));m.updateAppWidget(id,v)}}}\nclass JananiBabyWidget:JananiBaseWidget(){override fun onUpdate(c:Context,m:AppWidgetManager,ids:IntArray){val x=s(c);ids.forEach{id->val v=RemoteViews(c.packageName,R.layout.janani_small_widget);v.setTextViewText(R.id.emoji,"👶");v.setTextViewText(R.id.title,x.getString("week_label","Baby this week"));v.setTextViewText(R.id.line1,x.getString("baby_message","Open Janani for this week's journey"));v.setOnClickPendingIntent(R.id.root,p(c,id*10+3,"pregnancy-guide"));m.updateAppWidget(id,v)}}}\nclass JananiAppointmentWidget:JananiBaseWidget(){override fun onUpdate(c:Context,m:AppWidgetManager,ids:IntArray){val x=s(c);ids.forEach{id->val v=RemoteViews(c.packageName,R.layout.janani_small_widget);v.setTextViewText(R.id.emoji,"📅");v.setTextViewText(R.id.title,"Next appointment");v.setTextViewText(R.id.line1,x.getString("next_appointment","No appointment scheduled"));v.setOnClickPendingIntent(R.id.root,p(c,id*10+4,"reminders"));m.updateAppWidget(id,v)}}}\nclass JananiWellnessWidget:JananiBaseWidget(){override fun onUpdate(c:Context,m:AppWidgetManager,ids:IntArray){val x=s(c);ids.forEach{id->val v=RemoteViews(c.packageName,R.layout.janani_care_widget);v.setTextViewText(R.id.title,"Daily wellness 🌿");v.setTextViewText(R.id.line1,x.getString("wellness_message","Eat gently, hydrate, and rest when your body asks."));v.setTextViewText(R.id.line2,x.getString("week_label","Janani"));v.setOnClickPendingIntent(R.id.root,p(c,id*10+5,"food-guide"));m.updateAppWidget(id,v)}}}\n`);
 
-    write(path.join(javaRoot, 'JananiWidgetPackage.kt'), `package ${PACKAGE}\n\nimport com.facebook.react.ReactPackage\nimport com.facebook.react.bridge.NativeModule\nimport com.facebook.react.bridge.ReactApplicationContext\nimport com.facebook.react.uimanager.ViewManager\n\nclass JananiWidgetPackage : ReactPackage {\n  override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> = listOf(JananiWidgetModule(reactContext))\n  override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> = emptyList()\n}\n`);
-
-    write(path.join(javaRoot, 'JananiCareWidget.kt'), `package ${PACKAGE}\n\nimport android.app.PendingIntent\nimport android.appwidget.AppWidgetManager\nimport android.appwidget.AppWidgetProvider\nimport android.content.Context\nimport android.content.Intent\nimport android.net.Uri\nimport android.widget.RemoteViews\n\nclass JananiCareWidget : AppWidgetProvider() {\n  private fun pending(context: Context, requestCode: Int, route: String): PendingIntent {\n    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("janani://$route")).apply { flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP }\n    return PendingIntent.getActivity(context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)\n  }\n\n  override fun onUpdate(context: Context, manager: AppWidgetManager, ids: IntArray) {\n    val preferences = context.getSharedPreferences("janani_widget", Context.MODE_PRIVATE)\n    ids.forEach { id ->\n      val views = RemoteViews(context.packageName, R.layout.janani_care_widget)\n      views.setTextViewText(R.id.janani_week, preferences.getString("week_label", "Janani"))\n      views.setTextViewText(R.id.janani_family, preferences.getString("family_label", "Our little family"))\n      views.setTextViewText(R.id.janani_next, preferences.getString("next_reminder", "No care reminder scheduled"))\n      views.setTextViewText(R.id.janani_partner, preferences.getString("partner_message", "Send a little warmth"))\n      views.setOnClickPendingIntent(R.id.janani_widget_root, pending(context, id * 10, "home"))\n      views.setOnClickPendingIntent(R.id.janani_reminders_button, pending(context, id * 10 + 1, "reminders"))\n      views.setOnClickPendingIntent(R.id.janani_partner_button, pending(context, id * 10 + 2, "thinking-of-you"))\n      manager.updateAppWidget(id, views)\n    }\n  }\n}\n`);
-
-    write(path.join(res, 'layout/janani_care_widget.xml'), `<?xml version="1.0" encoding="utf-8"?>\n<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/janani_widget_root" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:padding="16dp" android:background="@drawable/janani_widget_background">\n  <TextView android:id="@+id/janani_week" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Janani" android:textSize="20sp" android:textStyle="bold" android:textColor="#713B44" />\n  <TextView android:id="@+id/janani_family" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="2dp" android:text="Our little family" android:textSize="12sp" android:textColor="#8A6A70" />\n  <TextView android:id="@+id/janani_next" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="10dp" android:text="No care reminder scheduled" android:textSize="14sp" android:textColor="#312A2A" />\n  <TextView android:id="@+id/janani_partner" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="6dp" android:maxLines="1" android:ellipsize="end" android:text="Send a little warmth" android:textSize="13sp" android:textColor="#713B44" />\n  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="12dp" android:orientation="horizontal">\n    <Button android:id="@+id/janani_reminders_button" android:layout_width="0dp" android:layout_height="42dp" android:layout_weight="1" android:text="Reminders" android:textAllCaps="false" android:textSize="12sp" />\n    <Button android:id="@+id/janani_partner_button" android:layout_width="0dp" android:layout_height="42dp" android:layout_marginStart="8dp" android:layout_weight="1" android:text="Thinking of you" android:textAllCaps="false" android:textSize="12sp" />\n  </LinearLayout>\n</LinearLayout>\n`);
-    write(path.join(res, 'drawable/janani_widget_background.xml'), `<?xml version="1.0" encoding="utf-8"?>\n<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle"><solid android:color="#FFF9F5"/><corners android:radius="24dp"/><stroke android:width="1dp" android:color="#EEDFD9"/></shape>\n`);
-    write(path.join(res, 'xml/janani_care_widget_info.xml'), `<?xml version="1.0" encoding="utf-8"?>\n<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android" android:minWidth="250dp" android:minHeight="150dp" android:updatePeriodMillis="1800000" android:initialLayout="@layout/janani_care_widget" android:resizeMode="horizontal|vertical" android:widgetCategory="home_screen" />\n`);
+    write(path.join(res,'layout/janani_small_widget.xml'),`<?xml version="1.0" encoding="utf-8"?><LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/root" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center_vertical" android:padding="14dp" android:background="@drawable/janani_widget_background"><TextView android:id="@+id/emoji" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="❤" android:textSize="22sp"/><TextView android:id="@+id/title" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:text="Janani" android:textStyle="bold" android:textSize="16sp" android:textColor="#713B44"/><TextView android:id="@+id/line1" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="4dp" android:maxLines="2" android:ellipsize="end" android:textSize="12sp" android:textColor="#5D5052"/></LinearLayout>`);
+    write(path.join(res,'layout/janani_care_widget.xml'),`<?xml version="1.0" encoding="utf-8"?><LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/root" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center_vertical" android:padding="16dp" android:background="@drawable/janani_widget_background"><TextView android:id="@+id/title" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Janani Today" android:textStyle="bold" android:textSize="20sp" android:textColor="#713B44"/><TextView android:id="@+id/line1" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="8dp" android:maxLines="2" android:textSize="14sp" android:textColor="#312A2A"/><TextView android:id="@+id/line2" android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginTop="7dp" android:maxLines="2" android:textSize="12sp" android:textColor="#8A6A70"/></LinearLayout>`);
+    write(path.join(res,'drawable/janani_widget_background.xml'),`<?xml version="1.0" encoding="utf-8"?><shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle"><solid android:color="#FFF9F5"/><corners android:radius="24dp"/><stroke android:width="1dp" android:color="#EEDFD9"/></shape>`);
+    const info=(layout,minW,minH)=>`<?xml version="1.0" encoding="utf-8"?><appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android" android:minWidth="${minW}dp" android:minHeight="${minH}dp" android:updatePeriodMillis="1800000" android:initialLayout="@layout/${layout}" android:resizeMode="horizontal|vertical" android:widgetCategory="home_screen"/>`;
+    write(path.join(res,'xml/janani_care_widget_info.xml'),info('janani_care_widget',250,110));
+    write(path.join(res,'xml/janani_medicine_widget_info.xml'),info('janani_small_widget',110,110));
+    write(path.join(res,'xml/janani_love_widget_info.xml'),info('janani_small_widget',110,110));
+    write(path.join(res,'xml/janani_baby_widget_info.xml'),info('janani_small_widget',180,110));
+    write(path.join(res,'xml/janani_appointment_widget_info.xml'),info('janani_small_widget',180,110));
+    write(path.join(res,'xml/janani_wellness_widget_info.xml'),info('janani_care_widget',250,110));
     return mod;
   }]);
 };
