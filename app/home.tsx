@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { productionConfig } from '@/config/production';
 import { flushJananiOfflineQueue } from '@/features/offline/OfflineQueueSync';
 import { cacheActivePregnancyId } from '@/features/pregnancy/activePregnancy';
 import { getPregnancyProgress, trimesterLabel } from '@/features/pregnancy/progress';
@@ -69,6 +70,7 @@ export default function HomeScreen() {
   if (loadError && !summary) return <View style={styles.center}><Text style={styles.errorTitle}>Janani could not load your family</Text><Text style={styles.errorText}>Check your connection. Your saved information has not been removed.</Text><Pressable onPress={() => { setLoading(true); void load(); }} style={styles.retryButton}><Text style={styles.retryText}>Try again</Text></Pressable></View>;
 
   const isMother = summary?.role === 'mother';
+  const showCarePlus = isMother && productionConfig.carePlusVisible;
   return <SafeAreaView style={styles.page}><ScrollView contentContainerStyle={styles.content}>
     <View style={styles.topRow}><View style={styles.flex}><Text style={styles.eyebrow}>{summary?.familyName.toUpperCase()}</Text><Text style={styles.title}>{isMother ? 'How are you feeling today?' : 'A little care goes a long way.'}</Text></View><View style={styles.topActions}><Pressable accessibilityLabel="Settings" onPress={() => router.push('/settings')} style={styles.iconButton}><Ionicons name="settings-outline" size={21} color={colors.muted}/></Pressable><Pressable accessibilityLabel="Sign out" onPress={() => void finishSignOut()} style={styles.iconButton}><Ionicons name="log-out-outline" size={22} color={colors.muted}/></Pressable></View></View>
     <Pressable onPress={() => router.push('/pregnancy-guide')} style={styles.heroCard}><Ionicons name="heart-circle" size={52} color={colors.rose}/><View style={styles.flex}><Text style={styles.cardEyebrow}>TODAY WITH JANANI</Text>{progress ? <><Text style={styles.week}>Week {progress.gestationalWeek}</Text><Text style={styles.cardTitle}>{trimesterLabel(progress.trimester)} · day {progress.gestationalDay}</Text><Text style={styles.cardMeta}>{progress.isPastDue ? 'Your due date has arrived. Keep in touch with your maternity care team.' : `${progress.daysRemaining} days until the estimated due date`}</Text><Text style={styles.heroLink}>Open pregnancy guide →</Text></> : <><Text style={styles.cardTitle}>Drink a glass of water and take one quiet minute for yourself.</Text><Text style={styles.heroLink}>Open pregnancy guide →</Text></>}</View></Pressable>
@@ -77,7 +79,8 @@ export default function HomeScreen() {
     <View style={styles.grid}>
       <Feature icon="calendar-outline" title="Pregnancy guide" caption="Trimester care" onPress={() => router.push('/pregnancy-guide')} />
       <Feature icon="medical-outline" title="Health guide" caption="BP, diabetes, thyroid" onPress={() => router.push('/health-guide')} />
-      {isMother ? <><Feature icon="medkit-outline" title="Health profile" caption="Private care context" onPress={() => router.push('/health-profile')} /><Feature icon="pulse-outline" title="Health tracker" caption="Weight, BP, glucose & labs" onPress={() => router.push('/health-tracker')} /><Feature icon="calendar-clear-outline" title="Care timeline" caption="Visits, scans & follow-ups" onPress={() => router.push('/care-timeline')} /><Feature icon="sparkles-outline" title="Janani Care+" caption="Personalised AI support" onPress={() => router.push('/ai-companion')} /></> : null}
+      {isMother ? <><Feature icon="medkit-outline" title="Health profile" caption="Private care context" onPress={() => router.push('/health-profile')} /><Feature icon="pulse-outline" title="Health tracker" caption="Weight, BP, glucose & labs" onPress={() => router.push('/health-tracker')} /><Feature icon="calendar-clear-outline" title="Care timeline" caption="Visits, scans & follow-ups" onPress={() => router.push('/care-timeline')} /></> : null}
+      {showCarePlus ? <Feature icon="sparkles-outline" title="Janani Care+" caption={productionConfig.aiUiEnabled ? 'Personalised AI support' : 'Care+ coming online'} onPress={() => router.push('/ai-companion')} /> : null}
       <Feature icon="alarm-outline" title="Reminders" caption="Medicines and care" onPress={() => router.push('/reminders')} />
       <Feature icon="nutrition-outline" title="Food guide" caption="Pregnancy nutrition" onPress={() => router.push('/food-guide')} />
       <Feature icon="book-outline" title="Journal" caption="Keep every memory" onPress={() => router.push('/journal')} />
