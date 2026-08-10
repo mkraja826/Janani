@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: quality-${{ github.ref }}
@@ -20,9 +20,6 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
-          fetch-depth: 0
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: 22
@@ -32,20 +29,6 @@ jobs:
           distribution: temurin
           java-version: 17
       - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
-      - name: Recover package lock for CI repair
-        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
-      - name: Commit synchronized package lock
-        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
-        run: |
-          if git diff --quiet -- package-lock.json; then
-            echo 'package-lock.json already synchronized.'
-          else
-            git config user.name 'github-actions[bot]'
-            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git add package-lock.json
-            git commit -m 'chore: synchronize package lock'
-            git push origin HEAD:${{ github.head_ref }}
-          fi
       - run: npm ci --no-audit --no-fund
       - run: npm audit --omit=dev --audit-level=high
       - run: npm run typecheck
