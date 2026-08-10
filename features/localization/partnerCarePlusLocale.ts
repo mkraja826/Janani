@@ -1,4 +1,4 @@
-import { loadUiLanguage, type JananiLanguage } from '@/features/localization/i18n';
+import { readGlobalUiLocale } from '@/i18n/uiLocale';
 
 const copy = {
   en: {
@@ -16,11 +16,29 @@ const copy = {
     thinking: 'तुम्हारी याद आ रही है', notAlone: 'तुम अकेली नहीं हो', rest: 'कृपया थोड़ा आराम करो', proud: 'मुझे तुम पर गर्व है',
     carePlusTitle: 'आपके द्वारा सहेजी गई जानकारी से व्यक्तिगत सहायता', today: 'आज', appointment: 'अपॉइंटमेंट', trends: 'मेरे रुझान', mealIdeas: 'भोजन सुझाव', askCarePlus: 'जननी केयर+ से पूछें', ask: 'केयर+ से पूछें', preparing: 'तैयार किया जा रहा है…', placeholder: 'उदाहरण: मेरी अगली अपॉइंटमेंट के लिए सवाल तैयार करने में मदद करें।',
   },
+  ta: { connectionTitle:'உங்களை நினைக்கிறேன்', thinking:'உங்களை நினைக்கிறேன்', notAlone:'நீங்கள் தனியாக இல்லை', rest:'சிறிது ஓய்வு எடுத்துக்கொள்ளுங்கள்', proud:'உங்களைப் பற்றி நான் பெருமைப்படுகிறேன்', carePlusTitle:'நீங்கள் சேமிக்கும் தகவலின் அடிப்படையில் தனிப்பட்ட ஆதரவு', today:'இன்று', appointment:'நேர்காணல்', trends:'என் போக்குகள்', mealIdeas:'உணவு யோசனைகள்', askCarePlus:'ஜனனி கேர்+ ஐ கேளுங்கள்', ask:'கேர்+ ஐ கேளுங்கள்', preparing:'தயாராகிறது…' },
+  kn: { connectionTitle:'ನಿನ್ನ ನೆನಪು', thinking:'ನಿನ್ನ ನೆನಪು', notAlone:'ನೀವು ಒಬ್ಬರಲ್ಲ', rest:'ಸ್ವಲ್ಪ ವಿಶ್ರಾಂತಿ ತೆಗೆದುಕೊಳ್ಳಿ', proud:'ನಿಮ್ಮ ಬಗ್ಗೆ ನನಗೆ ಹೆಮ್ಮೆ ಇದೆ', carePlusTitle:'ನೀವು ಉಳಿಸುವ ಮಾಹಿತಿಯಿಂದ ವೈಯಕ್ತಿಕ ಬೆಂಬಲ', today:'ಇಂದು', appointment:'ಅಪಾಯಿಂಟ್‌ಮೆಂಟ್', trends:'ನನ್ನ ಟ್ರೆಂಡ್‌ಗಳು', mealIdeas:'ಆಹಾರ ಕಲ್ಪನೆಗಳು', askCarePlus:'ಜನನಿ ಕೇರ್+ ಅನ್ನು ಕೇಳಿ', ask:'ಕೇರ್+ ಕೇಳಿ', preparing:'ಸಿದ್ಧಪಡಿಸಲಾಗುತ್ತಿದೆ…' },
+  ml: { connectionTitle:'നിന്നെ ഓർക്കുന്നു', thinking:'നിന്നെ ഓർക്കുന്നു', notAlone:'നിങ്ങൾ ഒറ്റയ്ക്കല്ല', rest:'കുറച്ച് വിശ്രമിക്കൂ', proud:'നിങ്ങളെ കുറിച്ച് എനിക്ക് അഭിമാനമുണ്ട്', carePlusTitle:'നിങ്ങൾ സേവ് ചെയ്യുന്ന വിവരങ്ങളിൽ നിന്ന് വ്യക്തിഗത പിന്തുണ', today:'ഇന്ന്', appointment:'അപ്പോയിന്റ്മെന്റ്', trends:'എന്റെ ട്രെൻഡുകൾ', mealIdeas:'ഭക്ഷണ ആശയങ്ങൾ', askCarePlus:'ജനനി കെയർ+നോട് ചോദിക്കുക', ask:'കെയർ+നോട് ചോദിക്കുക', preparing:'തയ്യാറാക്കുന്നു…' },
+  mr: { connectionTitle:'तुझी आठवण येते', thinking:'तुझी आठवण येते', notAlone:'तुम्ही एकटे नाही', rest:'कृपया थोडा आराम करा', proud:'मला तुमचा अभिमान आहे', carePlusTitle:'तुम्ही जतन केलेल्या माहितीतून वैयक्तिक मदत', today:'आज', appointment:'अपॉइंटमेंट', trends:'माझे ट्रेंड', mealIdeas:'आहार कल्पना', askCarePlus:'जननी केअर+ ला विचारा', ask:'केअर+ ला विचारा', preparing:'तयार करत आहे…' },
+  bn: { connectionTitle:'তোমার কথা ভাবছি', thinking:'তোমার কথা ভাবছি', notAlone:'আপনি একা নন', rest:'একটু বিশ্রাম নিন', proud:'আমি আপনাকে নিয়ে গর্বিত', carePlusTitle:'আপনার সংরক্ষিত তথ্য থেকে ব্যক্তিগত সহায়তা', today:'আজ', appointment:'অ্যাপয়েন্টমেন্ট', trends:'আমার ট্রেন্ড', mealIdeas:'খাবারের ধারণা', askCarePlus:'জননী কেয়ার+কে জিজ্ঞাসা করুন', ask:'কেয়ার+কে জিজ্ঞাসা করুন', preparing:'প্রস্তুত হচ্ছে…' },
+  gu: { connectionTitle:'તમારી યાદ આવે છે', thinking:'તમારી યાદ આવે છે', notAlone:'તમે એકલા નથી', rest:'થોડો આરામ કરો', proud:'મને તમારો ગર્વ છે', carePlusTitle:'તમે સાચવેલી માહિતી પરથી વ્યક્તિગત સહાય', today:'આજે', appointment:'અપોઇન્ટમેન્ટ', trends:'મારા ટ્રેન્ડ્સ', mealIdeas:'ભોજન વિચારો', askCarePlus:'જનની કેર+ ને પૂછો', ask:'કેર+ ને પૂછો', preparing:'તૈયાર થઈ રહ્યું છે…' },
+  pa: { connectionTitle:'ਤੇਰੀ ਯਾਦ ਆ ਰਹੀ ਹੈ', thinking:'ਤੇਰੀ ਯਾਦ ਆ ਰਹੀ ਹੈ', notAlone:'ਤੁਸੀਂ ਇਕੱਲੇ ਨਹੀਂ ਹੋ', rest:'ਕਿਰਪਾ ਕਰਕੇ ਥੋੜ੍ਹਾ ਆਰਾਮ ਕਰੋ', proud:'ਮੈਨੂੰ ਤੁਹਾਡੇ ਉੱਤੇ ਮਾਣ ਹੈ', carePlusTitle:'ਤੁਹਾਡੇ ਵੱਲੋਂ ਸੰਭਾਲੀ ਜਾਣਕਾਰੀ ਤੋਂ ਨਿੱਜੀ ਸਹਾਇਤਾ', today:'ਅੱਜ', appointment:'ਅਪਾਇੰਟਮੈਂਟ', trends:'ਮੇਰੇ ਰੁਝਾਨ', mealIdeas:'ਭੋਜਨ ਵਿਚਾਰ', askCarePlus:'ਜਨਨੀ ਕੇਅਰ+ ਨੂੰ ਪੁੱਛੋ', ask:'ਕੇਅਰ+ ਨੂੰ ਪੁੱਛੋ', preparing:'ਤਿਆਰ ਕੀਤਾ ਜਾ ਰਿਹਾ ਹੈ…' },
+  ur: { connectionTitle:'آپ کی یاد آ رہی ہے', thinking:'آپ کی یاد آ رہی ہے', notAlone:'آپ اکیلی نہیں ہیں', rest:'براہ کرم تھوڑا آرام کریں', proud:'مجھے آپ پر فخر ہے', carePlusTitle:'آپ کی محفوظ کی گئی معلومات سے ذاتی معاونت', today:'آج', appointment:'اپائنٹمنٹ', trends:'میرے رجحانات', mealIdeas:'کھانے کے خیالات', askCarePlus:'جننی کیئر+ سے پوچھیں', ask:'کیئر+ سے پوچھیں', preparing:'تیار ہو رہا ہے…' },
+  ne: { connectionTitle:'तपाईंको सम्झना आइरहेको छ', thinking:'तपाईंको सम्झना आइरहेको छ', notAlone:'तपाईं एक्लै हुनुहुन्न', rest:'कृपया केही आराम गर्नुहोस्', proud:'म तपाईंमा गर्व गर्छु', carePlusTitle:'तपाईंले सुरक्षित गर्नुभएको जानकारीबाट व्यक्तिगत सहयोग', today:'आज', appointment:'अपोइन्टमेन्ट', trends:'मेरा ट्रेन्डहरू', mealIdeas:'खानाका विचारहरू', askCarePlus:'जननी केयर+ लाई सोध्नुहोस्', ask:'केयर+ लाई सोध्नुहोस्', preparing:'तयार गर्दै…' },
 } as const;
 
 export type PartnerCarePlusCopy = (typeof copy)['en'];
+type CopyKey = keyof PartnerCarePlusCopy;
 
 export async function loadPartnerCarePlusCopy(): Promise<PartnerCarePlusCopy> {
-  const language: JananiLanguage = await loadUiLanguage();
-  return copy[language] as PartnerCarePlusCopy;
+  const locale = await readGlobalUiLocale();
+  const base = locale.split('-')[0].toLowerCase() as keyof typeof copy;
+  const selected = copy[base] as Partial<PartnerCarePlusCopy> | undefined;
+  if (!selected) return copy.en;
+  const merged = { ...copy.en } as Record<CopyKey, string>;
+  for (const key of Object.keys(selected) as CopyKey[]) {
+    const value = selected[key];
+    if (value) merged[key] = value;
+  }
+  return merged as PartnerCarePlusCopy;
 }
