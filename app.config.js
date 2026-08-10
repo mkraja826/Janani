@@ -20,10 +20,17 @@ function materializeIconFromParts(partsRelativePath, outputRelativePath) {
 }
 
 module.exports = ({ config }) => {
-  const icon = materializeIconFromParts(
-    'assets/branding/janani-app-icon.parts',
-    'assets/.generated-janani-app-icon.png'
-  );
+  // Native CI diagnostics may use the repository's known-good icon so that a
+  // damaged branding source does not hide unrelated prebuild/widget/Gradle
+  // failures. Release builds never set this flag and continue to require the
+  // approved Janani launcher artwork.
+  const useCiNativeIconFallback = process.env.JANANI_CI_NATIVE_ICON_FALLBACK === '1';
+  const icon = useCiNativeIconFallback
+    ? './assets/icon.png'
+    : materializeIconFromParts(
+        'assets/branding/janani-app-icon.parts',
+        'assets/.generated-janani-app-icon.png'
+      );
 
   return {
     ...config,
