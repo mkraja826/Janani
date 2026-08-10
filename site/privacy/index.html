@@ -29,7 +29,7 @@
   <main id="main-content" class="page" tabindex="-1">
     <article class="article">
       <h1>Privacy Policy</h1>
-      <p class="effective-date"><strong>Effective date:</strong> August 3, 2026</p>
+      <p class="effective-date"><strong>Effective date:</strong> August 10, 2026</p>
       <p class="notice">Janani is a pregnancy-support application. It is not a medical device and does not provide diagnosis, treatment, monitoring, or emergency services.</p>
 
       <h2>1. Information Janani processes</h2>
@@ -43,6 +43,7 @@
         <li>partner messages and acknowledgements; and</li>
         <li>device push tokens and technical information needed to deliver notifications and protect the service.</li>
       </ul>
+      <p>If you use the external account-deletion form at <code>https://janani-account-deletion.pages.dev/</code>, the static page processes your Janani account email and current password in the browser only long enough to send them directly to Supabase Auth and submit the protected deletion request directly to Supabase. Cloudflare Pages serves the static files but does not receive the form submission. The form is designed to keep credentials and temporary Auth tokens in browser memory, avoid intentional browser storage and analytics, and clear sensitive fields after the attempt. The GitHub Pages information site does not request, receive, or process those credentials.</p>
 
       <h2>2. How information is used</h2>
       <p>Janani uses this information to authenticate accounts, create and protect a family space, calculate pregnancy progress, provide reminders, synchronize selected family information, deliver partner notifications, preserve journal entries, support offline synchronization, operate the home-screen widget, prevent duplicate writes, and maintain service reliability and security.</p>
@@ -51,17 +52,18 @@
       <p>A partner can join a family only through an invitation flow. Linked family members can see shared reminders and partner messages. A journal entry is intended to be private unless its author chooses to share it with the linked partner. Review the sharing choice shown when creating or editing an entry.</p>
 
       <h2>4. Service providers</h2>
-      <p>Janani uses Supabase for authentication, database storage, realtime synchronization, and server functions. Expo services may process device tokens and notification content to deliver push notifications. GitHub hosts this public information site and public support issue tracker. Those providers may process technical logs under their own terms and privacy practices.</p>
+      <p>Janani uses Supabase for authentication, database storage, realtime synchronization, and server functions. Expo services may process device tokens and notification content to deliver push notifications. Cloudflare Pages serves the static external deletion-form files, and GitHub hosts this public information site and repository. Loading either public site may create ordinary hosting-request logs under the provider's terms, but the external form sends credentials and tokens directly from the browser to Supabase Auth and the protected account-deletion function over HTTPS; it does not submit the form to Cloudflare or GitHub.</p>
       <p>Janani does not sell personal information or use this legal site for advertising analytics.</p>
 
       <h2>5. Device permissions and local storage</h2>
       <p>Notification permission is used for care and partner alerts. Android reboot and widget functionality may be used to restore reminders and display selected care information. Janani may keep an on-device cache, widget state, and pending synchronization queue. Device settings can limit permissions, and clearing app data or uninstalling the app removes app-controlled local storage from that device.</p>
+      <p>The Cloudflare-hosted deletion page does not intentionally persist the submitted email, password, or access token in browser storage. Close the page when finished and avoid entering credentials on an untrusted or shared device. Never enter credentials on the GitHub Pages information site.</p>
 
       <h2>6. Security</h2>
       <p>Janani uses authenticated access controls, database Row Level Security, protected server functions, and restricted access to device tokens. Data is sent over encrypted network connections supported by the app and its providers. No application or storage system can guarantee absolute security.</p>
 
       <h2>7. Retention, export, and deletion</h2>
-      <p>Application data is retained while needed to provide the account and family space. Signed-in users can export a JSON copy from Settings and permanently delete their account from the same screen. For exact steps and the effect on shared family records, read the <a href="../account-deletion/">account-deletion instructions</a>.</p>
+      <p>Application data is retained while needed to provide the account and family space. Signed-in users can export a JSON copy from Settings and permanently delete their account from the same screen. Users without the app can follow the public instructions to reach the separate Cloudflare-hosted static form, which sends authentication and deletion requests directly to Supabase. For exact steps and the effect on shared family records, read the <a href="../account-deletion/">account-deletion instructions</a>.</p>
       <p>Deletion removes the account and associated active application data according to the user's family role. Infrastructure providers may retain limited backups or security logs for periods governed by their operational or legal requirements.</p>
 
       <h2>8. Your choices</h2>
@@ -77,7 +79,7 @@
       <p>This policy may change as Janani changes. The effective date will be updated when a revised policy is published.</p>
 
       <h2>12. Contact and privacy requests</h2>
-      <p>Janani currently provides support through the repository's public <a href="../support/">support instructions and GitHub Issues</a>. GitHub Issues are public: never post an email address, password, family invite code, pregnancy or health information, journal content, medication details, or other sensitive data there.</p>
+      <p>Read the <a href="../support/">support instructions</a> for the current channel status. No private support or privacy-request channel is published yet, and public GitHub issue creation is currently restricted. Never post an email address, password, family invite code, pregnancy or health information, journal content, medication details, or other sensitive data in a public repository.</p>
     </article>
   </main>
   <footer class="site-footer">
@@ -90,7 +92,7 @@
           <li><a href="../support/">Support</a></li>
         </ul>
       </nav>
-      <p>Last updated: August 3, 2026.</p>
+      <p>Last updated: August 10, 2026.</p>
     </div>
   </footer>
 </body>

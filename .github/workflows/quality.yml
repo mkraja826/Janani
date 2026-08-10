@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   quality:
-    name: TypeScript, Expo, legal site, and Android
+    name: TypeScript, Expo, web security, and Android
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -24,18 +24,34 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - uses: denoland/setup-deno@667a34cdef165d8d2b2e98dde39547c9daac7282 # v2.0.4
+        with:
+          deno-version: v2.9.3
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         with:
           distribution: temurin
           java-version: 17
       - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
       - run: npm ci --no-audit --no-fund
-      - run: npm audit --omit=dev --audit-level=high
+      - run: npm run audit:production
       - run: npm run typecheck
       - run: npm run lint
+      - name: Validate Supabase Edge Functions
+        run: |
+          deno fmt --check supabase/functions/account-deletion-page supabase/functions/_shared/http.ts supabase/functions/_shared/http_test.ts
+          deno lint supabase/functions
+          deno check supabase/functions/account-deletion-page/index.ts
+          deno check supabase/functions/delete-account/index.ts
+          deno check supabase/functions/send-partner-nudge/index.ts
+          deno test --allow-env supabase/functions/account-deletion-page/index_test.ts supabase/functions/_shared/http_test.ts
       - run: npx expo-doctor
       - run: node .github/scripts/validate-legal-site.mjs
+      - run: node cloudflare/account-deletion/validate.mjs
       - run: npx expo config --type public
+      - name: Bundle production Android JavaScript
+        env:
+          NODE_ENV: production
+        run: npx expo export --platform android --clear
       - run: npx expo prebuild --platform android --clean --no-install
       - name: Verify widget generation
         run: |
