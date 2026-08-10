@@ -60,7 +60,7 @@ function selectContext(
       pregnancyType: compactString(profile.pregnancy_type, 40),
     },
     preferences: {
-      language: compactString(privateCare.preferred_language, 8) ?? 'en',
+      language: compactString(privateCare.preferred_language, 35) ?? 'en',
       region: compactString(privateCare.region_preference, 120),
     },
     conditions: Array.isArray(profile.conditions) ? profile.conditions.slice(0, 20) : [],
@@ -218,26 +218,30 @@ Deno.serve(async (request) => {
     const safety = validateGeneratedText(result.text);
     if (!safety.ok) {
       await serviceClient.rpc('finalize_care_plus_ai_request_server', {
-        p_generation_id: generationId, p_status: 'rejected', p_provider: result.provider, p_model: result.model,
-        p_actual_input_tokens: result.inputTokens, p_actual_output_tokens: result.outputTokens, p_safety_code: safety.code,
+        p_generation_id: generationId,
+        p_status: 'rejected',
+        p_actual_input_tokens: result.inputTokens,
+        p_actual_output_tokens: result.outputTokens,
+        p_refund_usage: true,
       });
-      return respond(200, {
-        text: 'Janani could not safely prepare that response. Please use your maternity care team’s individual guidance for this question.',
-        safety: 'blocked',
-      });
+      return respond(422, { error: 'unsafe_ai_output_rejected', safety: 'blocked' });
     }
-
     await serviceClient.rpc('finalize_care_plus_ai_request_server', {
-      p_generation_id: generationId, p_status: 'completed', p_provider: result.provider, p_model: result.model,
-      p_actual_input_tokens: result.inputTokens, p_actual_output_tokens: result.outputTokens, p_safety_code: null,
+      p_generation_id: generationId,
+      p_status: 'completed',
+      p_actual_input_tokens: result.inputTokens,
+      p_actual_output_tokens: result.outputTokens,
+      p_refund_usage: false,
     });
-    return respond(200, { text: result.text, safety: 'general' });
-  } catch (error) {
-    console.error('Care+ provider failure', error instanceof Error ? error.message : error);
+    return respond(200, { text: result.text, safety: 'generated', usage: { inputTokens: result.inputTokens, outputTokens: result.outputTokens } });
+  } catch {
     await serviceClient.rpc('finalize_care_plus_ai_request_server', {
-      p_generation_id: generationId, p_status: 'provider_error', p_provider: Deno.env.get('JANANI_AI_PROVIDER'),
-      p_model: Deno.env.get('JANANI_AI_MODEL'), p_actual_input_tokens: 0, p_actual_output_tokens: 0, p_safety_code: 'provider_error',
+      p_generation_id: generationId,
+      p_status: 'provider_error',
+      p_actual_input_tokens: 0,
+      p_actual_output_tokens: 0,
+      p_refund_usage: true,
     });
-    return respond(502, { error: 'ai_temporarily_unavailable' });
+    return respond(503, { error: 'ai_temporarily_unavailable' });
   }
 });
