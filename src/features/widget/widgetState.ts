@@ -1,7 +1,8 @@
 import { NativeModules, Platform } from 'react-native';
 
-import { readUiLanguage } from '@/i18n';
+import { uiTranslationLanguageFor } from '@/i18n/localeRegistry';
 import { systemCopy } from '@/i18n/systemSurfaces';
+import { readGlobalUiLocale } from '@/i18n/uiLocale';
 import { encryptedLocalStorage } from '@/lib/encryptedLocalStorage';
 
 const WIDGET_STATE_KEY='janani:widget-state:v1';
@@ -14,7 +15,8 @@ export async function clearWidgetState(){await encryptedLocalStorage.removeItem(
 export function canUpdateNativeWidget(){return Platform.OS==='android'&&Boolean(widgetBridge?.update);}
 export async function updateNativeWidget(state:Record<string,string>){if(!canUpdateNativeWidget()||!widgetBridge?.update)return;await widgetBridge.update(state);}
 export async function clearPrivateWidgetContent(){
-  const localized = systemCopy(await readUiLanguage());
+  const locale=await readGlobalUiLocale();
+  const localized=systemCopy(uiTranslationLanguageFor(locale));
   const cleared={
     week_label:'Janani',
     family_label:localized.signedOutFamily,
