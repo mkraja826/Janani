@@ -1,20 +1,15 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { deleteCareMedication, loadPrivateCareContext, saveCareMedication, savePrivateCareContext, type CareMedication, type MedicationKind, type SupportedLanguage } from '@/features/profile/careContext';
 import { resolveActivePregnancyId } from '@/features/pregnancy/activePregnancy';
 import { t, writeUiLanguage } from '@/i18n';
+import { getLocaleDefinition, searchLocales, uiTranslationLanguageFor } from '@/i18n/localeRegistry';
 import { useAuth } from '@/providers/AuthProvider';
 import { colors, radius, spacing } from '@/theme/tokens';
-
-const languageOptions: Array<{ value: SupportedLanguage; label: string }> = [
-  { value: 'en', label: 'English' },
-  { value: 'te', label: 'తెలుగు' },
-  { value: 'hi', label: 'हिन्दी' },
-];
 
 export default function CareContextScreen() {
   const { session } = useAuth();
@@ -22,6 +17,8 @@ export default function CareContextScreen() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [language, setLanguage] = useState<SupportedLanguage>('en');
+  const [languageQuery, setLanguageQuery] = useState('');
+  const [showLanguages, setShowLanguages] = useState(false);
   const [region, setRegion] = useState('');
   const [clinicianInstructions, setClinicianInstructions] = useState('');
   const [medicalHistory, setMedicalHistory] = useState('');
@@ -34,7 +31,10 @@ export default function CareContextScreen() {
   const [strength, setStrength] = useState('');
   const [schedule, setSchedule] = useState('');
   const [medInstructions, setMedInstructions] = useState('');
-  const tr = (key: Parameters<typeof t>[1]) => t(language, key);
+  const uiLanguage = uiTranslationLanguageFor(language);
+  const tr = (key: Parameters<typeof t>[1]) => t(uiLanguage, key);
+  const selectedLocale = getLocaleDefinition(language);
+  const localeResults = useMemo(() => searchLocales(languageQuery), [languageQuery]);
 
   async function load() {
     const userId = session?.user.id;
@@ -45,7 +45,7 @@ export default function CareContextScreen() {
       const context = await loadPrivateCareContext(id);
       setPregnancyId(id);
       setLanguage(context.preferred_language);
-      await writeUiLanguage(context.preferred_language);
+      await writeUiLanguage(uiTranslationLanguageFor(context.preferred_language));
       setRegion(context.region_preference ?? '');
       setClinicianInstructions(context.broader_clinician_instructions ?? '');
       setMedicalHistory(context.relevant_medical_history ?? '');
@@ -62,7 +62,9 @@ export default function CareContextScreen() {
 
   async function changeLanguage(next: SupportedLanguage) {
     setLanguage(next);
-    await writeUiLanguage(next);
+    setShowLanguages(false);
+    setLanguageQuery('');
+    await writeUiLanguage(uiTranslationLanguageFor(next));
   }
 
   async function saveContext() {
@@ -78,7 +80,7 @@ export default function CareContextScreen() {
         share_care_timeline_with_partner: shareTimeline,
         share_pregnancy_progress_with_partner: shareProgress,
       });
-      await writeUiLanguage(language);
+      await writeUiLanguage(uiTranslationLanguageFor(language));
       Alert.alert(tr('saved'), tr('savedBody'));
     } catch (error) {
       Alert.alert('Could not save', error instanceof Error ? error.message : 'Please try again.');
@@ -107,7 +109,18 @@ export default function CareContextScreen() {
     <View style={styles.notice}><Ionicons name="lock-closed-outline" size={22} color={colors.roseDark} /><Text style={styles.noticeText}>{tr('careContextNotice')}</Text></View>
 
     <Section title={tr('languageRegion')}>
-      <View style={styles.row}>{languageOptions.map((item) => <Pressable key={item.value} onPress={() => void changeLanguage(item.value)} style={[styles.pill, language === item.value && styles.pillSelected]}><Text style={[styles.pillText, language === item.value && styles.pillTextSelected]}>{item.label}</Text></Pressable>)}</View>
+      <Pressable onPress={() => setShowLanguages((value) => !value)} style={styles.languageSelector}>
+        <View style={styles.flex}><Text style={styles.languageName}>{selectedLocale.nativeName}</Text><Text style={styles.languageMeta}>{selectedLocale.englishName} · {selectedLocale.code} · {selectedLocale.direction.toUpperCase()}</Text></View>
+        <Ionicons name={showLanguages ? 'chevron-up' : 'chevron-down'} size={20} color={colors.roseDark} />
+      </Pressable>
+      {selectedLocale.uiStatus === 'fallback' ? <View style={styles.localeNotice}><Ionicons name="language-outline" size={18} color={colors.roseDark} /><Text style={styles.localeNoticeText}>Janani will save {selectedLocale.englishName} as your preferred Care+ language. Until a reviewed native UI pack is available, app controls fall back to English.</Text></View> : null}
+      {showLanguages ? <View style={styles.languagePanel}>
+        <TextInput value={languageQuery} onChangeText={setLanguageQuery} placeholder="Search any language" placeholderTextColor={colors.muted} style={styles.languageSearch} autoCapitalize="none" />
+        <View style={styles.languageList}>{localeResults.map((item) => <Pressable key={item.code} onPress={() => void changeLanguage(item.code)} style={[styles.languageOption, item.code === language && styles.languageOptionSelected]}>
+          <View style={styles.flex}><Text style={styles.languageName}>{item.nativeName}</Text><Text style={styles.languageMeta}>{item.englishName} · {item.code}{item.direction === 'rtl' ? ' · RTL' : ''}</Text></View>
+          <View style={[styles.statusDot, item.uiStatus !== 'fallback' && styles.statusDotReady]} />
+        </Pressable>)}</View>
+      </View> : null}
       <Field label={tr('regionPreference')} value={region} onChangeText={setRegion} placeholder="Telangana, Andhra, North Indian…" maxLength={120} />
     </Section>
 
@@ -141,4 +154,4 @@ function Section({ title, subtitle, children }: { title: string; subtitle?: stri
 function Field({ label, ...props }: React.ComponentProps<typeof TextInput> & { label: string }) { return <View style={styles.field}><Text style={styles.label}>{label}</Text><TextInput {...props} placeholderTextColor={colors.muted} style={[styles.input, props.multiline && styles.multiline]} /></View>; }
 function ToggleRow({ label, value, onValueChange }: { label: string; value: boolean; onValueChange: (value: boolean) => void }) { return <View style={styles.toggleRow}><Text style={styles.label}>{label}</Text><Switch value={value} onValueChange={onValueChange} /></View>; }
 
-const styles = StyleSheet.create({page:{flex:1,backgroundColor:colors.background},center:{flex:1,alignItems:'center',justifyContent:'center',backgroundColor:colors.background},content:{padding:spacing.lg,paddingBottom:spacing.xxl,gap:spacing.lg},header:{flexDirection:'row',gap:spacing.md,alignItems:'flex-start'},flex:{flex:1},iconButton:{width:44,height:44,borderRadius:radius.pill,alignItems:'center',justifyContent:'center',backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border},eyebrow:{fontSize:12,letterSpacing:1.5,fontWeight:'800',color:colors.rose},title:{marginTop:spacing.xs,fontSize:28,lineHeight:35,fontWeight:'900',color:colors.ink},notice:{flexDirection:'row',gap:spacing.sm,padding:spacing.md,borderRadius:radius.lg,backgroundColor:colors.blush,borderWidth:1,borderColor:colors.border},noticeText:{flex:1,fontSize:13,lineHeight:20,color:colors.muted},card:{padding:spacing.lg,borderRadius:radius.lg,backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border},cardTitle:{fontSize:18,fontWeight:'900',color:colors.ink},subtitle:{marginTop:spacing.xs,fontSize:13,lineHeight:19,color:colors.muted},sectionBody:{marginTop:spacing.md,gap:spacing.md},field:{gap:spacing.sm},label:{fontSize:14,fontWeight:'800',color:colors.ink},input:{minHeight:50,paddingHorizontal:spacing.md,borderRadius:radius.md,borderWidth:1,borderColor:colors.border,backgroundColor:colors.background,color:colors.ink,fontSize:15},multiline:{minHeight:110,paddingTop:spacing.md,textAlignVertical:'top'},row:{flexDirection:'row',flexWrap:'wrap',gap:spacing.sm},pill:{minHeight:38,justifyContent:'center',paddingHorizontal:spacing.md,borderRadius:radius.pill,borderWidth:1,borderColor:colors.border,backgroundColor:colors.background},pillSelected:{borderColor:colors.rose,backgroundColor:colors.blush},pillText:{fontSize:13,fontWeight:'700',color:colors.muted},pillTextSelected:{color:colors.roseDark},secondaryButton:{minHeight:48,alignItems:'center',justifyContent:'center',borderRadius:radius.pill,borderWidth:1,borderColor:colors.rose},secondaryText:{fontWeight:'800',color:colors.roseDark},medCard:{flexDirection:'row',gap:spacing.md,alignItems:'center',padding:spacing.md,borderRadius:radius.md,backgroundColor:colors.background,borderWidth:1,borderColor:colors.border},medName:{fontSize:15,fontWeight:'800',color:colors.ink},medMeta:{marginTop:3,fontSize:12,lineHeight:18,color:colors.muted},toggleRow:{minHeight:48,flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:spacing.md},helper:{fontSize:12,lineHeight:18,color:colors.muted},save:{minHeight:54,borderRadius:radius.pill,backgroundColor:colors.rose,alignItems:'center',justifyContent:'center'},saveText:{fontSize:16,fontWeight:'900',color:colors.surface},disabled:{opacity:.5}});
+const styles = StyleSheet.create({page:{flex:1,backgroundColor:colors.background},center:{flex:1,alignItems:'center',justifyContent:'center',backgroundColor:colors.background},content:{padding:spacing.lg,paddingBottom:spacing.xxl,gap:spacing.lg},header:{flexDirection:'row',gap:spacing.md,alignItems:'flex-start'},flex:{flex:1},iconButton:{width:44,height:44,borderRadius:radius.pill,alignItems:'center',justifyContent:'center',backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border},eyebrow:{fontSize:12,letterSpacing:1.5,fontWeight:'800',color:colors.rose},title:{marginTop:spacing.xs,fontSize:28,lineHeight:35,fontWeight:'900',color:colors.ink},notice:{flexDirection:'row',gap:spacing.sm,padding:spacing.md,borderRadius:radius.lg,backgroundColor:colors.blush,borderWidth:1,borderColor:colors.border},noticeText:{flex:1,fontSize:13,lineHeight:20,color:colors.muted},card:{padding:spacing.lg,borderRadius:radius.lg,backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border},cardTitle:{fontSize:18,fontWeight:'900',color:colors.ink},subtitle:{marginTop:spacing.xs,fontSize:13,lineHeight:19,color:colors.muted},sectionBody:{marginTop:spacing.md,gap:spacing.md},field:{gap:spacing.sm},label:{fontSize:14,fontWeight:'800',color:colors.ink},input:{minHeight:50,paddingHorizontal:spacing.md,borderRadius:radius.md,borderWidth:1,borderColor:colors.border,backgroundColor:colors.background,color:colors.ink,fontSize:15},multiline:{minHeight:110,paddingTop:spacing.md,textAlignVertical:'top'},row:{flexDirection:'row',flexWrap:'wrap',gap:spacing.sm},pill:{minHeight:38,justifyContent:'center',paddingHorizontal:spacing.md,borderRadius:radius.pill,borderWidth:1,borderColor:colors.border,backgroundColor:colors.background},pillSelected:{borderColor:colors.rose,backgroundColor:colors.blush},pillText:{fontSize:13,fontWeight:'700',color:colors.muted},pillTextSelected:{color:colors.roseDark},secondaryButton:{minHeight:48,alignItems:'center',justifyContent:'center',borderRadius:radius.pill,borderWidth:1,borderColor:colors.rose},secondaryText:{fontWeight:'800',color:colors.roseDark},medCard:{flexDirection:'row',gap:spacing.md,alignItems:'center',padding:spacing.md,borderRadius:radius.md,backgroundColor:colors.background,borderWidth:1,borderColor:colors.border},medName:{fontSize:15,fontWeight:'800',color:colors.ink},medMeta:{marginTop:3,fontSize:12,lineHeight:18,color:colors.muted},toggleRow:{minHeight:48,flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:spacing.md},helper:{fontSize:12,lineHeight:18,color:colors.muted},save:{minHeight:54,borderRadius:radius.pill,backgroundColor:colors.rose,alignItems:'center',justifyContent:'center'},saveText:{fontSize:16,fontWeight:'900',color:colors.surface},disabled:{opacity:.5},languageSelector:{minHeight:58,flexDirection:'row',alignItems:'center',gap:spacing.md,padding:spacing.md,borderRadius:radius.md,borderWidth:1,borderColor:colors.border,backgroundColor:colors.background},languageName:{fontSize:15,fontWeight:'800',color:colors.ink},languageMeta:{marginTop:2,fontSize:11,color:colors.muted},localeNotice:{flexDirection:'row',gap:spacing.sm,padding:spacing.md,borderRadius:radius.md,backgroundColor:colors.blush},localeNoticeText:{flex:1,fontSize:12,lineHeight:18,color:colors.roseDark},languagePanel:{gap:spacing.sm},languageSearch:{minHeight:48,paddingHorizontal:spacing.md,borderRadius:radius.md,borderWidth:1,borderColor:colors.border,backgroundColor:colors.background,color:colors.ink},languageList:{maxHeight:440,gap:4},languageOption:{minHeight:54,flexDirection:'row',alignItems:'center',gap:spacing.sm,paddingHorizontal:spacing.md,borderRadius:radius.md,backgroundColor:colors.background},languageOptionSelected:{backgroundColor:colors.blush},statusDot:{width:8,height:8,borderRadius:4,backgroundColor:colors.border},statusDotReady:{backgroundColor:colors.sage}});
