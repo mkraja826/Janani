@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -8,6 +8,8 @@ import { personalizeNutrition } from '@/features/nutrition/personalizationEngine
 import type { NutritionTopic } from '@/features/nutrition/content';
 import { buildJananiProfile, buildNutritionContext } from '@/features/profile/jananiProfile';
 import { resolveActivePregnancyId } from '@/features/pregnancy/activePregnancy';
+import { careFoodT } from '@/i18n/careFood';
+import { readUiLanguage, type JananiLanguage } from '@/i18n';
 import { useAuth } from '@/providers/AuthProvider';
 import { colors, radius, spacing } from '@/theme/tokens';
 
@@ -19,9 +21,14 @@ const fallbackGroups = [
 
 export default function FoodGuideScreen() {
   const { session } = useAuth();
+  const [language, setLanguage] = useState<JananiLanguage>('en');
   const [topics, setTopics] = useState<Array<Pick<NutritionTopic,'id'|'title'|'summary'>>>(fallbackGroups);
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const tr = (key: Parameters<typeof careFoodT>[1]) => careFoodT(language, key);
+
+  useEffect(() => { void readUiLanguage().then(setLanguage); }, []);
+  useFocusEffect(useCallback(() => { void readUiLanguage().then(setLanguage); }, []));
 
   useEffect(() => {
     let active = true;
@@ -44,12 +51,19 @@ export default function FoodGuideScreen() {
     return () => { active = false; };
   }, [session?.user.id]);
 
+  const titleFor = (item: Pick<NutritionTopic,'id'|'title'|'summary'>) => {
+    if (item.id === 'balanced-plate') return tr('balancedTitle');
+    if (item.id === 'hydration') return tr('hydrationTitle');
+    if (item.id === 'food-safety') return tr('foodSafetyTitle');
+    return item.title;
+  };
+
   return <SafeAreaView style={styles.page}><ScrollView contentContainerStyle={styles.content}>
-    <View style={styles.header}><Pressable accessibilityLabel="Go back" onPress={()=>router.back()} style={styles.backButton}><Ionicons name="arrow-back" size={22} color={colors.ink}/></Pressable><View style={styles.headerCopy}><Text style={styles.eyebrow}>JANANI FOOD GUIDE</Text><Text style={styles.title}>Simple nourishment for pregnancy</Text></View></View>
+    <View style={styles.header}><Pressable accessibilityLabel="Go back" onPress={()=>router.back()} style={styles.backButton}><Ionicons name="arrow-back" size={22} color={colors.ink}/></Pressable><View style={styles.headerCopy}><Text style={styles.eyebrow}>{tr('foodEyebrow')}</Text><Text style={styles.title}>{tr('foodTitle')}</Text></View></View>
     <View style={styles.hero}><Ionicons name="nutrition" size={38} color={colors.rose}/><Text style={styles.heroTitle}>Food guidance, not a prescription</Text><Text style={styles.body}>Janani filters reviewed general guidance using the pregnancy details and preferences you choose to save. It does not create medical diet rules.</Text>{loading?<ActivityIndicator color={colors.rose}/>:null}</View>
     {notice?<View style={styles.notice}><Ionicons name="shield-checkmark-outline" size={22} color={colors.roseDark}/><Text style={styles.noticeText}>{notice}</Text></View>:null}
-    {topics.map((item)=><View key={item.id} style={styles.card}><View style={styles.iconWrap}><Ionicons name="leaf-outline" size={24} color={colors.rose}/></View><View style={styles.cardCopy}><Text style={styles.cardTitle}>{item.title}</Text><Text style={styles.body}>{item.summary}</Text></View></View>)}
-    <View style={styles.askCard}><View style={styles.askIcon}><Ionicons name="sparkles-outline" size={24} color={colors.gold}/></View><View style={styles.cardCopy}><Text style={styles.cardTitle}>Care+ meal support</Text><Text style={styles.body}>Janani Care+ can use only the relevant approved context for meal ideas. Condition-specific personalisation remains blocked until its clinical rule pack is approved.</Text><Pressable onPress={()=>router.push('/ai-companion')} style={styles.askButton}><Text style={styles.askButtonText}>Open Care+</Text><Ionicons name="arrow-forward" size={18} color={colors.surface}/></Pressable></View></View>
+    {topics.map((item)=><View key={item.id} style={styles.card}><View style={styles.iconWrap}><Ionicons name="leaf-outline" size={24} color={colors.rose}/></View><View style={styles.cardCopy}><Text style={styles.cardTitle}>{titleFor(item)}</Text><Text style={styles.body}>{item.summary}</Text></View></View>)}
+    <View style={styles.askCard}><View style={styles.askIcon}><Ionicons name="sparkles-outline" size={24} color={colors.gold}/></View><View style={styles.cardCopy}><Text style={styles.cardTitle}>{tr('carePlusMealTitle')}</Text><Text style={styles.body}>Janani Care+ can use only the relevant approved context for meal ideas. Condition-specific personalisation remains blocked until its clinical rule pack is approved.</Text><Pressable onPress={()=>router.push('/ai-companion')} style={styles.askButton}><Text style={styles.askButtonText}>{tr('openCarePlus')}</Text><Ionicons name="arrow-forward" size={18} color={colors.surface}/></Pressable></View></View>
     <Text style={styles.disclaimer}>Janani provides supportive educational information and does not diagnose, prescribe, or replace professional medical care.</Text>
   </ScrollView></SafeAreaView>;
 }
