@@ -10,6 +10,7 @@ Janani 1.0 production release must be built from the integrated production branc
 - Production builds require support, privacy and account-deletion endpoints.
 - Android release tasks fail closed unless production signing credentials are supplied.
 - Firebase Analytics, Crashlytics and Performance from current `main` are preserved in the integrated release configuration.
+- Supabase Edge Function secrets, redacted logging rules, launch alert thresholds and backend deployment order are defined in `docs/PRODUCTION_BACKEND_OPERATIONS.md`.
 
 ## Required GitHub production environment values
 
@@ -30,6 +31,8 @@ Protected secrets:
 - `JANANI_ANDROID_KEY_ALIAS`
 - `JANANI_ANDROID_KEY_PASSWORD`
 
+Supabase Edge Function secrets are intentionally managed in Supabase rather than in the mobile build environment. See `docs/PRODUCTION_BACKEND_OPERATIONS.md` for the authoritative list. Never copy server-only secrets into `EXPO_PUBLIC_` variables.
+
 Billing secrets/products are deliberately omitted until the final billing milestone.
 
 ## Release sequence
@@ -37,11 +40,13 @@ Billing secrets/products are deliberately omitted until the final billing milest
 1. Run `npm ci`.
 2. Run `npm run validate:production-config` with production public configuration.
 3. Run TypeScript, lint and Expo Doctor.
-4. Perform a clean Android prebuild.
-5. Build the signed release AAB through `.github/workflows/release-aab.yml`.
-6. Verify the AAB artifact is non-empty and corresponds to the intended version/versionCode.
-7. Complete final Google Play declarations and release metadata from the actual integrated artifact.
-8. Add Google Play Billing only in its dedicated final milestone before paid Care+ is activated.
+4. Apply and verify the reviewed Supabase migration chain and Edge Function secret contract from `docs/PRODUCTION_BACKEND_OPERATIONS.md`.
+5. Deploy backend functions with Care+ generation initially fail-closed, then complete authenticated backend smoke tests and log-redaction verification.
+6. Perform a clean Android prebuild.
+7. Build the signed release AAB through `.github/workflows/release-aab.yml`.
+8. Verify the AAB artifact is non-empty and corresponds to the intended version/versionCode.
+9. Complete final Google Play declarations and release metadata from the actual integrated artifact.
+10. Add Google Play Billing only in its dedicated final milestone before paid Care+ is activated.
 
 Billing is intentionally skipped in the current integration phase; the validator rejects `EXPO_PUBLIC_CARE_PLUS_PURCHASES_ENABLED=true` until that final milestone is complete.
 
