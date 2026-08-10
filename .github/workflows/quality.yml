@@ -29,6 +29,15 @@ jobs:
           distribution: temurin
           java-version: 17
       - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+      - name: Recover package lock for CI repair
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Upload recovered package lock
+        uses: actions/upload-artifact@v4
+        with:
+          name: recovered-package-lock
+          path: package-lock.json
+          if-no-files-found: error
+          retention-days: 1
       - run: npm ci --no-audit --no-fund
       - run: npm audit --omit=dev --audit-level=high
       - run: npm run typecheck
