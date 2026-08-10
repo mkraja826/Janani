@@ -1,10 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useLocalSearchParams } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { tg } from '@/i18n/globalUi';
+import { rtlLayoutFor } from '@/i18n/rtl';
 import { readGlobalUiLocale } from '@/i18n/uiLocale';
 import { supabase } from '@/lib/supabase';
 import { useMembership } from '@/providers/AuthGate';
@@ -19,6 +20,7 @@ export default function AuthScreen() {
   const [busy, setBusy] = useState(false);
   const [locale, setLocale] = useState('en');
   const tr = (key: Parameters<typeof tg>[1]) => tg(locale, key);
+  const rtl = useMemo(() => rtlLayoutFor(locale), [locale]);
 
   useEffect(() => { void readGlobalUiLocale().then(setLocale).catch(() => setLocale('en')); }, []);
 
@@ -63,17 +65,17 @@ export default function AuthScreen() {
 
   return <SafeAreaView style={styles.safeArea}>
     <KeyboardAvoidingView style={styles.page} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <View style={styles.header}>
+      <View style={[styles.header, rtl.startAligned]}>
         <View style={styles.icon}><Ionicons name="heart" size={28} color={colors.rose} /></View>
-        <Text style={styles.eyebrow}>{tr('authWelcome')}</Text>
-        <Text style={styles.title}>{mode === 'sign-up' ? tr('authCreateTitle') : tr('authSignInTitle')}</Text>
-        <Text style={styles.subtitle}>{tr('authSubtitle')}</Text>
+        <Text style={[styles.eyebrow, rtl.startText]}>{tr('authWelcome')}</Text>
+        <Text style={[styles.title, rtl.startText]}>{mode === 'sign-up' ? tr('authCreateTitle') : tr('authSignInTitle')}</Text>
+        <Text style={[styles.subtitle, rtl.startText]}>{tr('authSubtitle')}</Text>
       </View>
       <View style={styles.form}>
-        <TextInput autoCapitalize="none" autoComplete="email" keyboardType="email-address" placeholder={tr('emailAddress')} placeholderTextColor={colors.muted} style={styles.input} value={email} onChangeText={setEmail} />
-        <TextInput autoCapitalize="none" autoComplete={mode === 'sign-up' ? 'new-password' : 'current-password'} secureTextEntry placeholder={tr('password')} placeholderTextColor={colors.muted} style={styles.input} value={password} onChangeText={setPassword} />
+        <TextInput autoCapitalize="none" autoComplete="email" keyboardType="email-address" placeholder={tr('emailAddress')} placeholderTextColor={colors.muted} style={[styles.input, rtl.startText]} value={email} onChangeText={setEmail} />
+        <TextInput autoCapitalize="none" autoComplete={mode === 'sign-up' ? 'new-password' : 'current-password'} secureTextEntry placeholder={tr('password')} placeholderTextColor={colors.muted} style={[styles.input, rtl.startText]} value={password} onChangeText={setPassword} />
         <Pressable disabled={busy} onPress={submit} style={[styles.primary, busy && styles.disabled]}><Text style={styles.primaryText}>{busy ? tr('pleaseWait') : mode === 'sign-up' ? tr('createAccount') : tr('signIn')}</Text></Pressable>
-        <Pressable onPress={() => setMode(mode === 'sign-up' ? 'sign-in' : 'sign-up')} style={styles.switchButton}><Text style={styles.switchText}>{mode === 'sign-up' ? tr('alreadyRegistered') : tr('newToJanani')}</Text></Pressable>
+        <Pressable onPress={() => setMode(mode === 'sign-up' ? 'sign-in' : 'sign-up')} style={styles.switchButton}><Text style={[styles.switchText, rtl.text]}>{mode === 'sign-up' ? tr('alreadyRegistered') : tr('newToJanani')}</Text></Pressable>
       </View>
     </KeyboardAvoidingView>
   </SafeAreaView>;
