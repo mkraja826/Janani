@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react';
 import { Alert, KeyboardAvoidingView, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { readUiLanguage, t, type JananiLanguage } from '@/i18n';
+import { tg } from '@/i18n/globalUi';
+import { readGlobalUiLocale } from '@/i18n/uiLocale';
 import { supabase } from '@/lib/supabase';
 import { useMembership } from '@/providers/AuthGate';
 import { colors, radius, spacing, typography } from '@/theme/tokens';
@@ -16,10 +17,10 @@ export default function AuthScreen() {
   const [password, setPassword] = useState('');
   const [mode, setMode] = useState<'sign-in' | 'sign-up'>('sign-up');
   const [busy, setBusy] = useState(false);
-  const [language, setLanguage] = useState<JananiLanguage>('en');
-  const tr = (key: Parameters<typeof t>[1]) => t(language, key);
+  const [locale, setLocale] = useState('en');
+  const tr = (key: Parameters<typeof tg>[1]) => tg(locale, key);
 
-  useEffect(() => { void readUiLanguage().then(setLanguage); }, []);
+  useEffect(() => { void readGlobalUiLocale().then(setLocale).catch(() => setLocale('en')); }, []);
 
   async function submit() {
     const normalizedEmail = email.trim().toLowerCase();
