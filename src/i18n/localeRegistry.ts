@@ -1,0 +1,111 @@
+export type LocaleDirection = 'ltr' | 'rtl';
+export type TranslationStatus = 'native' | 'reviewed' | 'machine_assisted' | 'fallback';
+export type ClinicalTranslationStatus = 'reviewed' | 'pending' | 'unavailable';
+
+export type LocaleDefinition = {
+  code: string;
+  baseLanguage: string;
+  nativeName: string;
+  englishName: string;
+  direction: LocaleDirection;
+  uiStatus: TranslationStatus;
+  healthStatus: ClinicalTranslationStatus;
+  clinicalStatus: ClinicalTranslationStatus;
+};
+
+const locale = (
+  code: string,
+  nativeName: string,
+  englishName: string,
+  direction: LocaleDirection = 'ltr',
+  uiStatus: TranslationStatus = 'fallback',
+  healthStatus: ClinicalTranslationStatus = 'pending',
+  clinicalStatus: ClinicalTranslationStatus = 'pending',
+): LocaleDefinition => ({
+  code,
+  baseLanguage: code.split('-')[0].toLowerCase(),
+  nativeName,
+  englishName,
+  direction,
+  uiStatus,
+  healthStatus,
+  clinicalStatus,
+});
+
+// Global registry. A locale may be selectable before Janani has a native UI pack;
+// in that case UI falls back safely while Care+ can still receive the preferred locale.
+export const JANANI_LOCALES: LocaleDefinition[] = [
+  locale('en', 'English', 'English', 'ltr', 'native', 'reviewed', 'reviewed'),
+  locale('te', 'తెలుగు', 'Telugu', 'ltr', 'native'),
+  locale('hi', 'हिन्दी', 'Hindi', 'ltr', 'native'),
+  locale('ta', 'தமிழ்', 'Tamil'), locale('kn', 'ಕನ್ನಡ', 'Kannada'), locale('ml', 'മലയാളം', 'Malayalam'),
+  locale('mr', 'मराठी', 'Marathi'), locale('bn', 'বাংলা', 'Bengali'), locale('gu', 'ગુજરાતી', 'Gujarati'),
+  locale('pa', 'ਪੰਜਾਬੀ', 'Punjabi'), locale('or', 'ଓଡ଼ିଆ', 'Odia'), locale('as', 'অসমীয়া', 'Assamese'),
+  locale('ur', 'اردو', 'Urdu', 'rtl'), locale('ne', 'नेपाली', 'Nepali'), locale('si', 'සිංහල', 'Sinhala'),
+  locale('ar', 'العربية', 'Arabic', 'rtl'), locale('fa', 'فارسی', 'Persian', 'rtl'), locale('he', 'עברית', 'Hebrew', 'rtl'),
+  locale('es', 'Español', 'Spanish'), locale('pt', 'Português', 'Portuguese'), locale('fr', 'Français', 'French'),
+  locale('de', 'Deutsch', 'German'), locale('it', 'Italiano', 'Italian'), locale('nl', 'Nederlands', 'Dutch'),
+  locale('ru', 'Русский', 'Russian'), locale('uk', 'Українська', 'Ukrainian'), locale('pl', 'Polski', 'Polish'),
+  locale('cs', 'Čeština', 'Czech'), locale('ro', 'Română', 'Romanian'), locale('hu', 'Magyar', 'Hungarian'),
+  locale('tr', 'Türkçe', 'Turkish'), locale('el', 'Ελληνικά', 'Greek'), locale('sv', 'Svenska', 'Swedish'),
+  locale('da', 'Dansk', 'Danish'), locale('no', 'Norsk', 'Norwegian'), locale('fi', 'Suomi', 'Finnish'),
+  locale('id', 'Bahasa Indonesia', 'Indonesian'), locale('ms', 'Bahasa Melayu', 'Malay'), locale('fil', 'Filipino', 'Filipino'),
+  locale('vi', 'Tiếng Việt', 'Vietnamese'), locale('th', 'ไทย', 'Thai'), locale('km', 'ខ្មែរ', 'Khmer'),
+  locale('my', 'မြန်မာ', 'Burmese'), locale('lo', 'ລາວ', 'Lao'), locale('zh-CN', '简体中文', 'Chinese (Simplified)'),
+  locale('zh-TW', '繁體中文', 'Chinese (Traditional)'), locale('ja', '日本語', 'Japanese'), locale('ko', '한국어', 'Korean'),
+  locale('sw', 'Kiswahili', 'Swahili'), locale('am', 'አማርኛ', 'Amharic'), locale('ha', 'Hausa', 'Hausa'),
+  locale('yo', 'Yorùbá', 'Yoruba'), locale('ig', 'Igbo', 'Igbo'), locale('zu', 'isiZulu', 'Zulu'),
+  locale('af', 'Afrikaans', 'Afrikaans'), locale('sq', 'Shqip', 'Albanian'), locale('bg', 'Български', 'Bulgarian'),
+  locale('hr', 'Hrvatski', 'Croatian'), locale('sr', 'Српски', 'Serbian'), locale('sk', 'Slovenčina', 'Slovak'),
+  locale('sl', 'Slovenščina', 'Slovenian'), locale('et', 'Eesti', 'Estonian'), locale('lv', 'Latviešu', 'Latvian'),
+  locale('lt', 'Lietuvių', 'Lithuanian'), locale('ka', 'ქართული', 'Georgian'), locale('hy', 'Հայերեն', 'Armenian'),
+  locale('az', 'Azərbaycanca', 'Azerbaijani'), locale('kk', 'Қазақша', 'Kazakh'), locale('uz', 'Oʻzbekcha', 'Uzbek'),
+  locale('mn', 'Монгол', 'Mongolian'), locale('ps', 'پښتو', 'Pashto', 'rtl'), locale('ku', 'Kurdî', 'Kurdish'),
+  locale('so', 'Soomaali', 'Somali'), locale('mg', 'Malagasy', 'Malagasy'), locale('mi', 'Māori', 'Māori'),
+];
+
+const localeMap = new Map(JANANI_LOCALES.map((item) => [item.code.toLowerCase(), item]));
+
+export function normalizeLocaleCode(value: string | null | undefined): string {
+  const raw = value?.trim().replace('_', '-');
+  if (!raw) return 'en';
+  try {
+    const canonical = Intl.getCanonicalLocales(raw)[0];
+    return canonical || 'en';
+  } catch {
+    return 'en';
+  }
+}
+
+export function getLocaleDefinition(code: string): LocaleDefinition {
+  const normalized = normalizeLocaleCode(code);
+  const exact = localeMap.get(normalized.toLowerCase());
+  if (exact) return exact;
+  const base = normalized.split('-')[0].toLowerCase();
+  return localeMap.get(base) ?? locale('en', 'English', 'English', 'ltr', 'native', 'reviewed', 'reviewed');
+}
+
+export function uiTranslationLanguageFor(code: string): 'en' | 'te' | 'hi' {
+  const base = normalizeLocaleCode(code).split('-')[0].toLowerCase();
+  if (base === 'te' || base === 'hi') return base;
+  return 'en';
+}
+
+export function detectDeviceLocale(): string {
+  const resolved = Intl.DateTimeFormat().resolvedOptions().locale;
+  return normalizeLocaleCode(resolved);
+}
+
+export function searchLocales(query: string): LocaleDefinition[] {
+  const term = query.trim().toLocaleLowerCase();
+  if (!term) return JANANI_LOCALES;
+  return JANANI_LOCALES.filter((item) =>
+    item.code.toLocaleLowerCase().includes(term)
+    || item.nativeName.toLocaleLowerCase().includes(term)
+    || item.englishName.toLocaleLowerCase().includes(term),
+  );
+}
+
+export function isRtlLocale(code: string): boolean {
+  return getLocaleDefinition(code).direction === 'rtl';
+}
