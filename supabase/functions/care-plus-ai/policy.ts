@@ -17,9 +17,6 @@ export const CONDITION_SENSITIVE_CATEGORIES = new Set<AiCategory>([
   'meal_alternative',
 ]);
 
-// Remains empty until clinical review formally approves each pack.
-export const SERVER_APPROVED_CONDITION_PACKS = new Set<string>();
-
 const URGENT_INPUT_PATTERNS = [
   'heavy bleeding','severe abdominal pain','severe stomach pain','trouble breathing','difficulty breathing',
   'seizure','fainted','fainting','loss of consciousness','unconscious','severe headache','blurred vision','vision changes',
