@@ -10,27 +10,28 @@ Supported UI locale foundation:
 
 - Private Care Context
 - Home / primary mother and partner navigation
-- Home tool titles and captions
-- Partner invite-code copy
-- Authentication welcome/signup/sign-in shell
-- Mother/partner onboarding setup shell
-- Health Profile non-clinical UI
-- Health Tracker non-clinical UI
-- Non-medical background feature descriptions
+- Authentication and onboarding
+- Health Profile
+- Health Tracker
+- Care Timeline shell
+- Food Guide shell
+- Pregnancy Guide shell
+- Reminders list
+- Journal timeline
+- Thinking of You / partner connection surface
+- Care+ client shell and quick actions
 
 ## Deliberately not yet translated
 
-Safety-critical, destructive/security-sensitive, and clinical wording remains in the source-approved language until Telugu/Hindi versions receive appropriate review. This includes emergency guidance, due-date escalation wording, password/security validation, account-deletion confirmations, diagnosis-status semantics, medication/target disclaimers, clinician-priority wording, condition-specific guidance, and other text where translation drift could change medical or security meaning.
+Safety-critical, clinical, destructive, legal and security-sensitive wording remains in the source-approved language until Telugu/Hindi versions receive clinical/content/legal review where appropriate. This includes emergency guidance, trimester medical guidance, diagnosis/medication disclaimers, condition-specific nutrition guidance, AI safety/error responses, account deletion/export confirmations, password/security validation and other text where translation drift could change meaning.
 
-## Next migration order
+## Remaining migration order
 
-1. Care Timeline
-2. Food Guide
-3. pregnancy guide navigation/content shell
-4. reminders and journal
-5. Thinking of You and partner-specific screens
-6. Settings, privacy and account controls
-7. Care+ client UI
-8. notification/widget copy
+1. Settings/privacy safe UI shell
+2. new/edit reminder screens
+3. new/edit journal screens
+4. notification copy
+5. widget copy
+6. reviewed translations for medical/safety/legal content
 
 Billing remains deliberately deferred and is not part of the localization rollout.
