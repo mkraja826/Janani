@@ -1,15 +1,17 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
+import { carePlusLog, carePlusRequestId, providerErrorCode } from './observability.ts';
 import { generateWithConfiguredProvider } from './provider.ts';
 import { CONDITION_SENSITIVE_CATEGORIES, isAiCategory, isUrgentInput, validateGeneratedText } from './policy.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-request-id',
 };
 const jsonHeaders = { ...corsHeaders, 'Content-Type': 'application/json' };
 
-function respond(status: number, body: Record<string, unknown>) {
-  return new Response(JSON.stringify(body), { status, headers: jsonHeaders });
+function respond(status: number, body: Record<string, unknown>, requestId?: string) {
+  const headers = requestId ? { ...jsonHeaders, 'x-request-id': requestId } : jsonHeaders;
+  return new Response(JSON.stringify(body), { status, headers });
 }
 function compactString(value: unknown, max = 500): string | null {
   if (typeof value !== 'string') return null;
@@ -108,16 +110,30 @@ function selectContext(
 }
 
 Deno.serve(async (request) => {
-  if (request.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
-  if (request.method !== 'POST') return respond(405, { error: 'method_not_allowed' });
+  const requestId = carePlusRequestId(request);
+  const startedAt = Date.now();
+  const reply = (status: number, body: Record<string, unknown>) => respond(status, body, requestId);
+  carePlusLog('info', 'request_received', { request_id: requestId, method: request.method });
+
+  if (request.method === 'OPTIONS') return new Response('ok', { headers: { ...corsHeaders, 'x-request-id': requestId } });
+  if (request.method !== 'POST') {
+    carePlusLog('warn', 'request_rejected', { request_id: requestId, stage: 'method', status: 405 });
+    return reply(405, { error: 'method_not_allowed' });
+  }
 
   const authHeader = request.headers.get('authorization');
-  if (!authHeader?.startsWith('Bearer ')) return respond(401, { error: 'authentication_required' });
+  if (!authHeader?.startsWith('Bearer ')) {
+    carePlusLog('warn', 'request_rejected', { request_id: requestId, stage: 'authentication', status: 401 });
+    return reply(401, { error: 'authentication_required' });
+  }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
   const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
-  if (!supabaseUrl || !anonKey || !serviceKey) return respond(503, { error: 'gateway_not_configured' });
+  if (!supabaseUrl || !anonKey || !serviceKey) {
+    carePlusLog('error', 'gateway_configuration_error', { request_id: requestId, stage: 'supabase_environment' });
+    return reply(503, { error: 'gateway_not_configured' });
+  }
 
   const userClient = createClient(supabaseUrl, anonKey, {
     global: { headers: { Authorization: authHeader } }, auth: { persistSession: false },
@@ -125,26 +141,39 @@ Deno.serve(async (request) => {
   const serviceClient = createClient(supabaseUrl, serviceKey, { auth: { persistSession: false } });
 
   const { data: userData, error: userError } = await userClient.auth.getUser();
-  if (userError || !userData.user) return respond(401, { error: 'invalid_session' });
+  if (userError || !userData.user) {
+    carePlusLog('warn', 'request_rejected', { request_id: requestId, stage: 'session_validation', status: 401 });
+    return reply(401, { error: 'invalid_session' });
+  }
 
   let body: Record<string, unknown>;
-  try { body = await request.json(); } catch { return respond(400, { error: 'invalid_json' }); }
+  try { body = await request.json(); } catch {
+    carePlusLog('warn', 'request_rejected', { request_id: requestId, stage: 'json_parse', status: 400 });
+    return reply(400, { error: 'invalid_json' });
+  }
   const pregnancyId = compactString(body.pregnancyId, 80);
   const category = body.category;
   const userText = compactString(body.userText, 1200) ?? '';
-  if (!pregnancyId) return respond(400, { error: 'pregnancy_id_required' });
-  if (!isAiCategory(category)) return respond(400, { error: 'unsupported_category' });
+  if (!pregnancyId) return reply(400, { error: 'pregnancy_id_required' });
+  if (!isAiCategory(category)) return reply(400, { error: 'unsupported_category' });
 
   if (userText && isUrgentInput(userText)) {
-    return respond(200, {
+    carePlusLog('info', 'urgent_input_intercepted', { request_id: requestId, category, duration_ms: Date.now() - startedAt });
+    return reply(200, {
       text: 'This could need urgent medical attention. Please contact your maternity care team or local emergency service now rather than waiting for Janani Care+ to assess it.',
       safety: 'urgent',
     });
   }
 
   const { data: entitlement, error: entitlementError } = await userClient.rpc('get_own_care_plus_status');
-  if (entitlementError) return respond(503, { error: 'entitlement_check_failed' });
-  if (!entitlement?.active) return respond(402, { error: 'care_plus_required' });
+  if (entitlementError) {
+    carePlusLog('error', 'stage_failed', { request_id: requestId, stage: 'entitlement', code: entitlementError.code, category });
+    return reply(503, { error: 'entitlement_check_failed' });
+  }
+  if (!entitlement?.active) {
+    carePlusLog('info', 'request_rejected', { request_id: requestId, stage: 'entitlement', status: 402, category });
+    return reply(402, { error: 'care_plus_required' });
+  }
 
   const [pregnancyResult, profileResult, trackerResult, careResult, privateCareResult] = await Promise.all([
     userClient.from('pregnancies').select('id,due_date,status').eq('id', pregnancyId).maybeSingle(),
@@ -154,9 +183,13 @@ Deno.serve(async (request) => {
     userClient.rpc('get_own_private_care_context', { p_pregnancy_id: pregnancyId }),
   ]);
   if (pregnancyResult.error || !pregnancyResult.data || profileResult.error || !profileResult.data || privateCareResult.error || !privateCareResult.data) {
-    return respond(403, { error: 'mother_profile_unavailable' });
+    carePlusLog('warn', 'stage_failed', { request_id: requestId, stage: 'mother_context', category, status: 403 });
+    return reply(403, { error: 'mother_profile_unavailable' });
   }
-  if (trackerResult.error || careResult.error) return respond(503, { error: 'context_load_failed' });
+  if (trackerResult.error || careResult.error) {
+    carePlusLog('error', 'stage_failed', { request_id: requestId, stage: 'supporting_context', category, code: trackerResult.error?.code ?? careResult.error?.code });
+    return reply(503, { error: 'context_load_failed' });
+  }
 
   const profile = profileResult.data as Record<string, unknown>;
   const activeConditions = Array.isArray(profile.conditions)
@@ -171,7 +204,10 @@ Deno.serve(async (request) => {
     const { data: approved, error: approvalError } = await serviceClient.rpc('get_active_clinical_rule_packs_server', {
       p_condition_codes: activeConditions,
     });
-    if (approvalError) return respond(503, { error: 'clinical_rule_registry_unavailable' });
+    if (approvalError) {
+      carePlusLog('error', 'stage_failed', { request_id: requestId, stage: 'clinical_rule_registry', category, code: approvalError.code });
+      return reply(503, { error: 'clinical_rule_registry_unavailable' });
+    }
     approvedRulePacks = Array.isArray(approved) ? approved : [];
   }
   const approvedCodes = new Set(
@@ -181,14 +217,17 @@ Deno.serve(async (request) => {
   );
   const blockedConditions = activeConditions.filter((condition) => !approvedCodes.has(condition));
   if (CONDITION_SENSITIVE_CATEGORIES.has(category) && blockedConditions.length > 0) {
-    return respond(409, { error: 'condition_rule_pack_not_approved', blockedConditions, safety: 'blocked' });
+    carePlusLog('warn', 'clinical_personalization_blocked', { request_id: requestId, category, blocked_condition_count: blockedConditions.length });
+    return reply(409, { error: 'condition_rule_pack_not_approved', blockedConditions, safety: 'blocked' });
   }
 
   if (Deno.env.get('JANANI_AI_ENABLED') !== 'true') {
-    return respond(503, { error: 'ai_temporarily_unavailable', gatewayReady: true });
+    carePlusLog('warn', 'request_rejected', { request_id: requestId, stage: 'ai_feature_gate', category, status: 503 });
+    return reply(503, { error: 'ai_temporarily_unavailable', gatewayReady: true });
   }
   if ((Deno.env.get('JANANI_AI_PROVIDER') ?? 'disabled') === 'disabled') {
-    return respond(503, { error: 'ai_provider_disabled', gatewayReady: true });
+    carePlusLog('warn', 'request_rejected', { request_id: requestId, stage: 'provider_gate', category, status: 503 });
+    return reply(503, { error: 'ai_provider_disabled', gatewayReady: true });
   }
 
   const context = selectContext(
@@ -211,37 +250,64 @@ Deno.serve(async (request) => {
     p_estimated_input_tokens: estimatedInput,
     p_estimated_output_tokens: estimatedOutput,
   });
-  if (reserveError || !generationId) return respond(429, { error: 'care_plus_quota_unavailable' });
+  if (reserveError || !generationId) {
+    carePlusLog('warn', 'stage_failed', { request_id: requestId, stage: 'quota_reservation', category, code: reserveError?.code });
+    return reply(429, { error: 'care_plus_quota_unavailable' });
+  }
 
   try {
     const result = await generateWithConfiguredProvider({ systemPrompt: SYSTEM_PROMPT, userPrompt });
+    carePlusLog('info', 'provider_completed', {
+      request_id: requestId,
+      category,
+      provider: result.provider,
+      model: result.model,
+      input_tokens: result.inputTokens,
+      output_tokens: result.outputTokens,
+    });
     const safety = validateGeneratedText(result.text);
     if (!safety.ok) {
-      await serviceClient.rpc('finalize_care_plus_ai_request_server', {
+      const { error: finalizeError } = await serviceClient.rpc('finalize_care_plus_ai_request_server', {
         p_generation_id: generationId,
         p_status: 'rejected',
+        p_provider: result.provider,
+        p_model: result.model,
         p_actual_input_tokens: result.inputTokens,
         p_actual_output_tokens: result.outputTokens,
-        p_refund_usage: true,
+        p_safety_code: safety.code,
       });
-      return respond(422, { error: 'unsafe_ai_output_rejected', safety: 'blocked' });
+      if (finalizeError) carePlusLog('error', 'stage_failed', { request_id: requestId, stage: 'rejected_finalization', category, code: finalizeError.code });
+      carePlusLog('warn', 'generated_output_rejected', { request_id: requestId, category, safety_code: safety.code, duration_ms: Date.now() - startedAt });
+      return reply(422, { error: 'unsafe_ai_output_rejected', safety: 'blocked' });
     }
-    await serviceClient.rpc('finalize_care_plus_ai_request_server', {
+    const { error: finalizeError } = await serviceClient.rpc('finalize_care_plus_ai_request_server', {
       p_generation_id: generationId,
       p_status: 'completed',
+      p_provider: result.provider,
+      p_model: result.model,
       p_actual_input_tokens: result.inputTokens,
       p_actual_output_tokens: result.outputTokens,
-      p_refund_usage: false,
+      p_safety_code: null,
     });
-    return respond(200, { text: result.text, safety: 'generated', usage: { inputTokens: result.inputTokens, outputTokens: result.outputTokens } });
-  } catch {
-    await serviceClient.rpc('finalize_care_plus_ai_request_server', {
+    if (finalizeError) {
+      carePlusLog('error', 'stage_failed', { request_id: requestId, stage: 'completed_finalization', category, code: finalizeError.code });
+      return reply(503, { error: 'ai_temporarily_unavailable' });
+    }
+    carePlusLog('info', 'request_completed', { request_id: requestId, category, duration_ms: Date.now() - startedAt, input_tokens: result.inputTokens, output_tokens: result.outputTokens });
+    return reply(200, { text: result.text, safety: 'generated', usage: { inputTokens: result.inputTokens, outputTokens: result.outputTokens } });
+  } catch (error) {
+    const code = providerErrorCode(error);
+    carePlusLog('error', 'provider_failed', { request_id: requestId, category, code, duration_ms: Date.now() - startedAt });
+    const { error: finalizeError } = await serviceClient.rpc('finalize_care_plus_ai_request_server', {
       p_generation_id: generationId,
       p_status: 'provider_error',
+      p_provider: Deno.env.get('JANANI_AI_PROVIDER') ?? null,
+      p_model: Deno.env.get('JANANI_AI_MODEL') ?? null,
       p_actual_input_tokens: 0,
       p_actual_output_tokens: 0,
-      p_refund_usage: true,
+      p_safety_code: code,
     });
-    return respond(503, { error: 'ai_temporarily_unavailable' });
+    if (finalizeError) carePlusLog('error', 'stage_failed', { request_id: requestId, stage: 'provider_error_finalization', category, code: finalizeError.code });
+    return reply(503, { error: 'ai_temporarily_unavailable' });
   }
 });
