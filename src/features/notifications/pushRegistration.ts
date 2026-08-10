@@ -3,6 +3,7 @@ import * as Notifications from 'expo-notifications';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
+import { readGlobalUiLocale } from '@/i18n/uiLocale';
 import { createSessionBoundSupabaseClient, supabase } from '@/lib/supabase';
 
 const PARTNER_CHANNEL_ID = 'janani-partner-messages';
@@ -52,6 +53,7 @@ async function registerDevicePushTokenInternal(userId: string): Promise<void> {
   }
 
   const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
+  const localeCode = await readGlobalUiLocale();
   const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
   const capturedSession = sessionData.session;
   if (sessionError || capturedSession?.user.id !== userId) return;
@@ -59,11 +61,15 @@ async function registerDevicePushTokenInternal(userId: string): Promise<void> {
   const boundClient = createSessionBoundSupabaseClient(capturedSession.access_token);
   const { data: currentBeforeRpc } = await supabase.auth.getSession();
   if (currentBeforeRpc.session?.user.id !== userId) return;
-  const { error } = await boundClient.rpc('register_device_push_token', {
-    p_expo_push_token: token,
-    p_platform: Platform.OS,
-    p_device_name: Constants.deviceName ?? null,
-  });
+  const { error } = await boundClient.rpc(
+    'register_device_push_token_v2' as never,
+    {
+      p_expo_push_token: token,
+      p_platform: Platform.OS,
+      p_device_name: Constants.deviceName ?? null,
+      p_locale_code: localeCode,
+    } as never,
+  );
   if (error) throw error;
 
   const { data: currentAfterRpc } = await supabase.auth.getSession();
