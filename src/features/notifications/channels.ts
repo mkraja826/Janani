@@ -1,7 +1,8 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
-import { readUiLanguage } from '@/i18n';
+import { uiTranslationLanguageFor } from '@/i18n/localeRegistry';
+import { readGlobalUiLocale } from '@/i18n/uiLocale';
 
 export const CARE_REMINDER_CHANNEL_ID = 'janani-care-reminders';
 export const MEDICATION_ALARM_CHANNEL_ID = 'janani-medication-alarms';
@@ -36,8 +37,8 @@ const channelCopy = {
 
 export async function prepareJananiNotificationChannels(): Promise<void> {
   if (Platform.OS !== 'android') return;
-  const language = await readUiLanguage();
-  const copy = channelCopy[language] ?? channelCopy.en;
+  const locale = await readGlobalUiLocale();
+  const copy = channelCopy[uiTranslationLanguageFor(locale)];
 
   await Promise.all([
     Notifications.setNotificationChannelAsync(CARE_REMINDER_CHANNEL_ID, {
