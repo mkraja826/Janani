@@ -12,6 +12,7 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "smoke:supabase": "node --env-file=.env scripts/supabase-smoke.mjs",
+    "validate:production-config": "node scripts/validate-production-config.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint"
   },
