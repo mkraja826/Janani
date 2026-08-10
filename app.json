@@ -32,7 +32,8 @@
           "color": "#C86B7A"
         }
       ],
-      "./plugins/withJananiWidget"
+      "./plugins/withJananiWidget",
+      "./plugins/withJananiReleaseSigning"
     ],
     "android": {
       "package": "com.mkraja826.janani",
