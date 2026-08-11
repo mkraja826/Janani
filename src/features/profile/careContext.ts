@@ -31,8 +31,10 @@ export type PrivateCareContext = {
 
 type RpcError = { message: string };
 type RpcResponse<T> = PromiseLike<{ data: T | null; error: RpcError | null }>;
-type ProfileRpc = <T>(fn: string, args: Record<string, unknown>) => RpcResponse<T>;
-const profileRpc = supabase.rpc as unknown as ProfileRpc;
+
+function profileRpc<T>(fn: string, args: Record<string, unknown>): RpcResponse<T> {
+  return supabase.rpc(fn as never, args as never) as unknown as RpcResponse<T>;
+}
 
 export async function loadPrivateCareContext(pregnancyId: string): Promise<PrivateCareContext> {
   const { data, error } = await profileRpc<PrivateCareContext>('get_own_private_care_context', {
