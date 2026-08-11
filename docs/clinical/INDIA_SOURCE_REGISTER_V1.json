@@ -1,0 +1,241 @@
+{
+  "schema_version": "1.0",
+  "jurisdiction": "IN",
+  "last_evidence_pass": "2026-08-12",
+  "production_use": false,
+  "status_note": "Source discovery and governance only. No record in this file is clinician-approved or production-eligible unless explicitly promoted after clinical review and testing.",
+  "approval_states": [
+    "identified",
+    "source_verified",
+    "rule_extracted",
+    "clinical_review_pending",
+    "clinician_approved",
+    "safety_tested",
+    "production_eligible",
+    "blocked_conflict",
+    "rejected",
+    "superseded",
+    "expired_review"
+  ],
+  "sources": [
+    {
+      "id": "IN-ICMR-ANC-2025",
+      "authority": "Indian Council of Medical Research (ICMR) / Department of Health Research, Ministry of Health & Family Welfare, Government of India",
+      "title": "Standard Treatment Workflow (STW) for Ante-Natal Management of Normal Pregnancy",
+      "publication_date": "2025-12",
+      "official_url": "https://www.icmr.gov.in/icmrobject/uploads/STWs/1771568619_ante-natalmanagementofnormalpregnancy-7.pdf",
+      "evidence_tier": 2,
+      "topics": [
+        "antenatal_care",
+        "pregnancy_progress",
+        "high_risk_pregnancy",
+        "danger_signals",
+        "birth_preparedness",
+        "anaemia",
+        "gestational_diabetes_screening",
+        "vaccination",
+        "breastfeeding_counselling"
+      ],
+      "status": "source_verified",
+      "license_status": "verify_before_ingestion",
+      "retrieved_on": "2026-08-12",
+      "clinical_reviewer": null,
+      "clinical_approval_date": null,
+      "next_review_date": null,
+      "notes": "Current high-priority India baseline for normal ANC discovered during the 2026-08-12 evidence pass. Rule extraction must be reconciled with relevant NHM/MoHFW programme guidance before promotion."
+    },
+    {
+      "id": "IN-NIN-DGI-2024",
+      "authority": "ICMR-National Institute of Nutrition",
+      "title": "Dietary Guidelines for Indians 2024",
+      "publication_date": "2024",
+      "official_url": "https://nin.res.in/dietaryguidelines/pdfjs/locale/DGI_2024.pdf",
+      "evidence_tier": 2,
+      "topics": [
+        "nutrition",
+        "pregnancy_nutrition",
+        "lactation_nutrition",
+        "balanced_diet",
+        "food_choices"
+      ],
+      "status": "source_verified",
+      "license_status": "verify_before_ingestion",
+      "retrieved_on": "2026-08-12",
+      "clinical_reviewer": null,
+      "clinical_approval_date": null,
+      "next_review_date": null,
+      "notes": "Primary India nutrition guideline. Nutrient values and pregnancy/lactation recommendations require rule-level extraction and clinical review before use."
+    },
+    {
+      "id": "IN-NHM-AMB-2026",
+      "authority": "National Health Mission, Ministry of Health & Family Welfare, Government of India",
+      "title": "Anaemia Mukt Bharat Abhiyaan Operational Guidelines 2026",
+      "publication_date": "2026",
+      "official_url": "https://www.nhm.gov.in/New-Update-2025-26/Nutrition/AMB-guidelines/AMB-Abhiyaan-Guidelines.pdf",
+      "evidence_tier": 2,
+      "topics": [
+        "anaemia",
+        "iron_folic_acid",
+        "preconception",
+        "pregnancy",
+        "lactation"
+      ],
+      "status": "source_verified",
+      "license_status": "verify_before_ingestion",
+      "retrieved_on": "2026-08-12",
+      "clinical_reviewer": null,
+      "clinical_approval_date": null,
+      "next_review_date": null,
+      "notes": "NHM currently lists a 2026 operational guideline. Must be reconciled with ICMR ANC STW and clinician review before any dose/timing rule is enabled."
+    },
+    {
+      "id": "IN-NHM-GDM-NATIONAL",
+      "authority": "National Health Mission, Ministry of Health & Family Welfare, Government of India",
+      "title": "National Guidelines for Diagnosis & Management of Gestational Diabetes Mellitus",
+      "publication_date": "2014",
+      "official_url": "https://nhm.gov.in/images/pdf/programmes/maternal-health/guidelines/National_Guidelines_for_Diagnosis_%26_Management_of_Gestational_Diabetes_Mellitus.pdf",
+      "evidence_tier": 2,
+      "topics": [
+        "gestational_diabetes",
+        "screening",
+        "diagnosis",
+        "management",
+        "referral"
+      ],
+      "status": "identified",
+      "license_status": "verify_before_ingestion",
+      "retrieved_on": "2026-08-12",
+      "clinical_reviewer": null,
+      "clinical_approval_date": null,
+      "next_review_date": null,
+      "notes": "Older national document. Do not promote rules until reconciled with newer ICMR workflows and current specialist guidance."
+    },
+    {
+      "id": "IN-ICMR-STW-INDEX-2026",
+      "authority": "Indian Council of Medical Research",
+      "title": "Standard Treatment Workflows (STWs) — official index",
+      "publication_date": "2026",
+      "official_url": "https://www.icmr.gov.in/standard-treatment-workflows-stws",
+      "evidence_tier": 2,
+      "topics": [
+        "source_discovery",
+        "obstetrics",
+        "endocrinology",
+        "psychiatry",
+        "postpartum_haemorrhage"
+      ],
+      "status": "source_verified",
+      "license_status": "index_only",
+      "retrieved_on": "2026-08-12",
+      "clinical_reviewer": null,
+      "clinical_approval_date": null,
+      "next_review_date": null,
+      "notes": "Use as the canonical discovery index for current ICMR STWs; individual documents require separate source records and review."
+    },
+    {
+      "id": "IN-NHM-MATERNAL-GUIDELINES-INDEX-2026",
+      "authority": "National Health Mission, Ministry of Health & Family Welfare, Government of India",
+      "title": "Maternal Health Guidelines — official NHM index",
+      "publication_date": "2026-07",
+      "official_url": "https://nhm.gov.in/index1.php/nhm/nhm/index1.php?lang=1&level=3&lid=377&sublinkid=839",
+      "evidence_tier": 2,
+      "topics": [
+        "source_discovery",
+        "maternal_health",
+        "postnatal_care",
+        "high_risk_pregnancy",
+        "skilled_birth_attendance",
+        "safe_motherhood"
+      ],
+      "status": "source_verified",
+      "license_status": "index_only",
+      "retrieved_on": "2026-08-12",
+      "clinical_reviewer": null,
+      "clinical_approval_date": null,
+      "next_review_date": null,
+      "notes": "Current NHM index exposes maternal-health guidance including postnatal care, high-risk pregnancy, PMSMA, MCP card and safe motherhood materials. Individual documents require separate source records."
+    },
+    {
+      "id": "IN-MOHFW-PMSMA",
+      "authority": "Ministry of Health & Family Welfare, Government of India",
+      "title": "Pradhan Mantri Surakshit Matritva Abhiyan (PMSMA)",
+      "publication_date": null,
+      "official_url": "https://pmsma.mohfw.gov.in/",
+      "evidence_tier": 2,
+      "topics": [
+        "antenatal_care",
+        "high_risk_pregnancy",
+        "screening",
+        "referral",
+        "programme_navigation"
+      ],
+      "status": "source_verified",
+      "license_status": "verify_before_ingestion",
+      "retrieved_on": "2026-08-12",
+      "clinical_reviewer": null,
+      "clinical_approval_date": null,
+      "next_review_date": null,
+      "notes": "Useful for India-specific ANC service pathways and high-risk pregnancy programme context. Clinical thresholds must come from reviewed clinical guidance, not programme marketing copy."
+    },
+    {
+      "id": "IN-MOHFW-UWIN",
+      "authority": "Ministry of Health & Family Welfare, Government of India",
+      "title": "U-WIN / Universal Immunization Programme",
+      "publication_date": null,
+      "official_url": "https://uwin.mohfw.gov.in/",
+      "evidence_tier": 2,
+      "topics": [
+        "pregnancy_vaccination",
+        "immunization_records",
+        "programme_navigation"
+      ],
+      "status": "source_verified",
+      "license_status": "verify_before_ingestion",
+      "retrieved_on": "2026-08-12",
+      "clinical_reviewer": null,
+      "clinical_approval_date": null,
+      "next_review_date": null,
+      "notes": "Operational source for vaccination registration/programme information. Vaccine recommendations and contraindications require the current national immunization schedule/guideline and clinician review."
+    },
+    {
+      "id": "IN-FSSAI-EAT-RIGHT",
+      "authority": "Food Safety and Standards Authority of India",
+      "title": "Eat Right India materials",
+      "publication_date": null,
+      "official_url": "https://www.fssai.gov.in/book-details.php?bkid=357",
+      "evidence_tier": 2,
+      "topics": [
+        "food_safety",
+        "food_hygiene",
+        "healthy_diet"
+      ],
+      "status": "identified",
+      "license_status": "verify_before_ingestion",
+      "retrieved_on": "2026-08-12",
+      "clinical_reviewer": null,
+      "clinical_approval_date": null,
+      "next_review_date": null,
+      "notes": "Use for food-safety/hygiene support. Do not infer pregnancy-specific prohibitions or disease-specific diets from generic material."
+    },
+    {
+      "id": "IN-NHM-MAA",
+      "authority": "National Health Mission, Ministry of Health & Family Welfare, Government of India",
+      "title": "MAA — Mothers' Absolute Affection operational guidance",
+      "publication_date": null,
+      "official_url": "https://nhm.gov.in/nhm/index1.php?lang=1&level=4&lid=810&sublinkid=1461",
+      "evidence_tier": 2,
+      "topics": [
+        "breastfeeding",
+        "lactation",
+        "postnatal_care"
+      ],
+      "status": "identified",
+      "license_status": "verify_before_ingestion",
+      "retrieved_on": "2026-08-12",
+      "clinical_reviewer": null,
+      "clinical_approval_date": null,
+      "next_review_date": null,
+      "notes": "India-specific breastfeeding programme source. Detailed rule extraction remains pending."
+    }
+  ]
+}
