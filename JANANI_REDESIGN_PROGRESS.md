@@ -1,7 +1,8 @@
 # Janani Product Redesign Progress
 
-**Progress baseline: 0%**
+**Current redesign progress: 5%**
 
+**Progress baseline: 0%**  
 **Baseline date:** 2026-08-12
 
 This tracker starts a new product-progress scale from the point where Janani's technical foundation already existed but the simplified, background-intelligence product experience had not yet been built.
@@ -28,7 +29,7 @@ Janani should progressively understand the mother's pregnancy, health profile, m
 
 | Milestone | Scope | Status |
 |---|---|---|
-| 1 | Primary navigation shell + overflow menu | In progress |
+| 1 | Primary navigation shell + overflow menu | Engineering complete / device review pending |
 | 2 | Home redesign and daily-priority experience | Not started |
 | 3 | Structured Health / mother profile redesign | Not started |
 | 4 | Private Reports upload + extraction + confirmation | Not started |
@@ -52,7 +53,11 @@ Janani should progressively understand the mother's pregnancy, health profile, m
 - [x] Shared top-right overflow menu exists.
 - [x] Existing working backend/auth/family/reminder systems are preserved.
 - [x] Legacy `/home` and `/ai-companion` entry points remain compatible through redirects.
-- [ ] Repository quality workflow passes.
+- [x] Repository quality workflow passes, including Android x86_64 debug APK compilation.
 - [ ] Physical-device navigation review completed.
 
-**Progress remains 0% until Milestone 1 passes repository quality validation.**
+## Milestone 1 validation notes
+
+Repository-level validation completed successfully on 2026-08-12. The quality workflow passed deterministic install, the production dependency security gate, TypeScript, lint, Expo Doctor, legal-site validation, Android PNG validation, Expo public-config resolution, Android prebuild, Janani widget-generation checks, and x86_64 debug APK compilation.
+
+Milestone 1 remains intentionally unmerged and pending physical-device navigation review before it is treated as fully accepted.
