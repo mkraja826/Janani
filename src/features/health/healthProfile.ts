@@ -22,6 +22,8 @@ export type HealthCondition = { condition_code: HealthConditionCode; status: Con
 
 export type HealthProfile = {
   pregnancy_id: string;
+  height_cm: number | null;
+  pre_pregnancy_weight_kg: number | null;
   current_weight_kg: number | null;
   pregnancy_type: PregnancyType;
   dietary_pattern: DietaryPattern;
