@@ -36,9 +36,9 @@ type CarePlusStatusRpcResult = {
 
 export async function getCarePlusStatus(): Promise<CarePlusStatus> {
   // The production migration adds this RPC before the generated client types are refreshed.
-  // Keep the compatibility cast narrow and remove it after regenerating types from production.
-  const rpc = supabase.rpc as unknown as (name: 'get_own_care_plus_status') => PromiseLike<CarePlusStatusRpcResult>;
-  const { data, error } = await rpc('get_own_care_plus_status');
+  // Keep the compatibility cast narrow and preserve the Supabase client method receiver.
+  const response = supabase.rpc('get_own_care_plus_status' as never) as unknown as PromiseLike<CarePlusStatusRpcResult>;
+  const { data, error } = await response;
   if (error) throw new Error(error.message);
   return (data ?? { active: false, status: 'none' }) as CarePlusStatus;
 }
