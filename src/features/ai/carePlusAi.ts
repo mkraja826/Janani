@@ -34,6 +34,20 @@ type CarePlusStatusRpcResult = {
   error: { message: string } | null;
 };
 
+async function readFunctionErrorBody(error: unknown): Promise<CarePlusAiResponse | null> {
+  const context = (error as { context?: Response } | null)?.context;
+  if (!context || typeof context.clone !== 'function') return null;
+  try {
+    const body = await context.clone().json();
+    if (body && typeof body === 'object' && typeof (body as { error?: unknown }).error === 'string') {
+      return body as CarePlusAiResponse;
+    }
+  } catch {
+    // A network/proxy failure may not contain JSON. The caller will use a safe generic error.
+  }
+  return null;
+}
+
 export async function getCarePlusStatus(): Promise<CarePlusStatus> {
   // The production migration adds this RPC before the generated client types are refreshed.
   // Keep the compatibility cast narrow and preserve the Supabase client method receiver.
@@ -55,6 +69,10 @@ export async function requestCarePlusAi(input: {
       userText: input.userText?.trim().slice(0, 1200) || undefined,
     },
   });
-  if (error) throw new Error(error.message || 'Janani Care+ could not respond right now.');
+  if (error) {
+    const functionBody = await readFunctionErrorBody(error);
+    if (functionBody) return functionBody;
+    throw new Error('Janani Care+ could not respond right now.');
+  }
   return data ?? { error: 'empty_gateway_response' };
 }
