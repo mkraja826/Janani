@@ -46,7 +46,7 @@ export default function FoodGuideScreen() {
           <Ionicons name="nutrition" size={38} color={colors.rose} />
           <Text style={styles.heroTitle}>Food guidance, not a prescription</Text>
           <Text style={styles.body}>
-            Use this guide for everyday ideas. If you have diabetes, thyroid disease, high blood pressure, anemia, allergies, severe vomiting, or another medical condition, follow your clinician or dietitian's plan first.
+            Use this guide for everyday ideas. If you have diabetes, thyroid disease, high blood pressure, anemia, allergies, severe vomiting, or another medical condition, follow your clinician or dietitian’s plan first.
           </Text>
         </View>
 

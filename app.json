@@ -7,12 +7,11 @@
     "userInterfaceStyle": "light",
     "scheme": "janani",
     "primaryColor": "#C86B7A",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/branding/janani-app-icon.normalized.png",
     "plugins": [
       "expo-router",
       "expo-secure-store",
       "@react-native-firebase/app",
-      "@react-native-firebase/analytics",
       "@react-native-firebase/crashlytics",
       "@react-native-firebase/perf",
       [
@@ -46,7 +45,7 @@
         "android.permission.VIBRATE"
       ],
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/branding/janani-app-icon.normalized.png",
         "monochromeImage": "./assets/monochrome-icon.png",
         "backgroundColor": "#FFF7F2"
       }
