@@ -17,8 +17,10 @@ export type HealthTrackerSnapshot = {
 
 type RpcError = { message: string };
 type RpcResponse<T> = PromiseLike<{ data: T | null; error: RpcError | null }>;
-type TrackerRpc = <T>(fn: string, args: Record<string, unknown>) => RpcResponse<T>;
-const trackerRpc = supabase.rpc as unknown as TrackerRpc;
+
+function trackerRpc<T>(fn: string, args: Record<string, unknown>): RpcResponse<T> {
+  return supabase.rpc(fn as never, args as never) as unknown as RpcResponse<T>;
+}
 
 export async function loadHealthTracker(pregnancyId: string): Promise<HealthTrackerSnapshot> {
   const { data, error } = await trackerRpc<HealthTrackerSnapshot>('get_own_health_tracker', { p_pregnancy_id: pregnancyId });
