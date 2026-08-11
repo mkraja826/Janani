@@ -42,16 +42,16 @@ jobs:
               print('strict decode failed:', repr(exc))
 
           ImageFile.LOAD_TRUNCATED_IMAGES = True
-          try:
-              with Image.open(source) as img:
-                  print('tolerant header:', img.size, img.mode, img.format)
-                  img.load()
-                  print('tolerant decode: OK')
-                  img.convert('RGBA').save(normalized, format='PNG', optimize=False)
-              normalized_bytes = normalized.read_bytes()
-              print('normalized bytes:', len(normalized_bytes))
-              print('normalized sha256:', hashlib.sha256(normalized_bytes).hexdigest())
-          except Exception as exc:
-              print('tolerant decode failed:', repr(exc))
-              raise SystemExit(1)
+          with Image.open(source) as img:
+              print('tolerant header:', img.size, img.mode, img.format)
+              img.load()
+              print('tolerant decode: OK')
+              img.convert('RGBA').save(normalized, format='PNG', optimize=False)
+
+          normalized_bytes = normalized.read_bytes()
+          print('normalized bytes:', len(normalized_bytes))
+          print('normalized sha256:', hashlib.sha256(normalized_bytes).hexdigest())
+          print('NORMALIZED_BASE64_BEGIN')
+          print(base64.b64encode(normalized_bytes).decode('ascii'))
+          print('NORMALIZED_BASE64_END')
           PY
