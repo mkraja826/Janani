@@ -37,8 +37,10 @@ export type SaveHealthProfileInput = Omit<HealthProfile, 'pregnancy_id' | 'condi
 
 type RpcError = { message: string };
 type RpcResponse<T> = PromiseLike<{ data: T | null; error: RpcError | null }>;
-type HealthRpc = <T>(fn: string, args: Record<string, unknown>) => RpcResponse<T>;
-const healthRpc = supabase.rpc as unknown as HealthRpc;
+
+function healthRpc<T>(fn: string, args: Record<string, unknown>): RpcResponse<T> {
+  return supabase.rpc(fn as never, args as never) as unknown as RpcResponse<T>;
+}
 
 export const CONDITION_OPTIONS: ReadonlyArray<{ code: HealthConditionCode; label: string; historyOnly?: boolean }> = [
   { code: 'preexisting_diabetes', label: 'Pre-existing diabetes' },
