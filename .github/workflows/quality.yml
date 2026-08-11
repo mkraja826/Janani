@@ -35,6 +35,8 @@ jobs:
       - run: npm run lint
       - run: npx expo-doctor
       - run: node .github/scripts/validate-legal-site.mjs
+      - name: Install PNG normalization probe
+        run: python3 -m pip install --user --disable-pip-version-check --no-input pillow
       - run: node .github/scripts/validate-android-image-assets.mjs
       - run: npx expo config --type public
       - run: npx expo prebuild --platform android --clean --no-install
