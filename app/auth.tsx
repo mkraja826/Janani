@@ -8,6 +8,8 @@ import { supabase } from '@/lib/supabase';
 import { useMembership } from '@/providers/AuthGate';
 import { colors, radius, spacing, typography } from '@/theme/tokens';
 
+const EMAIL_CONFIRMATION_REDIRECT = 'janani://auth/callback';
+
 export default function AuthScreen() {
   const params = useLocalSearchParams<{ role?: 'mother' | 'partner' }>();
   const { markMembership } = useMembership();
@@ -44,6 +46,7 @@ export default function AuthScreen() {
           password,
           options: {
             data: { intended_role: params.role === 'partner' ? 'partner' : 'mother' },
+            emailRedirectTo: EMAIL_CONFIRMATION_REDIRECT,
           },
         })
       : supabase.auth.signInWithPassword({ email: normalizedEmail, password });
@@ -56,7 +59,7 @@ export default function AuthScreen() {
     }
 
     if (mode === 'sign-up' && !data.session) {
-      Alert.alert('Check your email', 'Open the confirmation email, then return to Janani and sign in.');
+      Alert.alert('Check your email', 'Open the confirmation email. Janani will finish signing you in after you confirm your address.');
       setMode('sign-in');
       return;
     }
