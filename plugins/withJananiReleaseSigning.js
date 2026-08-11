@@ -3,6 +3,17 @@ const { withAppBuildGradle } = require('@expo/config-plugins');
 const MARKER = '// JANANI_PRODUCTION_SIGNING';
 
 module.exports = function withJananiReleaseSigning(config) {
+  // EAS Build restores the configured Android keystore and injects its own
+  // release signing configuration after prebuild. Do not add Janani's custom
+  // environment-variable signing guard there, otherwise the EAS-injected
+  // credentials are rejected before Gradle can build the release bundle.
+  //
+  // Local Gradle and GitHub Actions release builds still use the strict custom
+  // JANANI_ANDROID_* signing contract below.
+  if (process.env.EAS_BUILD === 'true' && process.env.EAS_BUILD_PLATFORM === 'android') {
+    return config;
+  }
+
   return withAppBuildGradle(config, (mod) => {
     if (mod.modResults.language !== 'groovy') {
       throw new Error('Janani release signing currently supports the Groovy Android Gradle template only.');
