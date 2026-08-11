@@ -17,19 +17,18 @@ jobs:
           ref: ${{ github.head_ref }}
       - name: Install Pillow
         run: python3 -m pip install --user --disable-pip-version-check --no-input pillow
-      - name: Normalize approved Janani icon into reproducible text source
+      - name: Normalize approved Janani icon
         run: |
           python3 <<'PY'
           import base64
           import pathlib
-          import tempfile
           from PIL import Image, ImageFile
 
           root = pathlib.Path('.')
           parts = sorted((root / 'assets/branding/janani-app-icon.parts').glob('*.b64part'))
           raw = base64.b64decode(''.join(p.read_text().strip() for p in parts), validate=True)
-          source = pathlib.Path(tempfile.gettempdir()) / 'janani-approved-icon-source.png'
-          normalized = pathlib.Path(tempfile.gettempdir()) / 'janani-approved-icon-normalized.png'
+          source = root / 'assets/.approved-icon-source.png'
+          output = root / 'assets/branding/janani-app-icon.normalized.png'
           source.write_bytes(raw)
 
           ImageFile.LOAD_TRUNCATED_IMAGES = True
@@ -37,21 +36,19 @@ jobs:
               img.load()
               if img.size != (384, 384):
                   raise SystemExit(f'Unexpected approved icon size: {img.size}')
-              img.convert('RGBA').save(normalized, format='PNG', optimize=False)
+              img.convert('RGBA').save(output, format='PNG', optimize=False)
 
-          encoded = base64.b64encode(normalized.read_bytes()).decode('ascii') + '\n'
-          output = root / 'assets/branding/janani-app-icon.normalized.b64'
-          output.write_text(encoded)
-          print(f'Wrote {output} ({normalized.stat().st_size} PNG bytes)')
+          source.unlink(missing_ok=True)
+          print(f'Wrote {output} ({output.stat().st_size} PNG bytes)')
           PY
-      - name: Commit normalized source when changed
+      - name: Commit normalized PNG when changed
         run: |
-          if git diff --quiet -- assets/branding/janani-app-icon.normalized.b64 && git ls-files --error-unmatch assets/branding/janani-app-icon.normalized.b64 >/dev/null 2>&1; then
-            echo "Normalized icon source already committed."
+          if git diff --quiet -- assets/branding/janani-app-icon.normalized.png && git ls-files --error-unmatch assets/branding/janani-app-icon.normalized.png >/dev/null 2>&1; then
+            echo "Normalized icon PNG already committed."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add assets/branding/janani-app-icon.normalized.b64
-          git commit -m "fix: normalize approved Janani app icon source"
+          git add assets/branding/janani-app-icon.normalized.png
+          git commit -m "fix: commit normalized approved Janani app icon"
           git push origin HEAD:${{ github.head_ref }}
