@@ -23,8 +23,10 @@ export type CareAppointment = {
 
 type RpcError = { message: string };
 type RpcResponse<T> = PromiseLike<{ data: T | null; error: RpcError | null }>;
-type CareRpc = <T>(fn: string, args: Record<string, unknown>) => RpcResponse<T>;
-const careRpc = supabase.rpc as unknown as CareRpc;
+
+function careRpc<T>(fn: string, args: Record<string, unknown>): RpcResponse<T> {
+  return supabase.rpc(fn as never, args as never) as unknown as RpcResponse<T>;
+}
 
 export const APPOINTMENT_TYPES: ReadonlyArray<{ value: AppointmentType; label: string }> = [
   { value: 'doctor_visit', label: 'Doctor visit' },
