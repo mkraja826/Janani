@@ -1,0 +1,57 @@
+name: Janani Icon Recovery Probe
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install Pillow
+        run: python3 -m pip install --user --disable-pip-version-check --no-input pillow
+      - name: Probe approved Janani icon
+        run: |
+          python3 <<'PY'
+          import base64
+          import hashlib
+          import pathlib
+          import tempfile
+          from PIL import Image, ImageFile
+
+          root = pathlib.Path('.')
+          parts = sorted((root / 'assets/branding/janani-app-icon.parts').glob('*.b64part'))
+          raw = base64.b64decode(''.join(p.read_text().strip() for p in parts), validate=True)
+          source = pathlib.Path(tempfile.gettempdir()) / 'janani-approved-icon-source.png'
+          normalized = pathlib.Path(tempfile.gettempdir()) / 'janani-approved-icon-normalized.png'
+          source.write_bytes(raw)
+          print('source bytes:', len(raw))
+          print('source sha256:', hashlib.sha256(raw).hexdigest())
+
+          try:
+              with Image.open(source) as img:
+                  print('strict header:', img.size, img.mode, img.format)
+                  img.load()
+                  print('strict decode: OK')
+          except Exception as exc:
+              print('strict decode failed:', repr(exc))
+
+          ImageFile.LOAD_TRUNCATED_IMAGES = True
+          try:
+              with Image.open(source) as img:
+                  print('tolerant header:', img.size, img.mode, img.format)
+                  img.load()
+                  print('tolerant decode: OK')
+                  img.convert('RGBA').save(normalized, format='PNG', optimize=False)
+              normalized_bytes = normalized.read_bytes()
+              print('normalized bytes:', len(normalized_bytes))
+              print('normalized sha256:', hashlib.sha256(normalized_bytes).hexdigest())
+          except Exception as exc:
+              print('tolerant decode failed:', repr(exc))
+              raise SystemExit(1)
+          PY
