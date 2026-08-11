@@ -34,6 +34,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
       - run: npm ci --no-audit --no-fund
       - run: npm run audit:production
+      - run: npm run validate:pregnancy-content
       - run: npm run typecheck
       - run: npm run lint
       - name: Validate Supabase Edge Functions
@@ -57,8 +58,15 @@ jobs:
         run: |
           test -f android/app/src/main/java/com/mkraja826/janani/JananiWidgetModule.kt
           test -f android/app/src/main/java/com/mkraja826/janani/JananiWidgetPackage.kt
-          test -f android/app/src/main/java/com/mkraja826/janani/JananiCareWidget.kt
+          test -f android/app/src/main/java/com/mkraja826/janani/JananiWidgets.kt
           test -f android/app/src/main/res/layout/janani_care_widget.xml
+          test -f android/app/src/main/res/layout/janani_small_widget.xml
+          for info in care medicine love baby appointment wellness; do
+            test -f "android/app/src/main/res/xml/janani_${info}_widget_info.xml"
+          done
+          for receiver in JananiCareWidget JananiMedicineWidget JananiLoveWidget JananiBabyWidget JananiAppointmentWidget JananiWellnessWidget; do
+            grep -q "${receiver}" android/app/src/main/AndroidManifest.xml
+          done
           grep -Eq '^[[:space:]]*(packages\.)?add\(JananiWidgetPackage\(\)\)[[:space:]]*$' android/app/src/main/java/com/mkraja826/janani/MainApplication.kt
       - name: Compile Android x86_64 debug APK
         working-directory: android

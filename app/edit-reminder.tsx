@@ -9,6 +9,7 @@ import {
   cancelReminderNotifications,
   NotificationPermissionError,
   scheduleReminderNotifications,
+  type ReminderKind,
 } from '@/features/reminders/notifications';
 import { isTransientError } from '@/lib/errors';
 import { enqueueMutation } from '@/lib/offlineQueue';
@@ -22,10 +23,11 @@ export default function EditReminderScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { session } = useAuth();
   const [title,setTitle]=useState(''); const [instructions,setInstructions]=useState('');
+  const [kind,setKind]=useState<ReminderKind>('custom');
   const [timeValue,setTimeValue]=useState(()=>new Date(2000,0,1,9,0)); const [showTime,setShowTime]=useState(false);
   const [schedule,setSchedule]=useState<{startDate:string;endDate:string|null;daysOfWeek:number[]}|null>(null); const [loading,setLoading]=useState(true); const [saving,setSaving]=useState(false);
 
-  useEffect(()=>{async function load(){const {data,error}=await supabase.from('reminders').select('title,instructions,local_time,start_date,end_date,days_of_week').eq('id',id).single();if(error||!data){Alert.alert('Reminder unavailable',error?.message??'This reminder could not be found.');router.back();return;}const[h,m]=data.local_time.split(':').map(Number);setTitle(data.title);setInstructions(data.instructions??'');setTimeValue(new Date(2000,0,1,h,m));setSchedule({startDate:data.start_date,endDate:data.end_date,daysOfWeek:data.days_of_week});setLoading(false);}if(id)load();},[id]);
+  useEffect(()=>{async function load(){const {data,error}=await supabase.from('reminders').select('title,instructions,kind,local_time,start_date,end_date,days_of_week').eq('id',id).single();if(error||!data){Alert.alert('Reminder unavailable',error?.message??'This reminder could not be found.');router.back();return;}const[h,m]=data.local_time.split(':').map(Number);setTitle(data.title);setInstructions(data.instructions??'');setKind(data.kind);setTimeValue(new Date(2000,0,1,h,m));setSchedule({startDate:data.start_date,endDate:data.end_date,daysOfWeek:data.days_of_week});setLoading(false);}if(id)load();},[id]);
 
   function onTimeChange(event:DateTimePickerEvent,value?:Date){if(Platform.OS==='android')setShowTime(false);if(event.type!=='dismissed'&&value)setTimeValue(value);}
 
@@ -55,6 +57,7 @@ export default function EditReminderScreen() {
           id,
           title: title.trim(),
           instructions: instructions.trim() || null,
+          kind,
           localTime: `${time}:00`,
           startDate: schedule.startDate,
           endDate: schedule.endDate,

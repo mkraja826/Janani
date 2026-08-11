@@ -5,8 +5,9 @@ import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { flushJananiOfflineQueue } from '@/features/offline/OfflineQueueSync';
-import { cacheActivePregnancyId } from '@/features/pregnancy/activePregnancy';
+import { cacheActivePregnancy } from '@/features/pregnancy/activePregnancy';
 import { getPregnancyProgress, trimesterLabel } from '@/features/pregnancy/progress';
+import { getPregnancyWeekContent } from '@/features/pregnancy/weekContent';
 import { readCache, writeCache } from '@/lib/cache';
 import { supabase } from '@/lib/supabase';
 import { useMembership } from '@/providers/AuthGate';
@@ -101,7 +102,10 @@ export default function HomeScreen() {
     setLoading(false);
     await Promise.all([
       writeCache(userId, CACHE_KEY, next),
-      cacheActivePregnancyId(userId, activePregnancy?.id ?? null),
+      cacheActivePregnancy(
+        userId,
+        activePregnancy ? { id: activePregnancy.id, dueDate: activePregnancy.due_date } : null,
+      ),
     ]);
   }, [markMembership, userId]);
 
@@ -144,6 +148,10 @@ export default function HomeScreen() {
   const progress = useMemo(
     () => summary?.dueDate ? getPregnancyProgress(summary.dueDate) : null,
     [summary?.dueDate],
+  );
+  const weekContent = useMemo(
+    () => progress ? getPregnancyWeekContent(progress.gestationalWeek) : null,
+    [progress],
   );
 
   if (loading) {
@@ -188,10 +196,13 @@ export default function HomeScreen() {
                   <Text style={styles.week}>Week {progress.gestationalWeek}</Text>
                   <Text style={styles.cardTitle}>{trimesterLabel(progress.trimester)} · day {progress.gestationalDay}</Text>
                   <Text style={styles.cardMeta}>
-                    {progress.isPastDue
-                      ? 'Your due date has arrived. Keep in touch with your maternity care team.'
-                      : `${progress.daysRemaining} days until the estimated due date`}
+                    {summary?.role === 'partner'
+                      ? weekContent?.partnerGuidance[0]
+                      : weekContent?.dailyGentleMessage}
                   </Text>
+                  <Text style={styles.dueDateMeta}>{progress.isPastDue
+                    ? 'The estimated due date has arrived. Keep following the maternity care plan.'
+                    : `${progress.daysRemaining} days until the estimated due date`}</Text>
                   <Text style={styles.heroLink}>Open pregnancy guide →</Text>
                 </>
               : <>
@@ -279,6 +290,7 @@ const styles = StyleSheet.create({
   week:{marginTop:spacing.sm,fontSize:30,fontWeight:'900',color:colors.ink},
   cardTitle:{marginTop:4,fontSize:17,lineHeight:24,fontWeight:'700',color:colors.ink},
   cardMeta:{marginTop:spacing.md,fontSize:13,lineHeight:19,color:colors.muted},
+  dueDateMeta:{marginTop:spacing.sm,fontSize:12,lineHeight:18,fontWeight:'700',color:colors.roseDark},
   heroLink:{marginTop:spacing.md,fontSize:13,fontWeight:'800',color:colors.roseDark},
   inviteCard:{padding:spacing.lg,borderRadius:radius.lg,backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border},
   inviteLabel:{fontSize:13,fontWeight:'700',color:colors.muted},

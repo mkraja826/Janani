@@ -93,6 +93,7 @@ export default function NewReminderScreen() {
         id: reminderId,
         title: title.trim(),
         instructions: instructions.trim() || null,
+        kind,
         localTime: `${time}:00`,
         startDate: payload.p_start_date,
         endDate: payload.p_end_date,
