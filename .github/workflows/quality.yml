@@ -35,6 +35,7 @@ jobs:
       - run: npm run lint
       - run: npx expo-doctor
       - run: node .github/scripts/validate-legal-site.mjs
+      - run: node .github/scripts/validate-android-image-assets.mjs
       - run: npx expo config --type public
       - run: npx expo prebuild --platform android --clean --no-install
       - name: Verify widget generation
