@@ -39,39 +39,44 @@ jobs:
         run: |
           node <<'NODE'
           const fs = require('node:fs');
-          const repo = process.env.GITHUB_REPOSITORY;
-          const ref = process.env.HEAD_REF;
-          const token = process.env.GH_TOKEN;
-          const headers = {
-            Accept: 'application/vnd.github+json',
-            Authorization: `Bearer ${token}`,
-            'X-GitHub-Api-Version': '2022-11-28',
-            'Content-Type': 'application/json',
-          };
-          const currentResponse = await fetch(`https://api.github.com/repos/${repo}/contents/package-lock.json?ref=${encodeURIComponent(ref)}`, { headers });
-          if (!currentResponse.ok) throw new Error(`Could not read package-lock.json: ${currentResponse.status}`);
-          const current = await currentResponse.json();
-          const content = fs.readFileSync('package-lock.json', 'utf8');
-          const nextBase64 = Buffer.from(content).toString('base64');
-          if (current.content?.replace(/\n/g, '') === nextBase64) {
-            console.log('package-lock.json is already synchronized.');
-            process.exit(0);
-          }
-          const updateResponse = await fetch(`https://api.github.com/repos/${repo}/contents/package-lock.json`, {
-            method: 'PUT',
-            headers,
-            body: JSON.stringify({
-              message: 'chore: sync npm lockfile after Firebase dependencies',
-              content: nextBase64,
-              sha: current.sha,
-              branch: ref,
-            }),
+          void (async () => {
+            const repo = process.env.GITHUB_REPOSITORY;
+            const ref = process.env.HEAD_REF;
+            const token = process.env.GH_TOKEN;
+            const headers = {
+              Accept: 'application/vnd.github+json',
+              Authorization: `Bearer ${token}`,
+              'X-GitHub-Api-Version': '2022-11-28',
+              'Content-Type': 'application/json',
+            };
+            const currentResponse = await fetch(`https://api.github.com/repos/${repo}/contents/package-lock.json?ref=${encodeURIComponent(ref)}`, { headers });
+            if (!currentResponse.ok) throw new Error(`Could not read package-lock.json: ${currentResponse.status}`);
+            const current = await currentResponse.json();
+            const content = fs.readFileSync('package-lock.json', 'utf8');
+            const nextBase64 = Buffer.from(content).toString('base64');
+            if (current.content?.replace(/\n/g, '') === nextBase64) {
+              console.log('package-lock.json is already synchronized.');
+              return;
+            }
+            const updateResponse = await fetch(`https://api.github.com/repos/${repo}/contents/package-lock.json`, {
+              method: 'PUT',
+              headers,
+              body: JSON.stringify({
+                message: 'chore: sync npm lockfile after Firebase dependencies',
+                content: nextBase64,
+                sha: current.sha,
+                branch: ref,
+              }),
+            });
+            if (!updateResponse.ok) {
+              const body = await updateResponse.text();
+              throw new Error(`Could not commit package-lock.json: ${updateResponse.status} ${body}`);
+            }
+            console.log('Committed synchronized package-lock.json to the milestone branch.');
+          })().catch((error) => {
+            console.error(error);
+            process.exit(1);
           });
-          if (!updateResponse.ok) {
-            const body = await updateResponse.text();
-            throw new Error(`Could not commit package-lock.json: ${updateResponse.status} ${body}`);
-          }
-          console.log('Committed synchronized package-lock.json to the milestone branch.');
           NODE
       - run: npm ci --no-audit --no-fund
       - run: npm audit --omit=dev --audit-level=high
