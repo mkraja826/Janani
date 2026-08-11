@@ -28,12 +28,13 @@ async function probeRecovery(filename) {
     [
       '-c',
       [
-        'from PIL import Image',
+        'from PIL import Image, ImageFile',
         'import sys',
+        'ImageFile.LOAD_TRUNCATED_IMAGES = True',
         'img = Image.open(sys.argv[1])',
         'img.load()',
-        'print(f"PIL OK: {img.size[0]}x{img.size[1]} {img.mode}")',
-        'img.convert("RGBA").save(sys.argv[2], format="PNG")',
+        'print(f"PIL tolerant decode OK: {img.size[0]}x{img.size[1]} {img.mode}")',
+        'img.convert("RGBA").save(sys.argv[2], format="PNG", optimize=False)',
       ].join('; '),
       filename,
       normalized,
@@ -45,7 +46,11 @@ async function probeRecovery(filename) {
     process.stdout.write(python.stdout);
     try {
       const image = await Jimp.read(normalized);
+      const normalizedBytes = fs.readFileSync(normalized);
       console.log(`Recovered PNG is Expo/Jimp-readable: ${image.bitmap.width}x${image.bitmap.height}`);
+      console.log('RECOVERED_ICON_BASE64_BEGIN');
+      console.log(normalizedBytes.toString('base64'));
+      console.log('RECOVERED_ICON_BASE64_END');
     } catch (error) {
       console.error('PIL wrote a file, but Expo/Jimp still rejected the normalized PNG.');
       console.error(error instanceof Error ? error.message : String(error));
@@ -53,17 +58,9 @@ async function probeRecovery(filename) {
     return;
   }
 
-  console.warn('PIL recovery probe failed or Pillow is unavailable.');
+  console.warn('PIL tolerant recovery failed or Pillow is unavailable.');
   if (python.stdout) process.stdout.write(python.stdout);
   if (python.stderr) process.stderr.write(python.stderr);
-
-  const identify = spawnSync('identify', [filename], { encoding: 'utf8' });
-  if (identify.status === 0) {
-    console.log(`ImageMagick identify OK: ${identify.stdout.trim()}`);
-  } else {
-    console.warn('ImageMagick recovery probe also failed or is unavailable.');
-    if (identify.stderr) process.stderr.write(identify.stderr);
-  }
 }
 
 const generatedIcon = materializeGeneratedIcon();
