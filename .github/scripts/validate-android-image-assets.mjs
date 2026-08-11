@@ -1,5 +1,7 @@
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 
 const require = createRequire(import.meta.url);
@@ -17,6 +19,51 @@ function materializeGeneratedIcon() {
     .join('');
   fs.writeFileSync(output, Buffer.from(base64, 'base64'));
   return output;
+}
+
+async function probeRecovery(filename) {
+  const normalized = path.join(os.tmpdir(), 'janani-approved-icon-normalized.png');
+  const python = spawnSync(
+    'python3',
+    [
+      '-c',
+      [
+        'from PIL import Image',
+        'import sys',
+        'img = Image.open(sys.argv[1])',
+        'img.load()',
+        'print(f"PIL OK: {img.size[0]}x{img.size[1]} {img.mode}")',
+        'img.convert("RGBA").save(sys.argv[2], format="PNG")',
+      ].join('; '),
+      filename,
+      normalized,
+    ],
+    { encoding: 'utf8' },
+  );
+
+  if (python.status === 0) {
+    process.stdout.write(python.stdout);
+    try {
+      const image = await Jimp.read(normalized);
+      console.log(`Recovered PNG is Expo/Jimp-readable: ${image.bitmap.width}x${image.bitmap.height}`);
+    } catch (error) {
+      console.error('PIL wrote a file, but Expo/Jimp still rejected the normalized PNG.');
+      console.error(error instanceof Error ? error.message : String(error));
+    }
+    return;
+  }
+
+  console.warn('PIL recovery probe failed or Pillow is unavailable.');
+  if (python.stdout) process.stdout.write(python.stdout);
+  if (python.stderr) process.stderr.write(python.stderr);
+
+  const identify = spawnSync('identify', [filename], { encoding: 'utf8' });
+  if (identify.status === 0) {
+    console.log(`ImageMagick identify OK: ${identify.stdout.trim()}`);
+  } else {
+    console.warn('ImageMagick recovery probe also failed or is unavailable.');
+    if (identify.stderr) process.stderr.write(identify.stderr);
+  }
 }
 
 const generatedIcon = materializeGeneratedIcon();
@@ -40,6 +87,7 @@ for (const filename of candidates) {
     failed = true;
     console.error(`PNG FAILED: ${relative}`);
     console.error(error instanceof Error ? error.stack ?? error.message : String(error));
+    if (filename === generatedIcon) await probeRecovery(filename);
   }
 }
 
