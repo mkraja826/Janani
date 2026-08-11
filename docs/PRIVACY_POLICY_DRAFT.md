@@ -2,7 +2,9 @@
 
 **Effective date in the legal-site source:** August 3, 2026
 
-**Publication status:** Published and verified over HTTPS at `https://mkraja826.github.io/Janani/privacy/`.
+**Repository revision:** August 10, 2026
+
+**Publication status:** The policy is published over HTTPS at `https://mkraja826.github.io/Janani/privacy/`. This repository revision updates the disclosure for the live dedicated Cloudflare form; the HTML policy source must remain synchronized with this maintained companion. Static deployment, response-header, source-integrity, compatibility-redirect, and Supabase CORS checks are complete, but a successful disposable-account deletion and rejected sign-in remain required before the flow is production-complete.
 
 This Markdown file is the maintained policy companion to `site/privacy/index.html`. The publishable HTML remains the legal-site source of record. Update both files together when Janani's data behavior or providers change.
 
@@ -20,6 +22,8 @@ Depending on the features used, Janani may process:
 - partner messages and acknowledgements; and
 - device push tokens and technical information needed to deliver notifications and protect the service.
 
+If a user chooses the external account-deletion form, the hardened static page at `https://janani-account-deletion.pages.dev/` processes the Janani account email and current password in the browser long enough to authenticate directly with Supabase Auth and submit the protected deletion request directly to Supabase. Cloudflare Pages serves the static files but does not receive the form submission. The form is designed to keep credentials and returned Auth tokens in browser memory only, use only the access token for the deletion call, clear sensitive fields and discard response tokens after the attempt, omit intentional browser credential storage and analytics, and send no credentials or tokens to Cloudflare Pages, GitHub Issues, GitHub Pages, or unrelated origins. The GitHub Pages deletion route is information/link-only and does not host the form.
+
 Janani does not require a medical diagnosis. Users should avoid placing unnecessary sensitive information in free-text reminders, journals, messages, screenshots, or support requests.
 
 ## 2. How information is used
@@ -36,17 +40,18 @@ Sensitive mother-only pregnancy details—last menstrual period, height, and pre
 
 Janani uses:
 
-- Supabase for authentication, database storage, Realtime synchronization, and server functions;
+- Supabase for authentication, database storage, Realtime synchronization, and protected server functions;
 - Expo services for device-token registration and push-notification delivery; and
-- GitHub for the public legal site and public support issue tracker once Pages is enabled.
+- Cloudflare Pages for serving the static external deletion-form files; and
+- GitHub for the public legal site and public support issue tracker.
 
-Those providers may process technical logs under their own terms and privacy practices. Janani does not sell personal information and does not currently include advertising or dedicated analytics SDKs.
+Those providers may process technical or hosting-request logs under their own terms and privacy practices. Loading the Cloudflare page may create ordinary hosting logs, but the browser sends the form submission directly to Supabase rather than Cloudflare. Janani does not sell personal information and does not currently include advertising or dedicated analytics SDKs.
 
 ## 5. Device permissions and local storage
 
 Notification permission is used for care and partner alerts. Android reboot and widget functionality may restore reminders and display selected care information. Janani keeps encrypted, per-user on-device caches and pending synchronization state, plus the minimum local notification and widget state needed for those features.
 
-Device settings can limit permissions. Clearing Janani's app data or uninstalling the app removes app-controlled local storage from that device.
+Device settings can limit permissions. Clearing Janani's app data or uninstalling the app removes app-controlled local storage from that device. The Cloudflare-hosted external deletion page does not intentionally persist the submitted email, password, or access token in browser storage; users should close the page when finished and avoid using an untrusted or shared device.
 
 ## 6. Security
 
@@ -64,7 +69,16 @@ Permanent deletion requires typing `DELETE` and reauthenticating with the curren
 - deleting a partner account removes that partner and dependent authored records while preserving the mother's family pregnancy space; and
 - unlinking or leaving a family does not itself delete the user's Auth account.
 
-Infrastructure providers may retain limited backups or security logs for periods governed by operational or legal requirements. The live account-deletion route, `https://mkraja826.github.io/Janani/account-deletion/`, documents exact `DELETE` confirmation and current-password reauthentication.
+Infrastructure providers may retain limited backups or security logs for periods governed by operational or legal requirements.
+
+Janani provides two authenticated deletion paths in the current source:
+
+- the in-app control requires exact `DELETE` confirmation and current-password reauthentication; and
+- the external web form at `https://janani-account-deletion.pages.dev/` sends browser requests directly to Supabase Auth over HTTPS, then calls the same protected deletion service with exact `DELETE` confirmation and the current password.
+
+The public GitHub Pages route, `https://mkraja826.github.io/Janani/account-deletion/`, provides deletion information and a link to the canonical Cloudflare form only. It does not collect credentials or perform Auth/deletion requests. The former Supabase `account-deletion-page` URL is retained only as a no-body `302` compatibility redirect to the canonical form.
+
+The canonical Cloudflare form, security headers, source integrity, compatibility redirect, and exact-origin Supabase CORS policy have passed live checks. A successful deletion and rejected sign-in must still be tested with an exactly identified disposable account. A success message is shown only after the deletion service returns success; a timeout means the final result is unknown, and an error is not treated as confirmed deletion. If protected-file cleanup cannot complete immediately, the backend records the unresolved work and it may continue asynchronously.
 
 ## 8. User choices
 
@@ -84,6 +98,6 @@ This policy may change as Janani changes. The effective date must be updated whe
 
 ## 12. Contact and privacy requests
 
-No support email or separate legal identity is currently published; none is invented in this source. Janani currently directs users to the repository's [public GitHub Issues support path](https://github.com/mkraja826/Janani/issues).
+No support email or separate legal identity is currently published; none is invented in this source. Janani's current support source points non-sensitive requests to the repository's [public GitHub Issues path](https://github.com/mkraja826/Janani/issues), but issue creation is currently restricted and the path is not a private support channel.
 
-GitHub Issues and replies are public. Never post an email address, password, family invite code, pregnancy or health information, journal content, medication details, access token, device token, or screenshots containing personal data. Until a private security-reporting channel is published, users should open only a minimal issue asking the maintainer to provide a private method.
+GitHub Issues and replies are public. Never post an email address, password, family invite code, pregnancy or health information, journal content, medication details, access token, device token, or screenshots containing personal data. A private support, privacy-request, and security-reporting channel remains a release gate. Until one is published, users should open only a minimal issue asking the maintainer to provide a private method and must not include sensitive details.
