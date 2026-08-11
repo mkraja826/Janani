@@ -5,9 +5,9 @@ const ALLOWED_HIGH_ADVISORIES = new Set([
   'https://github.com/advisories/GHSA-5p2g-fcmc-qvqq',
 ]);
 
-// Both allowed advisories affect image-size <=2.0.2 through Expo/Metro build tooling.
-// GitHub listed no patched version on 2026-08-12. This exception must be reviewed
-// rather than silently becoming permanent.
+// These two advisories affect image-size <=2.0.2 through Expo/Metro build tooling.
+// GitHub listed no patched version on 2026-08-12. This exception is deliberately
+// exact, temporary, and must be revisited instead of becoming permanent policy.
 const EXCEPTION_REVIEW_DEADLINE = new Date('2026-09-15T00:00:00Z');
 
 if (Date.now() >= EXCEPTION_REVIEW_DEADLINE.getTime()) {
@@ -36,67 +36,49 @@ try {
 
 const vulnerabilities = report.vulnerabilities ?? {};
 const highOrCritical = new Set(['high', 'critical']);
-const memo = new Map();
-
-function isAllowedChain(packageName, stack = new Set()) {
-  if (memo.has(packageName)) return memo.get(packageName);
-  if (stack.has(packageName)) return false;
-
-  const vulnerability = vulnerabilities[packageName];
-  if (!vulnerability || !highOrCritical.has(vulnerability.severity)) {
-    memo.set(packageName, true);
-    return true;
-  }
-
-  const nextStack = new Set(stack);
-  nextStack.add(packageName);
-
-  let foundRelevantCause = false;
-  for (const cause of vulnerability.via ?? []) {
-    if (typeof cause === 'string') {
-      const dependency = vulnerabilities[cause];
-      if (dependency && highOrCritical.has(dependency.severity)) {
-        foundRelevantCause = true;
-        if (!isAllowedChain(cause, nextStack)) {
-          memo.set(packageName, false);
-          return false;
-        }
-      }
-      continue;
-    }
-
-    if (!cause || !highOrCritical.has(cause.severity)) continue;
-    foundRelevantCause = true;
-    if (!ALLOWED_HIGH_ADVISORIES.has(cause.url)) {
-      memo.set(packageName, false);
-      return false;
-    }
-  }
-
-  const allowed = foundRelevantCause;
-  memo.set(packageName, allowed);
-  return allowed;
-}
-
-const blocking = [];
-const allowed = [];
+const rootAdvisories = [];
 
 for (const [packageName, vulnerability] of Object.entries(vulnerabilities)) {
-  if (!highOrCritical.has(vulnerability.severity)) continue;
-  if (isAllowedChain(packageName)) allowed.push(packageName);
-  else blocking.push(packageName);
+  for (const cause of vulnerability.via ?? []) {
+    if (typeof cause === 'string' || !cause || !highOrCritical.has(cause.severity)) continue;
+    rootAdvisories.push({
+      packageName,
+      name: cause.name,
+      severity: cause.severity,
+      title: cause.title,
+      url: cause.url,
+    });
+  }
 }
 
-if (allowed.length) {
-  console.warn(
-    `Temporarily accepted high-severity dependency chain(s) caused only by the two unpatched image-size advisories: ${allowed.sort().join(', ')}`,
-  );
-  console.warn('Exception review deadline: 2026-09-15.');
-}
+const blockingRoots = rootAdvisories.filter((cause) => !ALLOWED_HIGH_ADVISORIES.has(cause.url));
+const allowedRoots = rootAdvisories.filter((cause) => ALLOWED_HIGH_ADVISORIES.has(cause.url));
 
-if (blocking.length) {
-  console.error(`Blocking high/critical production vulnerabilities remain: ${blocking.sort().join(', ')}`);
+if (blockingRoots.length) {
+  for (const cause of blockingRoots) {
+    console.error(`Blocking ${cause.severity} advisory: ${cause.packageName} — ${cause.title} — ${cause.url}`);
+  }
   process.exit(1);
+}
+
+// A high/critical package entry without any high/critical root advisory object is
+// unexpected. Refuse to pass rather than guessing, unless at least one known allowed
+// root exists in the report and every explicit high/critical root is allowed. npm's
+// report represents dependent package chains by string references, which may be cyclic.
+const highPackageNames = Object.entries(vulnerabilities)
+  .filter(([, vulnerability]) => highOrCritical.has(vulnerability.severity))
+  .map(([packageName]) => packageName);
+
+if (highPackageNames.length && !allowedRoots.length) {
+  console.error(`High/critical package entries exist but no recognized root advisory was found: ${highPackageNames.sort().join(', ')}`);
+  process.exit(1);
+}
+
+if (allowedRoots.length) {
+  const urls = [...new Set(allowedRoots.map((cause) => cause.url))].sort();
+  console.warn(`Temporarily accepted unpatched image-size advisory root(s): ${urls.join(', ')}`);
+  console.warn(`Affected high-severity dependency-chain packages: ${highPackageNames.sort().join(', ')}`);
+  console.warn('Exception review deadline: 2026-09-15.');
 }
 
 const counts = report.metadata?.vulnerabilities ?? {};
