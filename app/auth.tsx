@@ -9,6 +9,22 @@ import { useMembership } from '@/providers/AuthGate';
 import { colors, radius, spacing, typography } from '@/theme/tokens';
 
 const EMAIL_CONFIRMATION_REDIRECT = 'janani://auth/callback';
+const AUTH_REQUEST_TIMEOUT_MS = 20_000;
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs = AUTH_REQUEST_TIMEOUT_MS): Promise<T> {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error('AUTH_REQUEST_TIMEOUT'));
+    }, timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+}
 
 export default function AuthScreen() {
   const params = useLocalSearchParams<{ role?: 'mother' | 'partner' }>();
@@ -40,54 +56,71 @@ export default function AuthScreen() {
     }
 
     setBusy(true);
-    const action = mode === 'sign-up'
-      ? supabase.auth.signUp({
-          email: normalizedEmail,
-          password,
-          options: {
-            data: { intended_role: params.role === 'partner' ? 'partner' : 'mother' },
-            emailRedirectTo: EMAIL_CONFIRMATION_REDIRECT,
-          },
-        })
-      : supabase.auth.signInWithPassword({ email: normalizedEmail, password });
-    const { data, error } = await action;
-    setBusy(false);
+    try {
+      const action = mode === 'sign-up'
+        ? supabase.auth.signUp({
+            email: normalizedEmail,
+            password,
+            options: {
+              data: { intended_role: params.role === 'partner' ? 'partner' : 'mother' },
+              emailRedirectTo: EMAIL_CONFIRMATION_REDIRECT,
+            },
+          })
+        : supabase.auth.signInWithPassword({ email: normalizedEmail, password });
+      const { data, error } = await withTimeout(action);
 
-    if (error) {
-      Alert.alert('Could not continue', error.message);
-      return;
-    }
+      if (error) {
+        Alert.alert('Could not continue', error.message);
+        return;
+      }
 
-    if (mode === 'sign-up' && !data.session) {
-      Alert.alert('Check your email', 'Open the confirmation email. Janani will finish signing you in after you confirm your address.');
-      setMode('sign-in');
-      return;
-    }
+      if (mode === 'sign-up' && !data.session) {
+        Alert.alert('Check your email', 'Open the confirmation email. Janani will finish signing you in after you confirm your address.');
+        setMode('sign-in');
+        return;
+      }
 
-    const user = data.user;
-    if (!user) {
-      Alert.alert('Could not continue', 'Janani could not verify this account. Please sign in again.');
-      return;
+      const user = data.user;
+      if (!user) {
+        Alert.alert('Could not continue', 'Janani could not verify this account. Please sign in again.');
+        return;
+      }
+      const { data: membership, error: membershipError } = await withTimeout(
+        supabase
+          .from('family_members')
+          .select('family_id')
+          .eq('user_id', user.id)
+          .maybeSingle(),
+      );
+      if (membershipError) {
+        Alert.alert('Could not verify your family', 'Check your connection and try again.');
+        return;
+      }
+      if (membership) {
+        await markMembership(true, membership.family_id);
+        router.replace('/home');
+        return;
+      }
+      await markMembership(false);
+      const role = params.role === 'partner' || user.user_metadata?.intended_role === 'partner'
+        ? 'partner'
+        : 'mother';
+      router.replace({ pathname: '/onboarding', params: { role } });
+    } catch (error) {
+      if (error instanceof Error && error.message === 'AUTH_REQUEST_TIMEOUT') {
+        Alert.alert(
+          'Connection timed out',
+          'Janani could not reach the sign-in service. Check your internet connection and try again.',
+        );
+        return;
+      }
+      Alert.alert(
+        'Could not continue',
+        error instanceof Error ? error.message : 'Something went wrong while signing in. Please try again.',
+      );
+    } finally {
+      setBusy(false);
     }
-    const { data: membership, error: membershipError } = await supabase
-      .from('family_members')
-      .select('family_id')
-      .eq('user_id', user.id)
-      .maybeSingle();
-    if (membershipError) {
-      Alert.alert('Could not verify your family', 'Check your connection and try again.');
-      return;
-    }
-    if (membership) {
-      await markMembership(true, membership.family_id);
-      router.replace('/home');
-      return;
-    }
-    await markMembership(false);
-    const role = params.role === 'partner' || user.user_metadata?.intended_role === 'partner'
-      ? 'partner'
-      : 'mother';
-    router.replace({ pathname: '/onboarding', params: { role } });
   }
 
   return (
