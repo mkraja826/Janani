@@ -12,7 +12,7 @@ type MenuItemProps = {
   label: string;
   caption: string;
   destination: MenuDestination;
-  onNavigate: () => void;
+  onNavigate: (destination: MenuDestination) => void;
 };
 
 export function JananiOverflowMenu() {
