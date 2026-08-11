@@ -171,7 +171,7 @@ export default function HomeScreen() {
           <View style={styles.actionIcon}><Ionicons name="alarm-outline" size={23} color={colors.roseDark} /></View>
           <View style={styles.flex}>
             <Text style={styles.actionTitle}>Medicines & reminders</Text>
-            <Text style={styles.actionCaption}>See today's medicine and care schedule.</Text>
+            <Text style={styles.actionCaption}>See today’s medicine and care schedule.</Text>
           </View>
           <Ionicons name="chevron-forward" size={19} color={colors.muted} />
         </Pressable>
