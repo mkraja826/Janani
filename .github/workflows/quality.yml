@@ -24,11 +24,6 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
-        with:
-          distribution: temurin
-          java-version: 17
-      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
       - run: npm ci --no-audit --no-fund
       - run: npm run audit:prod
       - run: npm run typecheck
@@ -47,6 +42,11 @@ jobs:
           test -f android/app/src/main/java/com/mkraja826/janani/JananiCareWidget.kt
           test -f android/app/src/main/res/layout/janani_care_widget.xml
           grep -Eq '^[[:space:]]*(packages\.)?add\(JananiWidgetPackage\(\)\)[[:space:]]*$' android/app/src/main/java/com/mkraja826/janani/MainApplication.kt
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
       - name: Compile Android x86_64 debug APK
         working-directory: android
         env:
