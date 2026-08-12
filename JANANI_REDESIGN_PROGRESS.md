@@ -1,17 +1,15 @@
 # Janani Product Redesign Progress
 
-**Current redesign progress: 31%**
+**Current redesign progress: 65%**
 
 **Progress baseline: 0%**  
 **Baseline date:** 2026-08-12
 
-This tracker starts a new product-progress scale from the point where Janani's technical foundation already existed but the simplified, background-intelligence product experience had not yet been built.
+This scale starts where Janani's technical foundation already existed but the simplified, emotionally warm, background-intelligence product experience had not yet been built. The older repository production-readiness percentage is historical engineering context and must not be mixed with this redesign score.
 
-The previous repository production-readiness percentage remains historical engineering context and must not be mixed with this product-redesign percentage.
+## Frozen product direction
 
-## Product direction frozen at baseline
-
-Janani should feel simple, emotional and easy to operate while most complexity runs in the background.
+Janani should feel simple, emotional and easy to operate while most complexity runs quietly in the background.
 
 Primary navigation:
 
@@ -21,121 +19,142 @@ Primary navigation:
 4. Reports
 5. Journey
 
-Secondary and occasional actions belong in a consistent top-right overflow menu.
+Secondary/occasional actions belong in the top-right overflow menu.
 
-Janani should progressively understand the mother's pregnancy, health profile, medicines and confirmed report information, then use clinically approved rules and AI within strict safety boundaries.
+AI is an explanation/personalization layer only. Mother-confirmed data and clinician-approved deterministic rules outrank AI. Raw or unreviewed report extraction never becomes trusted medical context automatically.
 
 ## Roadmap
 
-| Milestone | Scope | Status |
-|---|---|---|
-| 1 | Primary navigation shell + overflow menu | Engineering complete / device review pending |
-| 2 | Home redesign and daily-priority experience | Engineering complete / device review pending |
-| 3 | Structured Health / mother profile redesign | Engineering complete / device review pending |
-| 4 | Private Reports upload + extraction + confirmation | Engineering complete / device + provider validation pending |
-| 5 | Mother Context Engine | In progress |
-| 6 | Clinical Safety Engine integration | Not started |
-| 7 | Context-aware Ask Janani | Not started |
-| 8 | Background personalization/event engine | Not started |
-| 9 | Journey consolidation | Not started |
-| 10 | Partner experience redesign | Not started |
-| 11 | Emotional tone system | Not started |
-| 12 | Multilingual product layer | Not started |
-| 13 | Mother/partner/clinician + physical-device UX validation | Not started |
-| 14 | Production release gates | Not started |
+| Milestone | Scope | Status | Points counted |
+|---|---|---|---:|
+| 1 | Primary navigation shell + overflow menu | Engineering complete / device review pending | 5 |
+| 2 | Home redesign + daily-priority experience | Engineering complete / device review pending | 8 |
+| 3 | Structured Health / mother profile | Engineering complete / device review pending | 8 |
+| 4 | Private Reports upload + extraction + confirmation | Engineering complete / provider + device validation pending | 10 |
+| 5 | Mother Context Engine | Engineering complete | 10 |
+| 6 | Clinical Safety Engine integration | Infrastructure complete / approved clinical content pending | 0 |
+| 7 | Context-aware Ask Janani | Engineering complete / device/provider interaction review pending | 10 |
+| 8 | Background personalization/event engine | Engineering complete / device event review pending | 8 |
+| 9 | Journey consolidation | Engineering complete / device review pending | 6 |
+| 10 | Partner experience redesign | In progress | 0 |
+| 11 | Emotional tone system | Not started | 0 |
+| 12 | Multilingual product layer | Not started | 0 |
+| 13 | Mother/partner/clinician + physical-device UX validation | Not started | 0 |
+| 14 | Production release gates | Not started | 0 |
 
-## Progress weights
+**Counted progress: 65%.** Milestone 6's infrastructure is intentionally not counted because no clinician-reviewed, source-backed clinical rule pack is active yet.
 
-- Milestone 1: 5 points
-- Milestone 2: 8 points
-- Milestone 3: 8 points
-- Milestone 4: 10 points
-- Milestone 5: 10 points
-- Milestone 6: 10 points
-- Milestone 7: 10 points
-- Milestone 8: 8 points
-- Milestone 9: 6 points
-- Milestone 10: 6 points
-- Milestone 11: 4 points
-- Milestone 12: 5 points
-- Milestone 13: 5 points
-- Milestone 14: 5 points
+## Milestone weights
 
-Milestones 1–4 contribute 31 percentage points after repository engineering validation. Physical-device and external-provider validation remain separate gates and can still produce follow-up fixes.
+- M1 5
+- M2 8
+- M3 8
+- M4 10
+- M5 10
+- M6 10
+- M7 10
+- M8 8
+- M9 6
+- M10 6
+- M11 4
+- M12 5
+- M13 5
+- M14 5
 
-## Milestone 1 acceptance
+## Completed engineering milestones
 
-- [x] Five primary destinations exist.
-- [x] Persistent bottom navigation is implemented with Ask Janani in the center.
-- [x] Home and Ask Janani route through the new shell.
-- [x] Health, Reports and Journey primary destinations exist.
-- [x] Shared top-right overflow menu exists.
-- [x] Existing working backend/auth/family/reminder systems are preserved.
-- [x] Legacy `/home` and `/ai-companion` entry points remain compatible through redirects.
-- [x] Repository quality workflow passes, including Android x86_64 debug APK compilation.
-- [ ] Physical-device navigation review completed.
+### M1 — navigation shell
+- [x] Persistent Home / Health / Ask Janani / Reports / Journey tabs.
+- [x] Shared overflow menu.
+- [x] Legacy entry points remain compatible.
+- [x] Existing auth/family/reminder backend preserved.
+- [x] Full quality workflow + native x86_64 APK passed.
+- [ ] Physical-device navigation review.
 
-## Milestone 2 acceptance
+### M2 — Home
+- [x] Home centers on what matters today, not a feature grid.
+- [x] Pregnancy progress + next unresolved care item + compact care status.
+- [x] Offline cache and refresh on invalidations/app foreground.
+- [x] Full quality workflow + native APK passed.
+- [ ] Physical-device Home review.
 
-- [x] Home is organized around what matters today rather than a feature grid.
-- [x] Pregnancy week, trimester and due-date progress remain visible without dominating the screen.
-- [x] Home derives the next unresolved care item from existing reminder and reminder-log data.
-- [x] Home shows compact planned / taken / left care status.
-- [x] Home uses cached daily data when the network is temporarily unavailable.
-- [x] Home refreshes when pregnancy/reminder invalidations arrive or the app becomes active.
-- [x] Partner invitation is removed from the daily Home surface.
-- [x] Ask Janani remains reachable as a lightweight contextual action.
-- [x] Full repository quality workflow and native APK build pass.
-- [ ] Physical-device Home review completed.
+### M3 — Health
+- [x] Mother-only Health RPCs reused rather than duplicate storage.
+- [x] Weight, pregnancy type, diet, activity, allergies, foods, cuisines, clinician dietary instructions and supported conditions editable.
+- [x] Self-reported data is not presented as diagnosis.
+- [x] Partner cannot see mother-private Health by default.
+- [x] Full quality workflow + native APK passed.
+- [ ] Physical-device Health review.
 
-## Milestone 3 acceptance
-
-- [x] Health uses Janani's existing mother-only secure health RPCs rather than exposing raw health tables.
-- [x] Health clearly shows what Janani understands and why data improves suggestions.
-- [x] Mother can edit weight, pregnancy type, diet, activity, allergies, avoided foods, cuisine preferences, clinician dietary instructions and supported health conditions.
-- [x] Self-reported data is not presented as a diagnosis.
-- [x] Partner Health does not expose the mother's private medical profile by default.
-- [x] Existing pregnancy, medication and health data are reused rather than duplicated.
-- [x] Full repository quality workflow and native APK build pass.
-- [ ] Physical-device Health review completed.
-
-## Milestone 4 acceptance
-
-- [x] Medical report files are stored in a private bucket with mother-only ownership enforcement.
-- [x] Report metadata and processing state are separate from file objects.
-- [x] Images and PDFs can be selected and uploaded with strict MIME/15 MB limits.
-- [x] Extraction output remains proposed and never becomes trusted medical context automatically.
-- [x] Proposed values retain provenance to report/extraction/source information where available.
-- [x] Mother can confirm, correct or reject machine-read values.
-- [x] Partner does not receive private medical-report access by default.
-- [x] Reports list confirmation/processing state without exposing raw storage URLs.
-- [x] Interrupted uploads can be finalized or safely removed.
-- [x] Report extraction worker is JWT-protected and server-only lifecycle RPCs are service-role only.
-- [x] Automatic reading requires explicit per-report consent before sending a copy to the configured document provider.
+### M4 — Reports
+- [x] Private mother-owned medical-report bucket + metadata/extraction/fact separation.
+- [x] PDF/image upload with 15 MB/type checks.
+- [x] Machine values remain proposed until mother confirms/corrects/rejects them.
+- [x] Provenance retained; partner gets no report access by default.
+- [x] JWT-protected extraction worker with explicit per-report provider consent.
 - [x] Raw prenatal imagery is not diagnostically interpreted and fetal-sex extraction is blocked.
-- [x] Full repository quality workflow passes, including native x86_64 Android APK compilation.
-- [ ] Production document-provider secret/model configured and validated on representative real reports.
-- [ ] Physical-device report upload/review completed.
+- [x] Full quality workflow + native APK passed.
+- [ ] Production report-reading provider configured and validated on representative real reports.
+- [ ] Physical-device upload/review.
 
-## Milestone 4 validation notes
+### M5 — Mother Context Engine
+- [x] Mother-only trusted context snapshot.
+- [x] Includes pregnancy, Health, conditions, medicines, care context, recent trackers, appointments, manual labs and confirmed/corrected report facts.
+- [x] Excludes raw reports, proposed/rejected extraction and raw provider payloads.
+- [x] Deterministic question-relevant selector minimizes context and enforces limits.
+- [x] Authenticated-path privacy/shape tests passed.
+- [x] Full quality workflow + native APK passed.
 
-Repository engineering validation completed on 2026-08-12. The final reports-only branch passed deterministic install, production dependency audit, TypeScript, lint, Expo Doctor, legal-site checks, Android image checks, Expo public config, Android prebuild, widget generation and x86_64 debug APK compilation.
+### M6 — Clinical Safety infrastructure (points withheld)
+- [x] Immutable versioned clinical-rule storage + server SHA-256 binding.
+- [x] Approval requires exact registered version/hash/sources + reviewer credentials/effective dates.
+- [x] Strict declarative evaluator rejects arbitrary code/unsupported fields.
+- [x] Service-only raw rule registration/loading; mother receives decisions only.
+- [x] Fail-closed mother wrapper tested.
+- [x] Full quality workflow + native APK passed.
+- [ ] India clinical rules extracted from verified sources.
+- [ ] Qualified clinician review/approval recorded.
+- [ ] At least one production-eligible approved pack activated and safety-tested.
 
-Provider activation is deliberately not counted as complete production validation: until a configured provider is tested, automatic extraction must fail safely to manual value entry.
+Current live clinical state remains intentionally **0 registered production versions / 0 active clinical rule packs**.
 
-## Milestone 5 acceptance
+### M7 — context-aware Ask Janani
+- [x] Real in-session chat with General vs Personalized mode.
+- [x] Mother personalization consent defaults OFF, is versioned and reversible.
+- [x] Partner remains general-support only with no mother-private context.
+- [x] Safety layer runs before model call; unsafe/unchecked path fails closed.
+- [x] Consent checked server-side; context minimized/sanitized before provider transmission.
+- [x] Raw report files/internal IDs are not sent through chat.
+- [x] When no approved clinical packs exist, AI is explicitly prevented from interpreting measurements/labs/reports or inventing disease-specific medical advice.
+- [x] `janani-ai` deployed with JWT verification.
+- [x] Full quality workflow + native APK passed.
 
-- [x] A mother-only trusted context snapshot exists.
-- [x] Snapshot includes pregnancy basics, Health profile/conditions, active medicines, private care context, recent trackers, appointments, manual labs and confirmed/corrected report facts.
-- [x] Raw report files, proposed/rejected extraction and raw provider payloads are excluded from trusted context.
-- [x] Report-derived facts preserve source/provenance labels.
-- [x] Snapshot history is capped instead of dumping unlimited records.
-- [x] Server-side current-pregnancy resolver prefers the mother's active pregnancy and excludes paused pregnancies.
-- [x] Question-relevant selector deterministically minimizes context before future AI use.
-- [x] Selector carries pregnancy/conditions and clinician-wide instructions while loading detailed sections only when relevant.
-- [x] Selector does not store the raw question and records selected topics/limits in metadata.
-- [x] Context RPCs reject anonymous execution and enforce mother ownership.
-- [x] Synthetic topic-selection tests cover nutrition, report/lab, BP, pregnancy-only, appointment and symptom questions.
-- [ ] Final repository quality workflow passes on the latest M5 head, including native Android APK compilation.
+### M8 — background personalization
+- [x] Mother-private realtime invalidation channel separate from family/partner channel.
+- [x] 13 private tables broadcast entity-name invalidations only, never medical values.
+- [x] Deterministic daily snapshot chooses one useful next action with `aiCalled=false` and `clinicalAdviceGenerated=false`.
+- [x] Home shows one `For you today` card and refreshes from private/family/app events.
+- [x] Partner does not call mother-private daily snapshot.
+- [x] Full quality workflow + native APK passed.
 
-**Progress remains 31% until the latest Milestone 5 head passes repository engineering validation.**
+### M9 — Journey
+- [x] Current week/day, trimester and due-date progress consolidated into Journey.
+- [x] Existing trimester content shared with the standalone pregnancy guide.
+- [x] Current-stage preview avoids inventing detailed fetal/clinical week claims.
+- [x] Recent journal memories shown as a privacy-aware timeline.
+- [x] Existing journal RLS, sharing, cache and invalidations reused.
+- [x] Full quality workflow + native APK passed.
+
+## M10 — Partner experience acceptance
+
+- [x] Dedicated Partner & Family screen exists from the overflow menu.
+- [x] Mother can explicitly control pregnancy-progress and upcoming-care-timeline sharing.
+- [x] Partner-safe RPC excludes Health, reports and medicines.
+- [x] Pregnancy RLS now enforces the mother's progress-sharing switch, not just UI hiding.
+- [x] Rollback privacy tests confirm sharing OFF hides direct pregnancy rows and shares zero appointments.
+- [x] Partner Home is support-first: shared progress, shared appointment when allowed, reminder support, Thinking of You and general Ask Janani.
+- [x] Partner does not cache a mother-owned active pregnancy id.
+- [ ] Latest M10 branch passes full repository quality workflow + native APK.
+- [ ] Physical-device mother/partner sharing review.
+
+**Next progress change:** M10 adds 6 points only after the latest branch passes repository/native validation.
