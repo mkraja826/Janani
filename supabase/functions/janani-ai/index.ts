@@ -7,6 +7,11 @@ import {
   readJsonBody,
   RequestBodyError,
 } from "../_shared/http.ts";
+import {
+  JANANI_TONE_PROMPT,
+  toneStateForRequest,
+  toneStateInstruction,
+} from "../_shared/jananiTone.ts";
 
 const AI_CONTEXT_CONSENT_VERSION = "janani-ai-context-v1";
 const MAX_MESSAGE_CHARS = 1200;
@@ -41,9 +46,9 @@ Context handling:
 - Do not infer missing facts.
 - Do not mention internal source labels, context-selection logic, database names, rule hashes or implementation details to the user.`;
 
-const URGENT_MESSAGE = "This could need urgent medical attention. Please contact your maternity care team or local emergency service now, especially if symptoms are severe, worsening, or you feel unsafe. Janani should not be used to assess an emergency.";
+const URGENT_MESSAGE = "Please seek urgent medical care now. Contact your maternity care team or local emergency service. Janani cannot safely assess an emergency or tell you to wait.";
 
-const CARE_CONTACT_MESSAGE = "Janani's reviewed safety checks indicate that this is something to discuss with your maternity care team. Please contact them for guidance rather than relying on an AI answer for reassurance or a medical decision.";
+const CARE_CONTACT_MESSAGE = "Please contact your maternity care team for guidance. Janani's reviewed safety checks say this needs their attention, so an AI answer should not be used for reassurance or a medical decision.";
 
 type HistoryItem = { role: "user" | "assistant"; content: string };
 type SafetyResult = {
@@ -385,6 +390,7 @@ Deno.serve(async (request: Request): Promise<Response> => {
         safety: "urgent",
         personalized: false,
         selected_topics: [],
+        tone_state: "urgent",
       }, 200, cors, requestId);
     }
 
@@ -433,6 +439,7 @@ Deno.serve(async (request: Request): Promise<Response> => {
           personalized: false,
           selected_topics: [],
           clinical_content_available: safety.clinicalContentAvailable,
+          tone_state: safety.highestSeverity === "urgent" ? "urgent" : "attention",
         }, 200, cors, requestId);
       }
     }
@@ -472,8 +479,18 @@ Deno.serve(async (request: Request): Promise<Response> => {
       throw new PublicError(503, "Janani AI provider is not configured yet.");
     }
 
+    const toneState = toneStateForRequest({
+      message,
+      highestSeverity: safety.highestSeverity,
+      requiresCareContact: safety.requiresCareContact,
+      hasApprovedClinicalContent: safety.clinicalContentAvailable,
+    });
+
     const providerMessages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
-      { role: "system", content: `${SYSTEM_PROMPT}\n\n${clinicalModePrompt(safety)}` },
+      {
+        role: "system",
+        content: `${SYSTEM_PROMPT}\n\n${JANANI_TONE_PROMPT}\n\n${clinicalModePrompt(safety)}\n\n${toneStateInstruction(toneState)}`,
+      },
     ];
     if (providerContext) {
       providerMessages.push({
@@ -517,6 +534,7 @@ Deno.serve(async (request: Request): Promise<Response> => {
       selected_topics: personalized ? selectedTopics : [],
       clinical_content_available: safety.clinicalContentAvailable,
       role_mode: role === "mother" ? "mother" : "partner_general",
+      tone_state: toneState,
     }, 200, cors, requestId);
   } catch (error) {
     if (error instanceof RequestBodyError || error instanceof PublicError) {

@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { JananiPageHeader } from '@/components/navigation/JananiPageHeader';
+import { JANANI_COPY } from '@/features/tone/toneSystem';
 import { resolveActivePregnancyId } from '@/features/pregnancy/activePregnancy';
 import { listOwnMedicalReports } from '@/features/reports/reportRpc';
 import {
@@ -85,8 +86,8 @@ export default function ReportsScreen() {
         <ScrollView contentContainerStyle={styles.content}>
           <JananiPageHeader
             eyebrow="HER PRIVATE RECORDS"
-            title="Reports stay with her"
-            subtitle="Medical reports can contain sensitive information. Janani keeps them private to the mother unless a future sharing action is explicitly chosen."
+            title={JANANI_COPY.reports.partnerTitle}
+            subtitle={JANANI_COPY.reports.partnerSubtitle}
           />
           <View style={styles.privacyCard}>
             <Ionicons name="shield-checkmark-outline" size={28} color={colors.roseDark} />
@@ -117,8 +118,8 @@ export default function ReportsScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <JananiPageHeader
           eyebrow="YOUR PRIVATE RECORDS"
-          title="Reports"
-          subtitle="Keep pregnancy reports in one private place. Janani only treats a machine-read value as trusted after you confirm it."
+          title={JANANI_COPY.reports.motherTitle}
+          subtitle={JANANI_COPY.reports.motherSubtitle}
         />
 
         <View style={styles.heroCard}>
@@ -137,7 +138,7 @@ export default function ReportsScreen() {
 
         <View style={styles.safetyCard}>
           <Ionicons name="checkmark-done-outline" size={21} color={colors.roseDark} />
-          <Text style={styles.safetyText}>Original file → proposed machine reading → your confirmation. Janani never skips the confirmation step.</Text>
+          <Text style={styles.safetyText}>{JANANI_COPY.reports.reviewFlow}</Text>
         </View>
 
         {reports.length ? (

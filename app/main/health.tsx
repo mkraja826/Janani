@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { JananiPageHeader } from '@/components/navigation/JananiPageHeader';
+import { JANANI_COPY } from '@/features/tone/toneSystem';
 import {
   conditionLabel,
   emptyHealthProfile,
@@ -100,8 +101,8 @@ export default function HealthScreen() {
         <ScrollView contentContainerStyle={styles.content}>
           <JananiPageHeader
             eyebrow="SUPPORT HER WELL"
-            title="Her health stays hers"
-            subtitle="Janani keeps the mother’s detailed health profile private. Your view focuses on helping, remembering and staying close."
+            title={JANANI_COPY.health.partnerTitle}
+            subtitle={JANANI_COPY.health.partnerSubtitle}
           />
           <View style={styles.privacyCard}>
             <Ionicons name="shield-checkmark-outline" size={27} color={colors.roseDark} />
@@ -137,8 +138,8 @@ export default function HealthScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <JananiPageHeader
           eyebrow="YOUR HEALTH"
-          title="What Janani understands about you"
-          subtitle="Add details once. Janani can use them quietly in the background to make future guidance more relevant."
+          title={JANANI_COPY.health.motherTitle}
+          subtitle={JANANI_COPY.health.motherSubtitle}
         />
 
         <View style={styles.understandingCard}>
@@ -146,7 +147,7 @@ export default function HealthScreen() {
             <View style={styles.understandingIcon}><Ionicons name="heart-circle-outline" size={28} color={colors.roseDark} /></View>
             <View style={styles.flex}>
               <Text style={styles.cardTitle}>{completion?.completed ?? 0} of {completion?.total ?? 6} health areas understood</Text>
-              <Text style={styles.cardText}>You do not need to complete everything at once. Each useful detail helps Janani avoid generic suggestions.</Text>
+              <Text style={styles.cardText}>{JANANI_COPY.health.completionCaption}</Text>
             </View>
           </View>
           <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${Math.round((completion?.ratio ?? 0) * 100)}%` }]} /></View>

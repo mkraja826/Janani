@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { JananiPageHeader } from '@/components/navigation/JananiPageHeader';
+import { JANANI_COPY } from '@/features/tone/toneSystem';
 import {
   buildDailyCareSnapshot,
   type DailyReminder,
@@ -367,8 +368,8 @@ export default function HomeScreen() {
           eyebrow={summary?.familyName.toUpperCase()}
           title={`${greeting}.`}
           subtitle={isMother
-            ? 'Here is what matters today. Everything else can stay quietly in the background.'
-            : 'Here is the simplest way to stay close to the pregnancy today.'}
+            ? JANANI_COPY.home.motherSubtitle
+            : JANANI_COPY.home.partnerSubtitle}
         />
 
         {offline ? (
@@ -433,7 +434,7 @@ export default function HomeScreen() {
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>{isMother ? 'What matters today' : 'How you can help today'}</Text>
-          <Text style={styles.sectionCaption}>{isMother ? 'Janani keeps the list short and puts the next care item first.' : 'Keep support simple: notice the next shared care item, check in, and be there when needed.'}</Text>
+          <Text style={styles.sectionCaption}>{isMother ? JANANI_COPY.home.motherPriorityCaption : JANANI_COPY.home.partnerPriorityCaption}</Text>
         </View>
 
         <Pressable
