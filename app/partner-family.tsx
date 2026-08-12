@@ -23,6 +23,7 @@ import {
   type PartnerSharing,
   type PartnerSupportContext,
 } from '@/features/partner/partnerSupport';
+import { JANANI_COPY } from '@/features/tone/toneSystem';
 import { supabase } from '@/lib/supabase';
 import { colors, radius, spacing } from '@/theme/tokens';
 
@@ -122,7 +123,7 @@ export default function PartnerFamilyScreen() {
           </Pressable>
           <View style={styles.flex}>
             <Text style={styles.eyebrow}>PARTNER & FAMILY</Text>
-            <Text style={styles.title}>{role === 'mother' ? 'You decide what is shared' : 'Support without crossing privacy'}</Text>
+            <Text style={styles.title}>{role === 'mother' ? 'You decide what is shared' : JANANI_COPY.partner.title}</Text>
           </View>
         </View>
 
@@ -186,7 +187,7 @@ export default function PartnerFamilyScreen() {
             <View style={styles.heroCard}>
               <View style={styles.heroIcon}><Ionicons name="heart-outline" size={28} color={colors.roseDark} /></View>
               <Text style={styles.heroTitle}>{partnerContext.familyName}</Text>
-              <Text style={styles.body}>Janani only shows you the pregnancy information the mother has chosen to share. Her Health profile and reports are not part of this partner view.</Text>
+              <Text style={styles.body}>{JANANI_COPY.partner.subtitle} Her Health profile and reports are not part of this partner view.</Text>
             </View>
 
             <View style={styles.section}>

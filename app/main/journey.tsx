@@ -14,6 +14,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { JananiPageHeader } from '@/components/navigation/JananiPageHeader';
+import { JANANI_COPY } from '@/features/tone/toneSystem';
 import { guideForTrimester, journeyWeekLine } from '@/features/pregnancy/guideContent';
 import { getPregnancyProgress, trimesterLabel } from '@/features/pregnancy/progress';
 import { readCache, writeCache } from '@/lib/cache';
@@ -208,10 +209,8 @@ export default function JourneyScreen() {
       >
         <JananiPageHeader
           eyebrow="YOUR JOURNEY"
-          title="Every week becomes part of your story"
-          subtitle={isMother
-            ? 'Your pregnancy progress and the memories you keep now live together in one simple place.'
-            : 'Follow the pregnancy gently and keep the moments you want to remember together.'}
+          title={isMother ? JANANI_COPY.journey.motherTitle : JANANI_COPY.journey.partnerTitle}
+          subtitle={isMother ? JANANI_COPY.journey.motherSubtitle : JANANI_COPY.journey.partnerSubtitle}
         />
 
         {offline ? (
