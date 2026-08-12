@@ -17,7 +17,7 @@ function statusCopy(report: MedicalReportDetail): { title: string; body: string 
     case 'queued':
       return {
         title: 'Janani is reading this report',
-        body: 'The original stays private. Anything Janani reads will still need your review before it can be trusted.',
+        body: 'A secure copy is being processed by Janani’s configured document-reading provider. Anything it reads will still need your review before it can be trusted.',
       };
     case 'needs_confirmation':
       return {
@@ -37,12 +37,12 @@ function statusCopy(report: MedicalReportDetail): { title: string; body: string 
     case 'failed':
       return {
         title: 'Automatic reading did not finish',
-        body: 'Your original report is still safe. You can try again or add important values manually.',
+        body: 'Your original report remains stored privately in Janani. You can try again or add important values manually.',
       };
     default:
       return {
         title: 'Let Janani read the written report',
-        body: 'Janani can propose visible values and written findings for you to verify. It will not diagnose from raw scan imagery.',
+        body: 'If you choose automatic reading, a secure copy is sent to Janani’s configured document-reading provider. It can propose visible values and written findings, but it will not diagnose from raw scan imagery.',
       };
   }
 }
@@ -58,6 +58,18 @@ export function ReportExtractionCard({ report, onComplete }: Props) {
     && report.extractionStatus !== 'queued'
     && report.extractionStatus !== 'confirmed';
 
+  function requestReadConsent() {
+    if (!canRead) return;
+    Alert.alert(
+      'Read this report automatically?',
+      'To extract visible text and values, Janani will securely send a copy of this report to its configured document-reading provider. Nothing it reads becomes trusted medical information until you confirm or correct it.',
+      [
+        { text: 'Not now', style: 'cancel' },
+        { text: 'Read report', onPress: () => void readReport() },
+      ],
+    );
+  }
+
   async function readReport() {
     if (!canRead) return;
     setReading(true);
@@ -68,7 +80,10 @@ export function ReportExtractionCard({ report, onComplete }: Props) {
 
     if (error) {
       const context = (error as { context?: { json?: () => Promise<unknown> } }).context;
-      const payload = await context?.json?.().catch(() => null) as { error?: unknown; code?: unknown } | null;
+      let payload: { error?: unknown; code?: unknown } | null = null;
+      if (context?.json) {
+        payload = await context.json().catch(() => null) as { error?: unknown; code?: unknown } | null;
+      }
       const message = typeof payload?.error === 'string'
         ? payload.error
         : 'Janani could not read this report automatically. You can still add important values manually.';
@@ -105,7 +120,7 @@ export function ReportExtractionCard({ report, onComplete }: Props) {
         <Text style={styles.title}>{copy.title}</Text>
         <Text style={styles.body}>{copy.body}</Text>
         {canRead ? (
-          <Pressable onPress={() => void readReport()} style={styles.button}>
+          <Pressable onPress={requestReadConsent} style={styles.button}>
             <Ionicons name="scan-outline" size={18} color={colors.surface} />
             <Text style={styles.buttonText}>{report.extractionStatus === 'failed' || report.extractionStatus === 'not_available' ? 'Try reading again' : 'Read this report'}</Text>
           </Pressable>
