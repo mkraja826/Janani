@@ -1,6 +1,6 @@
 # Janani Product Redesign Progress
 
-**Current redesign progress: 31%**
+**Current redesign progress: 41%**
 
 **Progress baseline: 0%**  
 **Baseline date:** 2026-08-12
@@ -33,7 +33,7 @@ Janani should progressively understand the mother's pregnancy, health profile, m
 | 2 | Home redesign and daily-priority experience | Engineering complete / device review pending |
 | 3 | Structured Health / mother profile redesign | Engineering complete / device review pending |
 | 4 | Private Reports upload + extraction + confirmation | Engineering complete / device + provider validation pending |
-| 5 | Mother Context Engine | In progress |
+| 5 | Mother Context Engine | Engineering complete |
 | 6 | Clinical Safety Engine integration | Not started |
 | 7 | Context-aware Ask Janani | Not started |
 | 8 | Background personalization/event engine | Not started |
@@ -61,7 +61,7 @@ Janani should progressively understand the mother's pregnancy, health profile, m
 - Milestone 13: 5 points
 - Milestone 14: 5 points
 
-Milestones 1–4 contribute 31 percentage points after repository engineering validation. Physical-device and external-provider validation remain separate gates and can still produce follow-up fixes.
+Milestones 1–5 contribute 41 percentage points after repository engineering validation. Physical-device and external-provider validation remain separate gates and can still produce follow-up fixes.
 
 ## Milestone 1 acceptance
 
@@ -136,6 +136,11 @@ Provider activation is deliberately not counted as complete production validatio
 - [x] Selector does not store the raw question and records selected topics/limits in metadata.
 - [x] Context RPCs reject anonymous execution and enforce mother ownership.
 - [x] Synthetic topic-selection tests cover nutrition, report/lab, BP, pregnancy-only, appointment and symptom questions.
-- [ ] Final repository quality workflow passes on the latest M5 head, including native Android APK compilation.
+- [x] Authenticated-path shape test proves irrelevant Health/report sections are omitted and requested context limits are enforced.
+- [x] Final repository quality workflow passes on the latest M5 head, including native Android APK compilation.
 
-**Progress remains 31% until the latest Milestone 5 head passes repository engineering validation.**
+## Milestone 5 validation notes
+
+Repository engineering validation completed successfully on 2026-08-12. The latest M5 quality workflow passed deterministic install, production dependency audit, TypeScript, lint, Expo Doctor, legal-site validation, Android image checks, Expo public config, Android prebuild, widget generation and the x86_64 debug APK compile.
+
+**Current redesign progress: 41%. Milestone 6 is the active milestone.**
