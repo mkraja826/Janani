@@ -1,6 +1,6 @@
 # Janani Product Redesign Progress
 
-**Current redesign progress: 13%**
+**Current redesign progress: 21%**
 
 **Progress baseline: 0%**  
 **Baseline date:** 2026-08-12
@@ -31,8 +31,8 @@ Janani should progressively understand the mother's pregnancy, health profile, m
 |---|---|---|
 | 1 | Primary navigation shell + overflow menu | Engineering complete / device review pending |
 | 2 | Home redesign and daily-priority experience | Engineering complete / device review pending |
-| 3 | Structured Health / mother profile redesign | In progress |
-| 4 | Private Reports upload + extraction + confirmation | Not started |
+| 3 | Structured Health / mother profile redesign | Engineering complete / device review pending |
+| 4 | Private Reports upload + extraction + confirmation | In progress |
 | 5 | Mother Context Engine | Not started |
 | 6 | Clinical Safety Engine integration | Not started |
 | 7 | Context-aware Ask Janani | Not started |
@@ -46,7 +46,24 @@ Janani should progressively understand the mother's pregnancy, health profile, m
 
 ## Progress weights
 
-Milestone 1 contributes 5 percentage points. Milestone 2 contributes 8 percentage points, bringing the redesign to 13% after its engineering validation passed. Later milestones are weighted by product and safety complexity rather than treated as equal-sized steps.
+The redesign uses product- and safety-weighted milestones rather than equal steps:
+
+- Milestone 1: 5 points
+- Milestone 2: 8 points
+- Milestone 3: 8 points
+- Milestone 4: 10 points
+- Milestone 5: 10 points
+- Milestone 6: 10 points
+- Milestone 7: 10 points
+- Milestone 8: 8 points
+- Milestone 9: 6 points
+- Milestone 10: 6 points
+- Milestone 11: 4 points
+- Milestone 12: 5 points
+- Milestone 13: 5 points
+- Milestone 14: 5 points
+
+Milestones 1–3 contribute 21 percentage points after repository engineering validation. Physical-device review remains a separate acceptance gate and can still produce follow-up fixes.
 
 ## Milestone 1 acceptance criteria
 
@@ -63,8 +80,6 @@ Milestone 1 contributes 5 percentage points. Milestone 2 contributes 8 percentag
 ## Milestone 1 validation notes
 
 Repository-level validation completed successfully on 2026-08-12. The quality workflow passed deterministic install, the production dependency security gate, TypeScript, lint, Expo Doctor, legal-site validation, Android PNG validation, Expo public-config resolution, Android prebuild, Janani widget-generation checks, and x86_64 debug APK compilation.
-
-Milestone 1 remains intentionally unmerged and pending physical-device navigation review before it is treated as fully accepted.
 
 ## Milestone 2 acceptance criteria
 
@@ -91,7 +106,25 @@ Repository-level validation completed successfully on 2026-08-12. The full Janan
 - [x] Self-reported health data is not presented as a diagnosis.
 - [x] Partner Health view does not expose the mother's private medical profile by default.
 - [x] Existing pregnancy basics, private medication context and health-profile data are reused rather than duplicated.
-- [ ] Repository quality workflow passes on the Milestone 3 branch.
+- [x] Repository quality workflow passes on the Milestone 3 branch, including x86_64 debug APK compilation.
 - [ ] Physical-device Health review completed.
 
-**Progress remains 13% until Milestone 3 passes repository quality validation.**
+## Milestone 3 validation notes
+
+Repository-level validation completed successfully on 2026-08-12. The corrected Milestone 3 branch passed deterministic install, production dependency audit, TypeScript, lint, Expo Doctor, legal-site checks, Android image checks, Expo public config, Android prebuild, widget generation and the x86_64 debug APK compile.
+
+## Milestone 4 acceptance criteria
+
+- [ ] Medical report files are stored in a private bucket with mother-only ownership enforcement.
+- [ ] Report metadata and processing state are stored separately from the file object.
+- [ ] Images and PDFs can be selected from the device and uploaded with strict MIME/size limits.
+- [ ] Extraction output is stored as proposed data only; it never becomes trusted medical context automatically.
+- [ ] Every proposed value retains provenance back to report, extraction attempt and source location/excerpt where available.
+- [ ] Mother can confirm, correct or reject extracted values before Janani treats them as confirmed facts.
+- [ ] Partner does not receive access to private medical reports by default.
+- [ ] Reports screen lists uploaded records and their confirmation state without exposing raw storage URLs.
+- [ ] Failed/interrupted uploads can be retried or safely removed without leaving trusted orphan data.
+- [ ] Repository quality workflow passes on the Milestone 4 branch, including x86_64 debug APK compilation.
+- [ ] Physical-device report upload/review completed.
+
+**Progress remains 21% until Milestone 4 passes repository engineering validation.**
