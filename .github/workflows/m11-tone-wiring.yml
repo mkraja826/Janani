@@ -1,0 +1,145 @@
+name: M11 Tone Wiring
+
+on:
+  push:
+    branches:
+      - codex/janani-product-redesign-m11
+    paths:
+      - .github/workflows/m11-tone-wiring.yml
+
+permissions:
+  contents: write
+
+jobs:
+  wire:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: codex/janani-product-redesign-m11
+      - name: Wire shared emotional tone copy and AI state
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace(path, old, new):
+              p = Path(path)
+              s = p.read_text()
+              if old not in s:
+                  raise SystemExit(f'target missing in {path}: {old[:90]}')
+              p.write_text(s.replace(old, new, 1))
+
+          # Home: centralize the high-impact emotional framing.
+          p = Path('app/main/home.tsx')
+          s = p.read_text()
+          anchor = "import { JananiPageHeader } from '@/components/navigation/JananiPageHeader';\n"
+          tone_import = "import { JANANI_COPY } from '@/features/tone/toneSystem';\n"
+          if tone_import not in s:
+              s = s.replace(anchor, anchor + tone_import, 1)
+          s = s.replace("? 'Here is what matters today. The rest can stay quietly in the background.'", "? JANANI_COPY.home.motherSubtitle", 1) if "? 'Here is what matters today. The rest can stay quietly in the background.'" in s else s
+          s = s.replace("? 'Here is what matters today. Everything else can stay quietly in the background.'", "? JANANI_COPY.home.motherSubtitle", 1) if "? 'Here is what matters today. Everything else can stay quietly in the background.'" in s else s
+          s = s.replace(": 'Here is the simplest way to stay close to the pregnancy today.'}", ": JANANI_COPY.home.partnerSubtitle}", 1)
+          s = s.replace("{isMother ? 'Janani keeps the list short and puts the next care item first.' : 'Keep support simple: notice the next shared care item, check in, and be there when needed.'}", "{isMother ? JANANI_COPY.home.motherPriorityCaption : JANANI_COPY.home.partnerPriorityCaption}", 1)
+          p.write_text(s)
+
+          # Health.
+          p = Path('app/main/health.tsx')
+          s = p.read_text()
+          anchor = "import { JananiPageHeader } from '@/components/navigation/JananiPageHeader';\n"
+          tone_import = "import { JANANI_COPY } from '@/features/tone/toneSystem';\n"
+          if tone_import not in s:
+              s = s.replace(anchor, anchor + tone_import, 1)
+          s = s.replace('title="Her health stays hers"', 'title={JANANI_COPY.health.partnerTitle}', 1)
+          s = s.replace('subtitle="Janani keeps the mother’s detailed health profile private. Your view focuses on helping, remembering and staying close."', 'subtitle={JANANI_COPY.health.partnerSubtitle}', 1)
+          s = s.replace('title="What Janani understands about you"', 'title={JANANI_COPY.health.motherTitle}', 1)
+          s = s.replace('subtitle="Add details once. Janani can use them quietly in the background to make future guidance more relevant."', 'subtitle={JANANI_COPY.health.motherSubtitle}', 1)
+          s = s.replace('You do not need to complete everything at once. Each useful detail helps Janani avoid generic suggestions.', '{JANANI_COPY.health.completionCaption}', 1)
+          p.write_text(s)
+
+          # Reports.
+          p = Path('app/main/reports.tsx')
+          s = p.read_text()
+          anchor = "import { JananiPageHeader } from '@/components/navigation/JananiPageHeader';\n"
+          tone_import = "import { JANANI_COPY } from '@/features/tone/toneSystem';\n"
+          if tone_import not in s:
+              s = s.replace(anchor, anchor + tone_import, 1)
+          s = s.replace('title="Reports stay with her"', 'title={JANANI_COPY.reports.partnerTitle}', 1)
+          s = s.replace('subtitle="Medical reports can contain sensitive information. Janani keeps them private to the mother unless a future sharing action is explicitly chosen."', 'subtitle={JANANI_COPY.reports.partnerSubtitle}', 1)
+          s = s.replace('title="Reports"', 'title={JANANI_COPY.reports.motherTitle}', 1)
+          s = s.replace('subtitle="Keep pregnancy reports in one private place. Janani only treats a machine-read value as trusted after you confirm it."', 'subtitle={JANANI_COPY.reports.motherSubtitle}', 1)
+          s = s.replace('Original file → proposed machine reading → your confirmation. Janani never skips the confirmation step.', '{JANANI_COPY.reports.reviewFlow}', 1)
+          p.write_text(s)
+
+          # Journey.
+          p = Path('app/main/journey.tsx')
+          s = p.read_text()
+          anchor = "import { JananiPageHeader } from '@/components/navigation/JananiPageHeader';\n"
+          tone_import = "import { JANANI_COPY } from '@/features/tone/toneSystem';\n"
+          if tone_import not in s:
+              s = s.replace(anchor, anchor + tone_import, 1)
+          s = s.replace('title="Every week becomes part of your story"', 'title={isMother ? JANANI_COPY.journey.motherTitle : JANANI_COPY.journey.partnerTitle}', 1)
+          old = "subtitle={isMother\n            ? 'Your pregnancy progress and the memories you keep now live together in one simple place.'\n            : 'Follow the pregnancy gently and keep the moments you want to remember together.'}"
+          new = "subtitle={isMother ? JANANI_COPY.journey.motherSubtitle : JANANI_COPY.journey.partnerSubtitle}"
+          if old not in s:
+              raise SystemExit('Journey subtitle target missing')
+          s = s.replace(old, new, 1)
+          p.write_text(s)
+
+          # Partner & Family.
+          p = Path('app/partner-family.tsx')
+          s = p.read_text()
+          anchor = "import { supabase } from '@/lib/supabase';\n"
+          tone_import = "import { JANANI_COPY } from '@/features/tone/toneSystem';\n"
+          if tone_import not in s:
+              s = s.replace(anchor, tone_import + anchor, 1)
+          s = s.replace("<Text style={styles.title}>{role === 'mother' ? 'You decide what is shared' : 'Support without crossing privacy'}</Text>", "<Text style={styles.title}>{role === 'mother' ? 'You decide what is shared' : JANANI_COPY.partner.title}</Text>", 1)
+          s = s.replace('Janani only shows you the pregnancy information the mother has chosen to share. Her Health profile and reports are not part of this partner view.', '{JANANI_COPY.partner.subtitle} Her Health profile and reports are not part of this partner view.', 1)
+          p.write_text(s)
+
+          # Ask Janani server: same versioned contract, deterministic state per request.
+          p = Path('supabase/functions/janani-ai/index.ts')
+          s = p.read_text()
+          http_import = '''import {\n  type CorsHeaders,\n  corsHeadersFor,\n  jsonResponse,\n  readJsonBody,\n  RequestBodyError,\n} from "../_shared/http.ts";\n'''
+          tone_import = '''import {\n  JANANI_TONE_PROMPT,\n  toneStateForRequest,\n  toneStateInstruction,\n} from "../_shared/jananiTone.ts";\n'''
+          if tone_import not in s:
+              if http_import not in s: raise SystemExit('AI import anchor missing')
+              s = s.replace(http_import, http_import + tone_import, 1)
+          s = s.replace(
+              'const URGENT_MESSAGE = "This could need urgent medical attention. Please contact your maternity care team or local emergency service now, especially if symptoms are severe, worsening, or you feel unsafe. Janani should not be used to assess an emergency.";',
+              'const URGENT_MESSAGE = "Please seek urgent medical care now. Contact your maternity care team or local emergency service. Janani cannot safely assess an emergency or tell you to wait.";',
+              1,
+          )
+          s = s.replace(
+              'const CARE_CONTACT_MESSAGE = "Janani\'s reviewed safety checks indicate that this is something to discuss with your maternity care team. Please contact them for guidance rather than relying on an AI answer for reassurance or a medical decision.";',
+              'const CARE_CONTACT_MESSAGE = "Please contact your maternity care team for guidance. Janani\'s reviewed safety checks say this needs their attention, so an AI answer should not be used for reassurance or a medical decision.";',
+              1,
+          )
+          old = '''    const providerMessages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [\n      { role: "system", content: `${SYSTEM_PROMPT}\\n\\n${clinicalModePrompt(safety)}` },\n    ];'''
+          new = '''    const toneState = toneStateForRequest({\n      message,\n      highestSeverity: safety.highestSeverity,\n      requiresCareContact: safety.requiresCareContact,\n      hasApprovedClinicalContent: safety.clinicalContentAvailable,\n    });\n\n    const providerMessages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [\n      {\n        role: "system",\n        content: `${SYSTEM_PROMPT}\\n\\n${JANANI_TONE_PROMPT}\\n\\n${clinicalModePrompt(safety)}\\n\\n${toneStateInstruction(toneState)}`,\n      },\n    ];'''
+          if old not in s: raise SystemExit('AI provider message target missing')
+          s = s.replace(old, new, 1)
+          s = s.replace(
+              '      role_mode: role === "mother" ? "mother" : "partner_general",\n',
+              '      role_mode: role === "mother" ? "mother" : "partner_general",\n      tone_state: toneState,\n',
+              1,
+          )
+          # Static safety responses identify their state for QA without exposing internal rule details.
+          s = s.replace(
+              '        selected_topics: [],\n      }, 200, cors, requestId);',
+              '        selected_topics: [],\n        tone_state: "urgent",\n      }, 200, cors, requestId);',
+              1,
+          )
+          s = s.replace(
+              '          clinical_content_available: safety.clinicalContentAvailable,\n        }, 200, cors, requestId);',
+              '          clinical_content_available: safety.clinicalContentAvailable,\n          tone_state: safety.highestSeverity === "urgent" ? "urgent" : "attention",\n        }, 200, cors, requestId);',
+              1,
+          )
+          p.write_text(s)
+          PY
+      - name: Commit tone wiring
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+mkraja826@users.noreply.github.com"
+          git add app/main/home.tsx app/main/health.tsx app/main/reports.tsx app/main/journey.tsx app/partner-family.tsx supabase/functions/janani-ai/index.ts
+          git commit -m "Wire Janani emotional tone across product and AI"
+          git push origin HEAD:codex/janani-product-redesign-m11
