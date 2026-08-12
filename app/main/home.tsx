@@ -21,6 +21,11 @@ import {
   greetingForNow,
   priorityTimingLabel,
 } from '@/features/home/dailySnapshot';
+import {
+  getCurrentDailyPersonalization,
+  parseDailyPersonalization,
+  type DailyPersonalization,
+} from '@/features/home/dailyPersonalization';
 import { cacheActivePregnancyId } from '@/features/pregnancy/activePregnancy';
 import { getPregnancyProgress, trimesterLabel } from '@/features/pregnancy/progress';
 import { readCache, writeCache } from '@/lib/cache';
@@ -28,6 +33,7 @@ import { toLocalDate } from '@/lib/date';
 import { supabase } from '@/lib/supabase';
 import { useMembership } from '@/providers/AuthGate';
 import { useAuth } from '@/providers/AuthProvider';
+import { subscribeToUserInvalidations } from '@/features/user/userInvalidation';
 import { colors, radius, spacing } from '@/theme/tokens';
 
 type FamilySummary = {
@@ -51,6 +57,7 @@ type HomeCache = {
   summary: FamilySummary;
   reminders: HomeReminder[];
   logs: HomeReminderLog[];
+  personalization?: DailyPersonalization | null;
 };
 
 const CACHE_KEY = 'home-daily-v2';
@@ -63,12 +70,60 @@ function reminderIcon(kind: HomeReminder['kind']) {
   return 'alarm-outline' as const;
 }
 
+function personalizationPresentation(item: DailyPersonalization) {
+  switch (item.actionType) {
+    case 'review_report':
+      return {
+        icon: 'document-text-outline' as const,
+        title: 'Your report is ready for your eyes',
+        body: `${item.pendingReportReviewCount} value${item.pendingReportReviewCount === 1 ? '' : 's'} Janani read ${item.pendingReportReviewCount === 1 ? 'is' : 'are'} waiting for you to confirm.`,
+        route: '/main/reports' as const,
+      };
+    case 'upcoming_appointment': {
+      const scheduledAt = typeof item.actionMeta.scheduledAt === 'string'
+        ? new Date(item.actionMeta.scheduledAt)
+        : null;
+      const timing = scheduledAt && !Number.isNaN(scheduledAt.getTime())
+        ? scheduledAt.toLocaleString(undefined, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })
+        : 'soon';
+      return {
+        icon: 'calendar-outline' as const,
+        title: 'Your next appointment is coming up',
+        body: `It is scheduled for ${timing}. Keep anything you want to ask your care team close by.`,
+        route: '/main/health' as const,
+      };
+    }
+    case 'complete_health_profile':
+      return {
+        icon: 'heart-outline' as const,
+        title: 'Help Janani understand you a little better',
+        body: 'A few everyday details are still missing. Adding them makes future suggestions more relevant without changing your medical care.',
+        route: '/edit-health-profile' as const,
+      };
+    case 'ask_food_ideas':
+      return {
+        icon: 'nutrition-outline' as const,
+        title: 'Your food preferences are ready to use',
+        body: 'Ask Janani for simple meal ideas that fit the preferences and allergies you saved.',
+        route: '/main/ask' as const,
+      };
+    default:
+      return {
+        icon: 'leaf-outline' as const,
+        title: 'See what this week brings',
+        body: 'Your current pregnancy week is ready in Journey whenever you want it.',
+        route: '/main/journey' as const,
+      };
+  }
+}
+
 export default function HomeScreen() {
   const { session } = useAuth();
   const { markMembership, onFamilyInvalidation } = useMembership();
   const [summary, setSummary] = useState<FamilySummary | null>(null);
   const [reminders, setReminders] = useState<HomeReminder[]>([]);
   const [logs, setLogs] = useState<HomeReminderLog[]>([]);
+  const [personalization, setPersonalization] = useState<DailyPersonalization | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState(false);
@@ -81,6 +136,7 @@ export default function HomeScreen() {
     setSummary(null);
     setReminders([]);
     setLogs([]);
+    setPersonalization(null);
     setLoadError(false);
     setOffline(false);
     setLoading(Boolean(userId));
@@ -104,6 +160,7 @@ export default function HomeScreen() {
       setSummary(validCache.summary);
       setReminders(validCache.reminders);
       setLogs(validCache.logs);
+      setPersonalization(validCache.personalization ?? null);
       setLoading(false);
     }
 
@@ -127,7 +184,7 @@ export default function HomeScreen() {
       return;
     }
 
-    const [family, reminderItems, reminderHistory] = await Promise.all([
+    const [family, reminderItems, reminderHistory, personalizationResult] = await Promise.all([
       supabase
         .from('families')
         .select('name,pregnancies(id,due_date,status)')
@@ -145,6 +202,9 @@ export default function HomeScreen() {
         .select('reminder_id,scheduled_for,state')
         .gte('scheduled_for', start.toISOString())
         .lt('scheduled_for', end.toISOString()),
+      membership.data.role === 'mother'
+        ? getCurrentDailyPersonalization()
+        : Promise.resolve({ data: null, error: null }),
     ]);
 
     if (revision !== loadRevision.current) return;
@@ -186,10 +246,14 @@ export default function HomeScreen() {
       item.days_of_week.length === 0 || item.days_of_week.includes(weekday)
     )) as HomeReminder[];
     const nextLogs = (reminderHistory.data ?? []) as HomeReminderLog[];
+    const nextPersonalization = membership.data.role === 'mother' && !personalizationResult.error
+      ? parseDailyPersonalization(personalizationResult.data)
+      : validCache?.personalization ?? null;
 
     setSummary(nextSummary);
     setReminders(nextReminders);
     setLogs(nextLogs);
+    setPersonalization(nextPersonalization);
     setOffline(false);
     setLoading(false);
     setRefreshing(false);
@@ -200,6 +264,7 @@ export default function HomeScreen() {
         summary: nextSummary,
         reminders: nextReminders,
         logs: nextLogs,
+        personalization: nextPersonalization,
       }),
       cacheActivePregnancyId(userId, activePregnancy?.id ?? null),
     ]);
@@ -208,6 +273,17 @@ export default function HomeScreen() {
   useFocusEffect(useCallback(() => {
     void load();
   }, [load]));
+
+  useEffect(() => {
+    const accessToken = session?.access_token;
+    if (!userId || !accessToken) return undefined;
+    return subscribeToUserInvalidations({
+      userId,
+      accessToken,
+      onInvalidate: () => void load(),
+      onConnectionIssue: () => undefined,
+    });
+  }, [load, session?.access_token, userId]);
 
   useEffect(() => {
     const stopInvalidations = onFamilyInvalidation(
@@ -232,6 +308,7 @@ export default function HomeScreen() {
     [logs, reminders],
   );
   const priority = care.priority;
+  const personalizedAction = personalization ? personalizationPresentation(personalization) : null;
 
   if (loading) {
     return <View style={styles.center}><ActivityIndicator color={colors.rose} /></View>;
@@ -362,6 +439,29 @@ export default function HomeScreen() {
           </View>
         ) : null}
 
+        {isMother && personalizedAction ? (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>For you today</Text>
+              <Text style={styles.sectionCaption}>Chosen quietly from the information you already gave Janani.</Text>
+            </View>
+            <Pressable
+              onPress={() => router.push(personalizedAction.route)}
+              style={({ pressed }) => [styles.askCard, pressed && styles.pressed]}
+            >
+              <View style={styles.askIcon}>
+                <Ionicons name={personalizedAction.icon} size={23} color={colors.roseDark} />
+              </View>
+              <View style={styles.flex}>
+                <Text style={styles.actionTitle}>{personalizedAction.title}</Text>
+                <Text style={styles.actionCaption}>{personalizedAction.body}</Text>
+              </View>
+              <Ionicons name="arrow-forward" size={19} color={colors.roseDark} />
+            </Pressable>
+          </>
+        ) : null}
+
+        {personalization?.actionType !== 'ask_food_ideas' ? (
         <Pressable
           onPress={() => router.push('/main/ask')}
           style={({ pressed }) => [styles.askCard, pressed && styles.pressed]}
@@ -375,6 +475,7 @@ export default function HomeScreen() {
           </View>
           <Ionicons name="arrow-forward" size={19} color={colors.roseDark} />
         </Pressable>
+        ) : null}
 
         {!isMother ? (
           <Pressable
