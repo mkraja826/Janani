@@ -12,6 +12,7 @@ import {
   parseHealthProfile,
   type HealthProfile,
 } from '@/features/health/healthProfile';
+import { getOwnHealthProfile, getOwnPrivateCareContext } from '@/features/health/healthRpc';
 import { resolveActivePregnancyId } from '@/features/pregnancy/activePregnancy';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
@@ -27,10 +28,12 @@ type PrivateCareContext = {
   medications?: unknown[];
 };
 
+type FamilyRole = 'mother' | 'partner' | 'caregiver';
+
 export default function HealthScreen() {
   const { session } = useAuth();
   const userId = session?.user.id;
-  const [role, setRole] = useState<'mother' | 'partner' | 'caregiver' | null>(null);
+  const [role, setRole] = useState<FamilyRole | null>(null);
   const [pregnancyId, setPregnancyId] = useState<string | null>(null);
   const [profile, setProfile] = useState<HealthProfile | null>(null);
   const [basics, setBasics] = useState<PregnancyBasics | null>(null);
@@ -47,7 +50,7 @@ export default function HealthScreen() {
       setLoading(false);
       return;
     }
-    const resolvedRole = membership.data.role as typeof role;
+    const resolvedRole = membership.data.role as FamilyRole;
     setRole(resolvedRole);
     const activeId = await resolveActivePregnancyId(userId);
     setPregnancyId(activeId);
@@ -57,9 +60,9 @@ export default function HealthScreen() {
     }
 
     const [healthResult, pregnancyResult, contextResult] = await Promise.all([
-      supabase.rpc('get_own_health_profile', { p_pregnancy_id: activeId }),
+      getOwnHealthProfile(activeId),
       supabase.rpc('get_mother_pregnancy_private_details'),
-      supabase.rpc('get_own_private_care_context', { p_pregnancy_id: activeId }),
+      getOwnPrivateCareContext(activeId),
     ]);
     if (healthResult.error || pregnancyResult.error || contextResult.error) {
       setError(true);
