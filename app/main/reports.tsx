@@ -5,7 +5,6 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { JananiPageHeader } from '@/components/navigation/JananiPageHeader';
-import { JANANI_COPY } from '@/features/tone/toneSystem';
 import { resolveActivePregnancyId } from '@/features/pregnancy/activePregnancy';
 import { listOwnMedicalReports } from '@/features/reports/reportRpc';
 import {
@@ -15,6 +14,7 @@ import {
 } from '@/features/reports/reportTypes';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
+import { useLanguage } from '@/providers/LanguageProvider';
 import { colors, radius, spacing } from '@/theme/tokens';
 
 function statusCopy(report: MedicalReportSummary): { label: string; caption: string; icon: keyof typeof Ionicons.glyphMap } {
@@ -34,6 +34,7 @@ function formatReportDate(value: string | null, fallback: string): string {
 }
 
 export default function ReportsScreen() {
+  const { t } = useLanguage();
   const { session } = useAuth();
   const userId = session?.user.id;
   const [role, setRole] = useState<'mother' | 'partner' | 'caregiver' | null>(null);
@@ -86,8 +87,8 @@ export default function ReportsScreen() {
         <ScrollView contentContainerStyle={styles.content}>
           <JananiPageHeader
             eyebrow="HER PRIVATE RECORDS"
-            title={JANANI_COPY.reports.partnerTitle}
-            subtitle={JANANI_COPY.reports.partnerSubtitle}
+            title={t('tone.reports.partnerTitle')}
+            subtitle={t('tone.reports.partnerSubtitle')}
           />
           <View style={styles.privacyCard}>
             <Ionicons name="shield-checkmark-outline" size={28} color={colors.roseDark} />
@@ -118,8 +119,8 @@ export default function ReportsScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <JananiPageHeader
           eyebrow="YOUR PRIVATE RECORDS"
-          title={JANANI_COPY.reports.motherTitle}
-          subtitle={JANANI_COPY.reports.motherSubtitle}
+          title={t('tone.reports.motherTitle')}
+          subtitle={t('tone.reports.motherSubtitle')}
         />
 
         <View style={styles.heroCard}>
@@ -138,7 +139,7 @@ export default function ReportsScreen() {
 
         <View style={styles.safetyCard}>
           <Ionicons name="checkmark-done-outline" size={21} color={colors.roseDark} />
-          <Text style={styles.safetyText}>{JANANI_COPY.reports.reviewFlow}</Text>
+          <Text style={styles.safetyText}>{t('tone.reports.reviewFlow')}</Text>
         </View>
 
         {reports.length ? (

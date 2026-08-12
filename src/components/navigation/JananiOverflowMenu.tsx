@@ -3,6 +3,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { useLanguage } from '@/providers/LanguageProvider';
 import { colors, radius, spacing } from '@/theme/tokens';
 
 type MenuDestination = '/partner-family' | '/language' | '/settings' | '/reminders' | '/safety-privacy';
@@ -16,6 +17,7 @@ type MenuItemProps = {
 };
 
 export function JananiOverflowMenu() {
+  const { t } = useLanguage();
   const [visible, setVisible] = useState(false);
 
   function navigate(destination: MenuDestination) {
@@ -54,7 +56,7 @@ export function JananiOverflowMenu() {
               </View>
               <View style={styles.flex}>
                 <Text style={styles.menuTitle}>Janani</Text>
-                <Text style={styles.menuCaption}>More options</Text>
+                <Text style={styles.menuCaption}>{t('menu.more')}</Text>
               </View>
               <Pressable
                 accessibilityLabel="Close menu"
@@ -66,38 +68,38 @@ export function JananiOverflowMenu() {
             </View>
 
             <MenuItem
-              caption="Invite, connect and choose what your partner can see"
+              caption={t('menu.partnerCaption')}
               destination="/partner-family"
               icon="people-outline"
-              label="Partner & family"
+              label={t('menu.partner')}
               onNavigate={navigate}
             />
             <MenuItem
-              caption="Choose the language Janani uses for your account"
+              caption={t('menu.languageCaption')}
               destination="/language"
               icon="language-outline"
-              label="Language"
+              label={t('menu.language')}
               onNavigate={navigate}
             />
             <MenuItem
-              caption="Medicines, supplements and care reminders"
+              caption={t('menu.remindersCaption')}
               destination="/reminders"
               icon="alarm-outline"
-              label="Reminders"
+              label={t('menu.reminders')}
               onNavigate={navigate}
             />
             <MenuItem
-              caption="Understand Janani's safety and privacy choices"
+              caption={t('menu.safetyCaption')}
               destination="/safety-privacy"
               icon="shield-checkmark-outline"
-              label="Safety & privacy"
+              label={t('menu.safety')}
               onNavigate={navigate}
             />
             <MenuItem
-              caption="Account, data export and family controls"
+              caption={t('menu.settingsCaption')}
               destination="/settings"
               icon="settings-outline"
-              label="Settings"
+              label={t('menu.settings')}
               onNavigate={navigate}
             />
           </View>
