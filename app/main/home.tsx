@@ -26,6 +26,11 @@ import {
   parseDailyPersonalization,
   type DailyPersonalization,
 } from '@/features/home/dailyPersonalization';
+import {
+  getCurrentPartnerSupportContext,
+  parsePartnerSupportContext,
+  type PartnerSupportContext,
+} from '@/features/partner/partnerSupport';
 import { cacheActivePregnancyId } from '@/features/pregnancy/activePregnancy';
 import { getPregnancyProgress, trimesterLabel } from '@/features/pregnancy/progress';
 import { readCache, writeCache } from '@/lib/cache';
@@ -58,6 +63,7 @@ type HomeCache = {
   reminders: HomeReminder[];
   logs: HomeReminderLog[];
   personalization?: DailyPersonalization | null;
+  partnerSupport?: PartnerSupportContext | null;
 };
 
 const CACHE_KEY = 'home-daily-v2';
@@ -124,6 +130,7 @@ export default function HomeScreen() {
   const [reminders, setReminders] = useState<HomeReminder[]>([]);
   const [logs, setLogs] = useState<HomeReminderLog[]>([]);
   const [personalization, setPersonalization] = useState<DailyPersonalization | null>(null);
+  const [partnerSupport, setPartnerSupport] = useState<PartnerSupportContext | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState(false);
@@ -137,6 +144,7 @@ export default function HomeScreen() {
     setReminders([]);
     setLogs([]);
     setPersonalization(null);
+    setPartnerSupport(null);
     setLoadError(false);
     setOffline(false);
     setLoading(Boolean(userId));
@@ -161,6 +169,7 @@ export default function HomeScreen() {
       setReminders(validCache.reminders);
       setLogs(validCache.logs);
       setPersonalization(validCache.personalization ?? null);
+      setPartnerSupport(validCache.partnerSupport ?? null);
       setLoading(false);
     }
 
@@ -184,7 +193,7 @@ export default function HomeScreen() {
       return;
     }
 
-    const [family, reminderItems, reminderHistory, personalizationResult] = await Promise.all([
+    const [family, reminderItems, reminderHistory, personalizationResult, partnerSupportResult] = await Promise.all([
       supabase
         .from('families')
         .select('name,pregnancies(id,due_date,status)')
@@ -204,6 +213,9 @@ export default function HomeScreen() {
         .lt('scheduled_for', end.toISOString()),
       membership.data.role === 'mother'
         ? getCurrentDailyPersonalization()
+        : Promise.resolve({ data: null, error: null }),
+      membership.data.role === 'partner'
+        ? getCurrentPartnerSupportContext()
         : Promise.resolve({ data: null, error: null }),
     ]);
 
@@ -235,10 +247,15 @@ export default function HomeScreen() {
         : [];
     const activePregnancy = pregnancies.find((item) => item.status === 'active');
     const pregnancy = activePregnancy ?? pregnancies[0];
+    const nextPartnerSupport = membership.data.role === 'partner' && !partnerSupportResult.error
+      ? parsePartnerSupportContext(partnerSupportResult.data)
+      : null;
     const nextSummary: FamilySummary = {
       role: membership.data.role as FamilySummary['role'],
-      familyName: familyData.name ?? 'Our little family',
-      dueDate: pregnancy?.due_date ?? null,
+      familyName: nextPartnerSupport?.familyName ?? familyData.name ?? 'Our little family',
+      dueDate: membership.data.role === 'partner'
+        ? nextPartnerSupport?.pregnancy?.dueDate ?? null
+        : pregnancy?.due_date ?? null,
     };
 
     const weekday = start.getDay();
@@ -254,6 +271,7 @@ export default function HomeScreen() {
     setReminders(nextReminders);
     setLogs(nextLogs);
     setPersonalization(nextPersonalization);
+    setPartnerSupport(nextPartnerSupport);
     setOffline(false);
     setLoading(false);
     setRefreshing(false);
@@ -265,8 +283,9 @@ export default function HomeScreen() {
         reminders: nextReminders,
         logs: nextLogs,
         personalization: nextPersonalization,
+        partnerSupport: nextPartnerSupport,
       }),
-      cacheActivePregnancyId(userId, activePregnancy?.id ?? null),
+      cacheActivePregnancyId(userId, membership.data.role === 'mother' ? activePregnancy?.id ?? null : null),
     ]);
   }, [markMembership, userId]);
 
@@ -359,35 +378,62 @@ export default function HomeScreen() {
           </View>
         ) : null}
 
-        <Pressable
-          onPress={() => router.push('/pregnancy-guide')}
-          style={({ pressed }) => [styles.pregnancyCard, pressed && styles.pressed]}
-        >
-          <View style={styles.pregnancyIcon}>
-            <Ionicons name="heart-circle" size={38} color={colors.rose} />
-          </View>
-          <View style={styles.flex}>
-            <Text style={styles.cardEyebrow}>YOUR JOURNEY</Text>
-            {progress ? (
-              <>
-                <Text style={styles.week}>Week {progress.gestationalWeek}</Text>
-                <Text style={styles.cardTitle}>{trimesterLabel(progress.trimester)} · day {progress.gestationalDay}</Text>
-                <Text style={styles.cardMeta}>
-                  {progress.isPastDue
-                    ? 'Your estimated due date has arrived.'
-                    : `${progress.daysRemaining} days until the estimated due date`}
-                </Text>
-              </>
-            ) : (
-              <Text style={styles.cardTitle}>Your pregnancy progress will appear here.</Text>
-            )}
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.roseDark} />
-        </Pressable>
+        {isMother ? (
+          <Pressable
+            onPress={() => router.push('/pregnancy-guide')}
+            style={({ pressed }) => [styles.pregnancyCard, pressed && styles.pressed]}
+          >
+            <View style={styles.pregnancyIcon}>
+              <Ionicons name="heart-circle" size={38} color={colors.rose} />
+            </View>
+            <View style={styles.flex}>
+              <Text style={styles.cardEyebrow}>YOUR JOURNEY</Text>
+              {progress ? (
+                <>
+                  <Text style={styles.week}>Week {progress.gestationalWeek}</Text>
+                  <Text style={styles.cardTitle}>{trimesterLabel(progress.trimester)} · day {progress.gestationalDay}</Text>
+                  <Text style={styles.cardMeta}>
+                    {progress.isPastDue
+                      ? 'Your estimated due date has arrived.'
+                      : `${progress.daysRemaining} days until the estimated due date`}
+                  </Text>
+                </>
+              ) : (
+                <Text style={styles.cardTitle}>Your pregnancy progress will appear here.</Text>
+              )}
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.roseDark} />
+          </Pressable>
+        ) : (
+          <Pressable
+            onPress={() => router.push('/partner-family')}
+            style={({ pressed }) => [styles.pregnancyCard, pressed && styles.pressed]}
+          >
+            <View style={styles.pregnancyIcon}>
+              <Ionicons name={partnerSupport?.pregnancyProgressShared ? 'heart-circle' : 'lock-closed'} size={36} color={colors.rose} />
+            </View>
+            <View style={styles.flex}>
+              <Text style={styles.cardEyebrow}>SHARED PREGNANCY</Text>
+              {partnerSupport?.pregnancyProgressShared && progress ? (
+                <>
+                  <Text style={styles.week}>Week {progress.gestationalWeek}</Text>
+                  <Text style={styles.cardTitle}>{trimesterLabel(progress.trimester)}</Text>
+                  <Text style={styles.cardMeta}>{progress.daysRemaining} days until the estimated due date</Text>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.cardTitle}>Pregnancy progress is private right now</Text>
+                  <Text style={styles.cardMeta}>You can still support, send warmth and ask general pregnancy questions.</Text>
+                </>
+              )}
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.roseDark} />
+          </Pressable>
+        )}
 
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>What matters today</Text>
-          <Text style={styles.sectionCaption}>Janani keeps the list short and puts the next care item first.</Text>
+          <Text style={styles.sectionTitle}>{isMother ? 'What matters today' : 'How you can help today'}</Text>
+          <Text style={styles.sectionCaption}>{isMother ? 'Janani keeps the list short and puts the next care item first.' : 'Keep support simple: notice the next shared care item, check in, and be there when needed.'}</Text>
         </View>
 
         <Pressable
@@ -403,7 +449,7 @@ export default function HomeScreen() {
           </View>
           <View style={styles.flex}>
             <Text style={styles.cardEyebrow}>
-              {priority ? 'NEXT CARE' : care.total === 0 ? 'TODAY’S CARE' : 'CARE CHECKED'}
+              {priority ? (isMother ? 'NEXT CARE' : 'NEXT SHARED REMINDER') : care.total === 0 ? (isMother ? 'TODAY’S CARE' : 'TODAY’S SUPPORT') : 'CARE CHECKED'}
             </Text>
             <Text style={styles.priorityTitle}>
               {priority?.reminder.title
@@ -461,6 +507,29 @@ export default function HomeScreen() {
           </>
         ) : null}
 
+        {!isMother ? (
+          <>
+            {partnerSupport?.careTimelineShared && partnerSupport.upcomingAppointments[0] ? (
+              <Pressable onPress={() => router.push('/partner-family')} style={({ pressed }) => [styles.askCard, pressed && styles.pressed]}>
+                <View style={styles.askIcon}><Ionicons name="calendar-outline" size={23} color={colors.roseDark} /></View>
+                <View style={styles.flex}>
+                  <Text style={styles.actionTitle}>An appointment is coming up</Text>
+                  <Text style={styles.actionCaption}>{new Date(partnerSupport.upcomingAppointments[0].scheduledAt).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })} · Ask if help with travel, notes or company would make the day easier.</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={19} color={colors.muted} />
+              </Pressable>
+            ) : null}
+            <Pressable onPress={() => router.push('/thinking-of-you')} style={({ pressed }) => [styles.partnerCard, pressed && styles.pressed]}>
+              <Ionicons name="heart" size={22} color={colors.roseDark} />
+              <View style={styles.flex}>
+                <Text style={styles.actionTitle}>Thinking of you</Text>
+                <Text style={styles.actionCaption}>A small signal can say “I’m here with you” without asking for anything back.</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={19} color={colors.muted} />
+            </Pressable>
+          </>
+        ) : null}
+
         {personalization?.actionType !== 'ask_food_ideas' ? (
         <Pressable
           onPress={() => router.push('/main/ask')}
@@ -471,24 +540,10 @@ export default function HomeScreen() {
           </View>
           <View style={styles.flex}>
             <Text style={styles.actionTitle}>Something on your mind?</Text>
-            <Text style={styles.actionCaption}>Ask Janani a pregnancy or maternal-wellness question.</Text>
+            <Text style={styles.actionCaption}>{isMother ? 'Ask Janani a pregnancy or maternal-wellness question.' : 'Ask Janani a general pregnancy or partner-support question. Mother-private health information is not used here.'}</Text>
           </View>
           <Ionicons name="arrow-forward" size={19} color={colors.roseDark} />
         </Pressable>
-        ) : null}
-
-        {!isMother ? (
-          <Pressable
-            onPress={() => router.push('/thinking-of-you')}
-            style={({ pressed }) => [styles.partnerCard, pressed && styles.pressed]}
-          >
-            <Ionicons name="heart-outline" size={22} color={colors.roseDark} />
-            <View style={styles.flex}>
-              <Text style={styles.actionTitle}>Thinking of you</Text>
-              <Text style={styles.actionCaption}>Send a little warmth without interrupting the day.</Text>
-            </View>
-            <Ionicons name="chevron-forward" size={19} color={colors.muted} />
-          </Pressable>
         ) : null}
 
         <Text style={styles.disclaimer}>Janani supports daily care and does not replace advice from your doctor.</Text>

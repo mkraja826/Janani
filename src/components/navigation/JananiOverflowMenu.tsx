@@ -5,7 +5,7 @@ import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, radius, spacing } from '@/theme/tokens';
 
-type MenuDestination = '/settings' | '/reminders' | '/safety-privacy';
+type MenuDestination = '/partner-family' | '/settings' | '/reminders' | '/safety-privacy';
 
 type MenuItemProps = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -66,8 +66,8 @@ export function JananiOverflowMenu() {
             </View>
 
             <MenuItem
-              caption="Invite, connect or manage your partner"
-              destination="/settings"
+              caption="Invite, connect and choose what your partner can see"
+              destination="/partner-family"
               icon="people-outline"
               label="Partner & family"
               onNavigate={navigate}
