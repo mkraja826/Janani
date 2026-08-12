@@ -8,6 +8,10 @@ import {
   RequestBodyError,
 } from "../_shared/http.ts";
 import {
+  resolveResponseLanguage,
+  responseLanguageInstruction,
+} from "../_shared/jananiLanguage.ts";
+import {
   JANANI_TONE_PROMPT,
   toneStateForRequest,
   toneStateInstruction,
@@ -391,6 +395,7 @@ Deno.serve(async (request: Request): Promise<Response> => {
         personalized: false,
         selected_topics: [],
         tone_state: "urgent",
+        response_language: "en",
       }, 200, cors, requestId);
     }
 
@@ -415,6 +420,15 @@ Deno.serve(async (request: Request): Promise<Response> => {
       .limit(1);
     if (membershipError) throw new PublicError(503, "Janani could not verify your family role right now.");
     const role = memberships?.[0]?.role === "mother" ? "mother" : "partner";
+    const { data: profileLanguage, error: profileLanguageError } = await admin
+      .from("profiles")
+      .select("preferred_language")
+      .eq("id", userData.user.id)
+      .maybeSingle();
+    if (profileLanguageError) {
+      console.error(JSON.stringify({ request_id: requestId, stage: "profile-language", code: profileLanguageError.code }));
+    }
+    const responseLanguage = resolveResponseLanguage(profileLanguage?.preferred_language);
 
     let safety: SafetyResult = {
       activeRulePackCount: 0,
@@ -440,6 +454,7 @@ Deno.serve(async (request: Request): Promise<Response> => {
           selected_topics: [],
           clinical_content_available: safety.clinicalContentAvailable,
           tone_state: safety.highestSeverity === "urgent" ? "urgent" : "attention",
+          response_language: "en",
         }, 200, cors, requestId);
       }
     }
@@ -489,7 +504,7 @@ Deno.serve(async (request: Request): Promise<Response> => {
     const providerMessages: Array<{ role: "system" | "user" | "assistant"; content: string }> = [
       {
         role: "system",
-        content: `${SYSTEM_PROMPT}\n\n${JANANI_TONE_PROMPT}\n\n${clinicalModePrompt(safety)}\n\n${toneStateInstruction(toneState)}`,
+        content: `${SYSTEM_PROMPT}\n\n${JANANI_TONE_PROMPT}\n\n${clinicalModePrompt(safety)}\n\n${toneStateInstruction(toneState)}\n\n${responseLanguageInstruction(responseLanguage)}`,
       },
     ];
     if (providerContext) {
@@ -535,6 +550,7 @@ Deno.serve(async (request: Request): Promise<Response> => {
       clinical_content_available: safety.clinicalContentAvailable,
       role_mode: role === "mother" ? "mother" : "partner_general",
       tone_state: toneState,
+      response_language: responseLanguage,
     }, 200, cors, requestId);
   } catch (error) {
     if (error instanceof RequestBodyError || error instanceof PublicError) {
