@@ -5,7 +5,7 @@ import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, radius, spacing } from '@/theme/tokens';
 
-type MenuDestination = '/partner-family' | '/settings' | '/reminders' | '/safety-privacy';
+type MenuDestination = '/partner-family' | '/language' | '/settings' | '/reminders' | '/safety-privacy';
 
 type MenuItemProps = {
   icon: keyof typeof Ionicons.glyphMap;
@@ -70,6 +70,13 @@ export function JananiOverflowMenu() {
               destination="/partner-family"
               icon="people-outline"
               label="Partner & family"
+              onNavigate={navigate}
+            />
+            <MenuItem
+              caption="Choose the language Janani uses for your account"
+              destination="/language"
+              icon="language-outline"
+              label="Language"
               onNavigate={navigate}
             />
             <MenuItem
