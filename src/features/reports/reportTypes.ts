@@ -15,6 +15,8 @@ export type MedicalReportExtractionStatus =
   | 'failed'
   | 'not_available';
 
+type ExtractionAttemptStatus = 'processing' | 'completed' | 'failed';
+
 export type MedicalReportSummary = {
   id: string;
   reportKind: MedicalReportKind;
@@ -60,7 +62,7 @@ export type MedicalReportDetail = MedicalReportSummary & {
   extractions: {
     id: string;
     attemptNumber: number;
-    status: 'processing' | 'completed' | 'failed';
+    status: ExtractionAttemptStatus;
     provider: string | null;
     model: string | null;
     parserVersion: string | null;
@@ -171,10 +173,13 @@ export function parseMedicalReportDetail(value: unknown): MedicalReportDetail | 
   const extractions = Array.isArray(value.extractions)
     ? value.extractions.flatMap((entry) => {
       if (!isRecord(entry) || typeof entry.id !== 'string' || typeof entry.attemptNumber !== 'number') return [];
+      const status: ExtractionAttemptStatus = entry.status === 'completed' || entry.status === 'failed'
+        ? entry.status
+        : 'processing';
       return [{
         id: entry.id,
         attemptNumber: entry.attemptNumber,
-        status: entry.status === 'completed' || entry.status === 'failed' ? entry.status : 'processing' as const,
+        status,
         provider: stringOrNull(entry.provider),
         model: stringOrNull(entry.model),
         parserVersion: stringOrNull(entry.parserVersion),
