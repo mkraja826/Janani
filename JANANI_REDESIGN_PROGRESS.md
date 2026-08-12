@@ -1,6 +1,6 @@
 # Janani Product Redesign Progress
 
-**Current redesign progress: 5%**
+**Current redesign progress: 13%**
 
 **Progress baseline: 0%**  
 **Baseline date:** 2026-08-12
@@ -30,8 +30,8 @@ Janani should progressively understand the mother's pregnancy, health profile, m
 | Milestone | Scope | Status |
 |---|---|---|
 | 1 | Primary navigation shell + overflow menu | Engineering complete / device review pending |
-| 2 | Home redesign and daily-priority experience | In progress |
-| 3 | Structured Health / mother profile redesign | Not started |
+| 2 | Home redesign and daily-priority experience | Engineering complete / device review pending |
+| 3 | Structured Health / mother profile redesign | In progress |
 | 4 | Private Reports upload + extraction + confirmation | Not started |
 | 5 | Mother Context Engine | Not started |
 | 6 | Clinical Safety Engine integration | Not started |
@@ -46,7 +46,7 @@ Janani should progressively understand the mother's pregnancy, health profile, m
 
 ## Progress weights
 
-Milestone 1 contributes 5 percentage points. Milestone 2 contributes 8 percentage points, bringing the redesign to 13% once its engineering validation passes. Later milestones are weighted by product and safety complexity rather than treated as equal-sized steps.
+Milestone 1 contributes 5 percentage points. Milestone 2 contributes 8 percentage points, bringing the redesign to 13% after its engineering validation passed. Later milestones are weighted by product and safety complexity rather than treated as equal-sized steps.
 
 ## Milestone 1 acceptance criteria
 
@@ -76,7 +76,22 @@ Milestone 1 remains intentionally unmerged and pending physical-device navigatio
 - [x] Home refreshes when pregnancy/reminder family invalidations arrive or the app becomes active.
 - [x] Partner invitation is removed from the daily Home surface and remains a secondary Partner & Family action.
 - [x] Ask Janani remains reachable as a lightweight contextual action.
-- [ ] Repository quality workflow passes on the Milestone 2 branch.
+- [x] Repository quality workflow passes on the Milestone 2 branch, including x86_64 debug APK compilation.
 - [ ] Physical-device Home review completed.
 
-**Progress remains 5% until Milestone 2 passes repository quality validation.**
+## Milestone 2 validation notes
+
+Repository-level validation completed successfully on 2026-08-12. The full Janani quality workflow passed, including the native x86_64 Android debug APK compile.
+
+## Milestone 3 acceptance criteria
+
+- [x] Health uses Janani's existing mother-only secure health RPCs instead of exposing raw health tables.
+- [x] Health clearly shows what Janani currently understands and why each data area matters.
+- [x] Mother can edit current weight, pregnancy type, dietary pattern, activity, allergies, avoided foods, cuisine preferences, clinician dietary instructions and supported health conditions.
+- [x] Self-reported health data is not presented as a diagnosis.
+- [x] Partner Health view does not expose the mother's private medical profile by default.
+- [x] Existing pregnancy basics, private medication context and health-profile data are reused rather than duplicated.
+- [ ] Repository quality workflow passes on the Milestone 3 branch.
+- [ ] Physical-device Health review completed.
+
+**Progress remains 13% until Milestone 3 passes repository quality validation.**
