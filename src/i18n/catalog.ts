@@ -1,0 +1,136 @@
+export const SUPPORTED_UI_LANGUAGES = [
+  { code: 'en', label: 'English', nativeLabel: 'English' },
+  { code: 'te', label: 'Telugu', nativeLabel: 'తెలుగు' },
+  { code: 'hi', label: 'Hindi', nativeLabel: 'हिन्दी' },
+] as const;
+
+export type SupportedUiLanguage = (typeof SUPPORTED_UI_LANGUAGES)[number]['code'];
+
+const en = {
+  'nav.home': 'Home',
+  'nav.health': 'Health',
+  'nav.ask': 'Ask Janani',
+  'nav.reports': 'Reports',
+  'nav.journey': 'Journey',
+  'language.eyebrow': 'LANGUAGE',
+  'language.title': 'Choose the language that feels natural',
+  'language.subtitle': 'This changes Janani’s interface for your account. Medical meaning and safety rules never change with language.',
+  'language.saved': 'Language saved',
+  'language.savedBody': 'Janani will use this language wherever a reviewed translation is available.',
+  'language.fallback': 'Some newer screens may still appear in English until their reviewed translation is ready.',
+  'language.errorTitle': 'Language could not be changed',
+  'language.errorBody': 'Your previous language is still in place. Please try again.',
+  'common.tryAgain': 'Try again',
+  'tone.home.motherSubtitle': 'Here is what matters today. The rest can stay quietly in the background.',
+  'tone.home.partnerSubtitle': 'A few small things can make today feel lighter for both of you.',
+  'tone.home.motherPriorityCaption': 'Janani keeps today simple and puts the next useful care item first.',
+  'tone.home.partnerPriorityCaption': 'Keep support simple: notice what is shared, check in, and be there when it helps.',
+  'tone.health.motherTitle': 'The details that help Janani understand you',
+  'tone.health.motherSubtitle': 'Tell Janani what is useful once, and it can make future suggestions feel less generic without changing your medical care.',
+  'tone.health.completionCaption': 'There is no need to finish everything now. Each useful detail helps Janani understand the person behind the pregnancy.',
+  'tone.health.partnerTitle': 'Her health stays hers',
+  'tone.health.partnerSubtitle': 'You can still be close and helpful without needing access to her private medical details.',
+  'tone.reports.motherTitle': 'Your reports, kept together',
+  'tone.reports.motherSubtitle': 'Upload a report when it is useful. Janani can read visible details, but nothing becomes trusted health context until you confirm it.',
+  'tone.reports.partnerTitle': 'Her reports stay private',
+  'tone.reports.partnerSubtitle': 'Medical records can be deeply personal. Janani keeps them with the mother unless she explicitly chooses to share something later.',
+  'tone.reports.reviewFlow': 'Janani reads → you review → only confirmed details can be used later.',
+  'tone.journey.motherTitle': 'This week is part of your story',
+  'tone.journey.motherSubtitle': 'See where you are in pregnancy and keep the small moments you may want to remember later.',
+  'tone.journey.partnerTitle': 'Walk beside the pregnancy, one week at a time',
+  'tone.journey.partnerSubtitle': 'Follow what has been shared and keep the memories you are building together.',
+  'tone.partner.title': 'Stay close in the ways she chooses',
+  'tone.partner.subtitle': 'Pregnancy support works best when care and privacy can exist together.',
+} as const;
+
+export type TranslationKey = keyof typeof en;
+
+type TranslationCatalog = Partial<Record<TranslationKey, string>>;
+
+const te: TranslationCatalog = {
+  'nav.home': 'హోమ్',
+  'nav.health': 'ఆరోగ్యం',
+  'nav.ask': 'జననిని అడగండి',
+  'nav.reports': 'రిపోర్టులు',
+  'nav.journey': 'ప్రయాణం',
+  'language.eyebrow': 'భాష',
+  'language.title': 'మీకు సహజంగా అనిపించే భాషను ఎంచుకోండి',
+  'language.subtitle': 'ఇది మీ ఖాతాలో జనని చూపించే భాషను మార్చుతుంది. వైద్య అర్థం, భద్రతా నియమాలు మాత్రం భాషతో మారవు.',
+  'language.saved': 'భాష సేవ్ అయింది',
+  'language.savedBody': 'సమీక్షించిన అనువాదం ఉన్న చోట జనని ఈ భాషను ఉపయోగిస్తుంది.',
+  'language.fallback': 'కొత్తగా వచ్చిన కొన్ని స్క్రీన్లు సమీక్షించిన అనువాదం సిద్ధం అయ్యే వరకు ఇంగ్లీష్‌లో కనిపించవచ్చు.',
+  'language.errorTitle': 'భాష మార్చలేకపోయాం',
+  'language.errorBody': 'మీ మునుపటి భాష అలాగే ఉంది. దయచేసి మళ్లీ ప్రయత్నించండి.',
+  'common.tryAgain': 'మళ్లీ ప్రయత్నించండి',
+  'tone.home.motherSubtitle': 'ఈ రోజు మీకు ముఖ్యమైనవి ఇవే. మిగతావన్నీ ఇప్పటికి నెమ్మదిగా పక్కన ఉండొచ్చు.',
+  'tone.home.partnerSubtitle': 'ఈ రోజు మీ ఇద్దరికీ కొంచెం తేలికగా అనిపించేందుకు చిన్న సహాయం చాలొచ్చు.',
+  'tone.home.motherPriorityCaption': 'ఈ రోజు అవసరమైన తదుపరి సంరక్షణను జనని సులభంగా ముందుకు తీసుకొస్తుంది.',
+  'tone.home.partnerPriorityCaption': 'సహాయం సులభంగా ఉంచండి: ఆమె పంచుకున్నది గమనించండి, అడిగి తెలుసుకోండి, అవసరమైనప్పుడు తోడుగా ఉండండి.',
+  'tone.health.motherTitle': 'జనని మిమ్మల్ని బాగా అర్థం చేసుకోవడానికి సహాయపడే వివరాలు',
+  'tone.health.motherSubtitle': 'ఉపయోగపడే వివరాలను ఒకసారి చెప్పండి. మీ వైద్య సంరక్షణను మార్చకుండా భవిష్యత్ సూచనలు మరింత వ్యక్తిగతంగా ఉండేందుకు అవి సహాయపడతాయి.',
+  'tone.health.completionCaption': 'అన్నీ ఒకేసారి పూర్తి చేయాల్సిన అవసరం లేదు. ప్రతి ఉపయోగకరమైన వివరంతో గర్భధారణ వెనుక ఉన్న మిమ్మల్ని జనని మరింతగా అర్థం చేసుకుంటుంది.',
+  'tone.health.partnerTitle': 'ఆమె ఆరోగ్య వివరాలు ఆమెవే',
+  'tone.health.partnerSubtitle': 'ఆమె వ్యక్తిగత వైద్య వివరాలు చూడకుండానే మీరు దగ్గరగా ఉండి సహాయం చేయవచ్చు.',
+  'tone.reports.motherTitle': 'మీ రిపోర్టులు, ఒకే చోట',
+  'tone.reports.motherSubtitle': 'ఉపయోగపడినప్పుడు రిపోర్టును అప్‌లోడ్ చేయండి. జనని కనిపించే వివరాలను చదవగలదు, కానీ మీరు నిర్ధారించే వరకు అవి నమ్మదగిన ఆరోగ్య సమాచారంగా మారవు.',
+  'tone.reports.partnerTitle': 'ఆమె రిపోర్టులు వ్యక్తిగతంగానే ఉంటాయి',
+  'tone.reports.partnerSubtitle': 'వైద్య రికార్డులు చాలా వ్యక్తిగతమైనవి కావచ్చు. ఆమె స్పష్టంగా పంచుకోవాలని ఎంచుకునే వరకు జనని వాటిని తల్లికే పరిమితం చేస్తుంది.',
+  'tone.reports.reviewFlow': 'జనని చదువుతుంది → మీరు పరిశీలిస్తారు → నిర్ధారించిన వివరాలనే తరువాత ఉపయోగించవచ్చు.',
+  'tone.journey.motherTitle': 'ఈ వారం కూడా మీ కథలో ఒక భాగం',
+  'tone.journey.motherSubtitle': 'గర్భధారణలో మీరు ఎక్కడ ఉన్నారో చూడండి, తరువాత గుర్తుంచుకోవాలనుకునే చిన్న క్షణాలను దాచుకోండి.',
+  'tone.journey.partnerTitle': 'ప్రతి వారం ఆమెతో పాటు నడవండి',
+  'tone.journey.partnerSubtitle': 'ఆమె పంచుకున్న విషయాలను అనుసరించండి, కలిసి సృష్టిస్తున్న జ్ఞాపకాలను దాచుకోండి.',
+  'tone.partner.title': 'ఆమె ఎంచుకున్న విధంగా దగ్గరగా ఉండండి',
+  'tone.partner.subtitle': 'సంరక్షణకు, వ్యక్తిగత గోప్యతకు రెండింటికీ స్థలం ఉన్నప్పుడు భాగస్వామి సహాయం మరింత మంచిగా ఉంటుంది.',
+};
+
+const hi: TranslationCatalog = {
+  'nav.home': 'होम',
+  'nav.health': 'स्वास्थ्य',
+  'nav.ask': 'जननी से पूछें',
+  'nav.reports': 'रिपोर्ट्स',
+  'nav.journey': 'यात्रा',
+  'language.eyebrow': 'भाषा',
+  'language.title': 'वह भाषा चुनें जो आपको सबसे सहज लगे',
+  'language.subtitle': 'यह आपके खाते में जननी की इंटरफ़ेस भाषा बदलता है। मेडिकल अर्थ और सुरक्षा नियम भाषा बदलने से नहीं बदलते।',
+  'language.saved': 'भाषा सेव हो गई',
+  'language.savedBody': 'जहाँ समीक्षा किया हुआ अनुवाद उपलब्ध है, जननी इस भाषा का उपयोग करेगी।',
+  'language.fallback': 'कुछ नए स्क्रीन समीक्षा किया हुआ अनुवाद तैयार होने तक अंग्रेज़ी में दिखाई दे सकते हैं।',
+  'language.errorTitle': 'भाषा नहीं बदली जा सकी',
+  'language.errorBody': 'आपकी पिछली भाषा अभी भी लागू है। कृपया फिर कोशिश करें।',
+  'common.tryAgain': 'फिर कोशिश करें',
+  'tone.home.motherSubtitle': 'आज जो सबसे ज़रूरी है, वही यहाँ है। बाकी चीज़ें अभी शांतिपूर्वक पीछे रह सकती हैं।',
+  'tone.home.partnerSubtitle': 'कुछ छोटी मदद आज का दिन आप दोनों के लिए थोड़ा हल्का बना सकती है।',
+  'tone.home.motherPriorityCaption': 'जननी आज की देखभाल को सरल रखती है और अगली उपयोगी चीज़ को पहले दिखाती है।',
+  'tone.home.partnerPriorityCaption': 'सहयोग सरल रखें: जो साझा किया गया है उसे देखें, पूछें और ज़रूरत पर साथ रहें।',
+  'tone.health.motherTitle': 'वे बातें जो जननी को आपको बेहतर समझने में मदद करती हैं',
+  'tone.health.motherSubtitle': 'उपयोगी जानकारी एक बार बताइए। आपकी मेडिकल देखभाल बदले बिना इससे आगे की सलाह कम सामान्य और अधिक प्रासंगिक हो सकती है।',
+  'tone.health.completionCaption': 'सब कुछ एक साथ पूरा करना ज़रूरी नहीं है। हर उपयोगी जानकारी जननी को गर्भावस्था के पीछे की व्यक्ति को बेहतर समझने में मदद करती है।',
+  'tone.health.partnerTitle': 'उसकी स्वास्थ्य जानकारी उसी की है',
+  'tone.health.partnerSubtitle': 'उसकी निजी मेडिकल जानकारी देखे बिना भी आप करीब रह सकते हैं और मदद कर सकते हैं।',
+  'tone.reports.motherTitle': 'आपकी रिपोर्ट्स, एक जगह',
+  'tone.reports.motherSubtitle': 'जब उपयोगी लगे तब रिपोर्ट अपलोड करें। जननी दिखाई देने वाली जानकारी पढ़ सकती है, लेकिन आपके पुष्टि करने तक वह भरोसेमंद स्वास्थ्य संदर्भ नहीं बनती।',
+  'tone.reports.partnerTitle': 'उसकी रिपोर्ट्स निजी रहती हैं',
+  'tone.reports.partnerSubtitle': 'मेडिकल रिकॉर्ड बहुत निजी हो सकते हैं। जब तक वह स्पष्ट रूप से कुछ साझा करने का चुनाव न करे, जननी उन्हें माँ तक सीमित रखती है।',
+  'tone.reports.reviewFlow': 'जननी पढ़ती है → आप जाँचते हैं → केवल पुष्टि की गई जानकारी बाद में उपयोग हो सकती है।',
+  'tone.journey.motherTitle': 'यह सप्ताह भी आपकी कहानी का हिस्सा है',
+  'tone.journey.motherSubtitle': 'देखें कि गर्भावस्था में आप कहाँ हैं और उन छोटे पलों को सहेजें जिन्हें आप बाद में याद रखना चाहेंगी।',
+  'tone.journey.partnerTitle': 'हर सप्ताह गर्भावस्था के साथ-साथ चलें',
+  'tone.journey.partnerSubtitle': 'जो साझा किया गया है उसे देखें और साथ बन रही यादों को सहेजें।',
+  'tone.partner.title': 'उसी तरह करीब रहें जैसा वह चुनती है',
+  'tone.partner.subtitle': 'जब देखभाल और निजता दोनों की जगह हो, तब साथी का सहयोग बेहतर काम करता है।',
+};
+
+const catalogs: Record<SupportedUiLanguage, TranslationCatalog> = { en, te, hi };
+
+export function resolveUiLanguage(value: string | null | undefined): SupportedUiLanguage {
+  const normalized = value?.trim().toLowerCase() ?? '';
+  const base = normalized.split(/[-_]/)[0];
+  return SUPPORTED_UI_LANGUAGES.some((item) => item.code === base)
+    ? base as SupportedUiLanguage
+    : 'en';
+}
+
+export function translate(language: SupportedUiLanguage, key: TranslationKey): string {
+  return catalogs[language][key] ?? en[key];
+}
