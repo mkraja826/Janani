@@ -3,28 +3,8 @@ import { router } from 'expo-router';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { TRIMESTER_GUIDES } from '@/features/pregnancy/guideContent';
 import { colors, radius, spacing } from '@/theme/tokens';
-
-const trimesters = [
-  {
-    title: 'First trimester',
-    weeks: 'Weeks 1–13',
-    icon: 'leaf-outline' as const,
-    points: ['Rest when fatigue is strong.', 'Small regular meals may help with nausea.', 'Take medicines and supplements only as advised by your clinician.', 'Keep your first antenatal visits and recommended tests.'],
-  },
-  {
-    title: 'Second trimester',
-    weeks: 'Weeks 14–27',
-    icon: 'sunny-outline' as const,
-    points: ['Continue balanced meals and hydration.', 'Stay active only within the limits your maternity team recommends.', 'Keep track of appointments and questions for your doctor.', 'Notice how your body and baby movement patterns change over time.'],
-  },
-  {
-    title: 'Third trimester',
-    weeks: 'Weeks 28–40+',
-    icon: 'heart-outline' as const,
-    points: ['Keep regular antenatal reviews.', 'Prepare medicines, records, transport and hospital essentials.', 'Ask your clinician what changes in baby movement should prompt review.', 'Seek urgent care for severe or worrying symptoms rather than waiting for the app.'],
-  },
-];
 
 export default function PregnancyGuideScreen() {
   return (
@@ -46,7 +26,7 @@ export default function PregnancyGuideScreen() {
           <Text style={styles.body}>Your home screen already calculates your current pregnancy week and trimester from the due date saved during onboarding. This guide gives simple supportive reminders for each stage.</Text>
         </View>
 
-        {trimesters.map((item) => (
+        {TRIMESTER_GUIDES.map((item) => (
           <View key={item.title} style={styles.card}>
             <View style={styles.cardTop}>
               <View style={styles.iconWrap}><Ionicons name={item.icon} size={24} color={colors.rose} /></View>
