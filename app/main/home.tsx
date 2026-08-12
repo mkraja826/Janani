@@ -1,13 +1,30 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router, useFocusEffect } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  AppState,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { JananiPageHeader } from '@/components/navigation/JananiPageHeader';
+import {
+  buildDailyCareSnapshot,
+  type DailyReminder,
+  type DailyReminderLog,
+  greetingForNow,
+  priorityTimingLabel,
+} from '@/features/home/dailySnapshot';
 import { cacheActivePregnancyId } from '@/features/pregnancy/activePregnancy';
 import { getPregnancyProgress, trimesterLabel } from '@/features/pregnancy/progress';
 import { readCache, writeCache } from '@/lib/cache';
+import { toLocalDate } from '@/lib/date';
 import { supabase } from '@/lib/supabase';
 import { useMembership } from '@/providers/AuthGate';
 import { useAuth } from '@/providers/AuthProvider';
@@ -17,25 +34,76 @@ type FamilySummary = {
   role: 'mother' | 'partner';
   familyName: string;
   dueDate: string | null;
-  inviteCode: string | null;
 };
 
-const CACHE_KEY = 'home-summary-v1';
+type HomeReminder = DailyReminder & {
+  start_date: string;
+  end_date: string | null;
+  days_of_week: number[];
+};
+
+type HomeReminderLog = DailyReminderLog & {
+  scheduled_for: string;
+};
+
+type HomeCache = {
+  date: string;
+  summary: FamilySummary;
+  reminders: HomeReminder[];
+  logs: HomeReminderLog[];
+};
+
+const CACHE_KEY = 'home-daily-v2';
+
+function reminderIcon(kind: HomeReminder['kind']) {
+  if (kind === 'medication') return 'medical-outline' as const;
+  if (kind === 'hydration') return 'water-outline' as const;
+  if (kind === 'nutrition') return 'nutrition-outline' as const;
+  if (kind === 'appointment') return 'calendar-outline' as const;
+  return 'alarm-outline' as const;
+}
 
 export default function HomeScreen() {
   const { session } = useAuth();
-  const { markMembership } = useMembership();
+  const { markMembership, onFamilyInvalidation } = useMembership();
   const [summary, setSummary] = useState<FamilySummary | null>(null);
+  const [reminders, setReminders] = useState<HomeReminder[]>([]);
+  const [logs, setLogs] = useState<HomeReminderLog[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [loadError, setLoadError] = useState(false);
+  const [offline, setOffline] = useState(false);
+  const loadRevision = useRef(0);
   const userId = session?.user.id;
+
+  useEffect(() => {
+    loadRevision.current += 1;
+    setSummary(null);
+    setReminders([]);
+    setLogs([]);
+    setLoadError(false);
+    setOffline(false);
+    setLoading(Boolean(userId));
+  }, [userId]);
 
   const load = useCallback(async () => {
     if (!userId) return;
+    const revision = ++loadRevision.current;
     setLoadError(false);
-    const cached = await readCache<FamilySummary>(userId, CACHE_KEY);
-    if (cached) {
-      setSummary(cached);
+
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 1);
+    const date = toLocalDate(start);
+
+    const cached = await readCache<HomeCache>(userId, CACHE_KEY);
+    if (revision !== loadRevision.current) return;
+    const validCache = cached?.date === date ? cached : null;
+    if (validCache) {
+      setSummary(validCache.summary);
+      setReminders(validCache.reminders);
+      setLogs(validCache.logs);
       setLoading(false);
     }
 
@@ -45,9 +113,12 @@ export default function HomeScreen() {
       .eq('user_id', userId)
       .maybeSingle();
 
+    if (revision !== loadRevision.current) return;
     if (membership.error) {
-      if (!cached) setLoadError(true);
+      setOffline(Boolean(validCache));
+      if (!validCache) setLoadError(true);
       setLoading(false);
+      setRefreshing(false);
       return;
     }
     if (!membership.data) {
@@ -56,21 +127,37 @@ export default function HomeScreen() {
       return;
     }
 
-    const isMother = membership.data.role === 'mother';
-    const [family, inviteCodeResult] = await Promise.all([
+    const [family, reminderItems, reminderHistory] = await Promise.all([
       supabase
         .from('families')
         .select('name,pregnancies(id,due_date,status)')
         .eq('id', membership.data.family_id)
         .maybeSingle(),
-      isMother
-        ? supabase.rpc('get_mother_family_invite_code')
-        : Promise.resolve({ data: null, error: null }),
+      supabase
+        .from('reminders')
+        .select('id,title,kind,local_time,start_date,end_date,days_of_week,is_active')
+        .eq('is_active', true)
+        .lte('start_date', date)
+        .or(`end_date.is.null,end_date.gte.${date}`)
+        .order('local_time'),
+      supabase
+        .from('reminder_logs')
+        .select('reminder_id,scheduled_for,state')
+        .gte('scheduled_for', start.toISOString())
+        .lt('scheduled_for', end.toISOString()),
     ]);
 
-    if (family.error || !family.data || inviteCodeResult.error) {
-      if (!cached) setLoadError(true);
+    if (revision !== loadRevision.current) return;
+    if (toLocalDate(new Date()) !== date) {
+      void load();
+      return;
+    }
+
+    if (family.error || !family.data || reminderItems.error || reminderHistory.error) {
+      setOffline(Boolean(validCache));
+      if (!validCache) setLoadError(true);
       setLoading(false);
+      setRefreshing(false);
       return;
     }
 
@@ -88,17 +175,32 @@ export default function HomeScreen() {
         : [];
     const activePregnancy = pregnancies.find((item) => item.status === 'active');
     const pregnancy = activePregnancy ?? pregnancies[0];
-    const next: FamilySummary = {
+    const nextSummary: FamilySummary = {
       role: membership.data.role as FamilySummary['role'],
       familyName: familyData.name ?? 'Our little family',
       dueDate: pregnancy?.due_date ?? null,
-      inviteCode: isMother ? inviteCodeResult.data : null,
     };
 
-    setSummary(next);
+    const weekday = start.getDay();
+    const nextReminders = (reminderItems.data ?? []).filter((item) => (
+      item.days_of_week.length === 0 || item.days_of_week.includes(weekday)
+    )) as HomeReminder[];
+    const nextLogs = (reminderHistory.data ?? []) as HomeReminderLog[];
+
+    setSummary(nextSummary);
+    setReminders(nextReminders);
+    setLogs(nextLogs);
+    setOffline(false);
     setLoading(false);
+    setRefreshing(false);
+
     await Promise.all([
-      writeCache(userId, CACHE_KEY, next),
+      writeCache<HomeCache>(userId, CACHE_KEY, {
+        date,
+        summary: nextSummary,
+        reminders: nextReminders,
+        logs: nextLogs,
+      }),
       cacheActivePregnancyId(userId, activePregnancy?.id ?? null),
     ]);
   }, [markMembership, userId]);
@@ -107,10 +209,29 @@ export default function HomeScreen() {
     void load();
   }, [load]));
 
+  useEffect(() => {
+    const stopInvalidations = onFamilyInvalidation(
+      ['families', 'pregnancies', 'reminders', 'reminder_logs'],
+      () => void load(),
+    );
+    const appState = AppState.addEventListener('change', (state) => {
+      if (state === 'active') void load();
+    });
+    return () => {
+      stopInvalidations();
+      appState.remove();
+    };
+  }, [load, onFamilyInvalidation]);
+
   const progress = useMemo(
     () => summary?.dueDate ? getPregnancyProgress(summary.dueDate) : null,
     [summary?.dueDate],
   );
+  const care = useMemo(
+    () => buildDailyCareSnapshot(reminders, logs),
+    [logs, reminders],
+  );
+  const priority = care.priority;
 
   if (loading) {
     return <View style={styles.center}><ActivityIndicator color={colors.rose} /></View>;
@@ -119,7 +240,7 @@ export default function HomeScreen() {
   if (loadError && !summary) {
     return (
       <View style={styles.center}>
-        <Text style={styles.errorTitle}>Janani could not load your family</Text>
+        <Text style={styles.errorTitle}>Janani could not load today</Text>
         <Text style={styles.errorText}>Check your connection. Your saved information has not been removed.</Text>
         <Pressable onPress={() => { setLoading(true); void load(); }} style={styles.retryButton}>
           <Text style={styles.retryText}>Try again</Text>
@@ -128,30 +249,55 @@ export default function HomeScreen() {
     );
   }
 
+  const greeting = greetingForNow();
+  const isMother = summary?.role === 'mother';
+  const priorityIcon = priority ? reminderIcon(priority.reminder.kind) : care.total === 0 ? 'leaf-outline' : 'checkmark-circle-outline';
+
   return (
     <SafeAreaView style={styles.page} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        refreshControl={(
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => {
+              setRefreshing(true);
+              void load();
+            }}
+          />
+        )}
+      >
         <JananiPageHeader
           eyebrow={summary?.familyName.toUpperCase()}
-          title={summary?.role === 'mother' ? 'How are you feeling today?' : 'A little care goes a long way.'}
-          subtitle={summary?.role === 'mother'
-            ? 'Janani will keep the important things close and do the complicated work quietly in the background.'
-            : 'Stay close to the pregnancy journey without making the mother manage another complicated app.'}
+          title={`${greeting}.`}
+          subtitle={isMother
+            ? 'Here is what matters today. Everything else can stay quietly in the background.'
+            : 'Here is the simplest way to stay close to the pregnancy today.'}
         />
 
-        <Pressable onPress={() => router.push('/pregnancy-guide')} style={({ pressed }) => [styles.heroCard, pressed && styles.pressed]}>
-          <View style={styles.heroIcon}>
+        {offline ? (
+          <View style={styles.offlineCard}>
+            <Ionicons name="cloud-offline-outline" size={18} color={colors.roseDark} />
+            <Text style={styles.offlineText}>Showing the most recent saved view of today.</Text>
+          </View>
+        ) : null}
+
+        <Pressable
+          onPress={() => router.push('/pregnancy-guide')}
+          style={({ pressed }) => [styles.pregnancyCard, pressed && styles.pressed]}
+        >
+          <View style={styles.pregnancyIcon}>
             <Ionicons name="heart-circle" size={38} color={colors.rose} />
           </View>
           <View style={styles.flex}>
-            <Text style={styles.cardEyebrow}>TODAY WITH JANANI</Text>
+            <Text style={styles.cardEyebrow}>YOUR JOURNEY</Text>
             {progress ? (
               <>
                 <Text style={styles.week}>Week {progress.gestationalWeek}</Text>
                 <Text style={styles.cardTitle}>{trimesterLabel(progress.trimester)} · day {progress.gestationalDay}</Text>
                 <Text style={styles.cardMeta}>
                   {progress.isPastDue
-                    ? 'Your due date has arrived. Keep in touch with your maternity care team.'
+                    ? 'Your estimated due date has arrived.'
                     : `${progress.daysRemaining} days until the estimated due date`}
                 </Text>
               </>
@@ -163,47 +309,86 @@ export default function HomeScreen() {
         </Pressable>
 
         <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Today</Text>
-          <Text style={styles.sectionCaption}>Only the things you are most likely to need right now.</Text>
+          <Text style={styles.sectionTitle}>What matters today</Text>
+          <Text style={styles.sectionCaption}>Janani keeps the list short and puts the next care item first.</Text>
         </View>
 
-        <Pressable onPress={() => router.push('/reminders')} style={({ pressed }) => [styles.actionCard, pressed && styles.pressed]}>
-          <View style={styles.actionIcon}><Ionicons name="alarm-outline" size={23} color={colors.roseDark} /></View>
-          <View style={styles.flex}>
-            <Text style={styles.actionTitle}>Medicines & reminders</Text>
-            <Text style={styles.actionCaption}>See today’s medicine and care schedule.</Text>
+        <Pressable
+          onPress={() => router.push('/reminders')}
+          style={({ pressed }) => [styles.priorityCard, pressed && styles.pressed]}
+        >
+          <View style={[styles.priorityIcon, priority?.timing === 'overdue' && styles.priorityIconAttention]}>
+            <Ionicons
+              name={priorityIcon}
+              size={26}
+              color={priority?.timing === 'overdue' ? colors.danger : colors.roseDark}
+            />
           </View>
-          <Ionicons name="chevron-forward" size={19} color={colors.muted} />
+          <View style={styles.flex}>
+            <Text style={styles.cardEyebrow}>
+              {priority ? 'NEXT CARE' : care.total === 0 ? 'TODAY’S CARE' : 'CARE CHECKED'}
+            </Text>
+            <Text style={styles.priorityTitle}>
+              {priority?.reminder.title
+                ?? (care.total === 0 ? 'Nothing scheduled today' : 'Today’s reminders are reviewed')}
+            </Text>
+            <Text style={styles.priorityMeta}>
+              {priority
+                ? priorityTimingLabel(priority)
+                : care.total === 0
+                  ? 'Add a reminder only when you need one.'
+                  : 'You have checked everything that was planned for today.'}
+            </Text>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.muted} />
         </Pressable>
 
-        <Pressable onPress={() => router.push('/main/ask')} style={({ pressed }) => [styles.askCard, pressed && styles.pressed]}>
-          <View style={styles.actionIcon}><Ionicons name="sparkles-outline" size={23} color={colors.roseDark} /></View>
+        {care.total > 0 ? (
+          <View style={styles.careStats}>
+            <View style={styles.stat}>
+              <Text style={styles.statValue}>{care.total}</Text>
+              <Text style={styles.statLabel}>planned</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.stat}>
+              <Text style={styles.statValue}>{care.taken}</Text>
+              <Text style={styles.statLabel}>taken</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.stat}>
+              <Text style={styles.statValue}>{care.remaining}</Text>
+              <Text style={styles.statLabel}>left</Text>
+            </View>
+          </View>
+        ) : null}
+
+        <Pressable
+          onPress={() => router.push('/main/ask')}
+          style={({ pressed }) => [styles.askCard, pressed && styles.pressed]}
+        >
+          <View style={styles.askIcon}>
+            <Ionicons name="sparkles-outline" size={23} color={colors.roseDark} />
+          </View>
           <View style={styles.flex}>
-            <Text style={styles.actionTitle}>Ask Janani</Text>
-            <Text style={styles.actionCaption}>Ask a pregnancy or maternal-wellness question.</Text>
+            <Text style={styles.actionTitle}>Something on your mind?</Text>
+            <Text style={styles.actionCaption}>Ask Janani a pregnancy or maternal-wellness question.</Text>
           </View>
           <Ionicons name="arrow-forward" size={19} color={colors.roseDark} />
         </Pressable>
 
-        {summary?.inviteCode ? (
-          <View style={styles.inviteCard}>
-            <View style={styles.inviteHeader}>
-              <Ionicons name="people-outline" size={22} color={colors.roseDark} />
-              <Text style={styles.inviteLabel}>Invite your partner</Text>
-            </View>
-            <Text selectable style={styles.inviteCode}>{summary.inviteCode}</Text>
-            <Text style={styles.inviteHelp}>Share this code privately. Your partner gets a separate support-focused Janani experience.</Text>
-          </View>
-        ) : (
-          <Pressable onPress={() => router.push('/thinking-of-you')} style={({ pressed }) => [styles.partnerCard, pressed && styles.pressed]}>
+        {!isMother ? (
+          <Pressable
+            onPress={() => router.push('/thinking-of-you')}
+            style={({ pressed }) => [styles.partnerCard, pressed && styles.pressed]}
+          >
             <Ionicons name="heart-outline" size={22} color={colors.roseDark} />
             <View style={styles.flex}>
               <Text style={styles.actionTitle}>Thinking of you</Text>
-              <Text style={styles.actionCaption}>Send a little warmth to your partner.</Text>
+              <Text style={styles.actionCaption}>Send a little warmth without interrupting the day.</Text>
             </View>
             <Ionicons name="chevron-forward" size={19} color={colors.muted} />
           </Pressable>
-        )}
+        ) : null}
 
         <Text style={styles.disclaimer}>Janani supports daily care and does not replace advice from your doctor.</Text>
       </ScrollView>
@@ -213,12 +398,45 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: colors.background },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, padding: spacing.xl, backgroundColor: colors.background },
+  center: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing.md,
+    padding: spacing.xl,
+    backgroundColor: colors.background,
+  },
   content: { padding: spacing.lg, paddingBottom: spacing.xxl, gap: spacing.lg },
   flex: { flex: 1 },
   pressed: { opacity: 0.82 },
-  heroCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.lg, borderRadius: radius.lg, backgroundColor: colors.blush, borderWidth: 1, borderColor: colors.border },
-  heroIcon: { width: 54, height: 54, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
+  offlineCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.blush,
+  },
+  offlineText: { flex: 1, fontSize: 12, lineHeight: 18, color: colors.roseDark },
+  pregnancyCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.lg,
+    borderRadius: radius.lg,
+    backgroundColor: colors.blush,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  pregnancyIcon: {
+    width: 54,
+    height: 54,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+  },
   cardEyebrow: { fontSize: 11, letterSpacing: 1.7, fontWeight: '800', color: colors.roseDark },
   week: { marginTop: spacing.xs, fontSize: 28, fontWeight: '900', color: colors.ink },
   cardTitle: { marginTop: 3, fontSize: 15, lineHeight: 21, fontWeight: '700', color: colors.ink },
@@ -226,20 +444,84 @@ const styles = StyleSheet.create({
   sectionHeader: { gap: 3, marginTop: spacing.xs },
   sectionTitle: { fontSize: 19, fontWeight: '900', color: colors.ink },
   sectionCaption: { fontSize: 13, lineHeight: 19, color: colors.muted },
-  actionCard: { minHeight: 78, flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderRadius: radius.lg, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
-  askCard: { minHeight: 82, flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderRadius: radius.lg, backgroundColor: colors.sageSoft, borderWidth: 1, borderColor: colors.border },
-  actionIcon: { width: 46, height: 46, borderRadius: radius.md, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.blush },
+  priorityCard: {
+    minHeight: 110,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.lg,
+    borderRadius: radius.lg,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  priorityIcon: {
+    width: 50,
+    height: 50,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.sageSoft,
+  },
+  priorityIconAttention: { backgroundColor: colors.blush },
+  priorityTitle: { marginTop: spacing.xs, fontSize: 18, lineHeight: 24, fontWeight: '900', color: colors.ink },
+  priorityMeta: { marginTop: 4, fontSize: 12, lineHeight: 18, color: colors.muted },
+  careStats: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    borderRadius: radius.lg,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  stat: { flex: 1, alignItems: 'center', gap: 2 },
+  statValue: { fontSize: 20, fontWeight: '900', color: colors.ink },
+  statLabel: { fontSize: 11, fontWeight: '700', color: colors.muted },
+  statDivider: { width: 1, height: 30, backgroundColor: colors.border },
+  askCard: {
+    minHeight: 82,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.md,
+    borderRadius: radius.lg,
+    backgroundColor: colors.sageSoft,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  askIcon: {
+    width: 46,
+    height: 46,
+    borderRadius: radius.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.blush,
+  },
   actionTitle: { fontSize: 16, fontWeight: '800', color: colors.ink },
   actionCaption: { marginTop: 3, fontSize: 12, lineHeight: 18, color: colors.muted },
-  inviteCard: { padding: spacing.lg, borderRadius: radius.lg, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
-  inviteHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  inviteLabel: { fontSize: 15, fontWeight: '800', color: colors.ink },
-  inviteCode: { marginVertical: spacing.sm, fontSize: 24, letterSpacing: 2.3, fontWeight: '900', color: colors.roseDark },
-  inviteHelp: { fontSize: 13, lineHeight: 19, color: colors.muted },
-  partnerCard: { minHeight: 78, flexDirection: 'row', alignItems: 'center', gap: spacing.md, padding: spacing.md, borderRadius: radius.lg, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  partnerCard: {
+    minHeight: 78,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    padding: spacing.md,
+    borderRadius: radius.lg,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
   disclaimer: { textAlign: 'center', fontSize: 12, lineHeight: 18, color: colors.muted },
   errorTitle: { textAlign: 'center', fontSize: 20, fontWeight: '800', color: colors.ink },
   errorText: { maxWidth: 340, textAlign: 'center', fontSize: 14, lineHeight: 21, color: colors.muted },
-  retryButton: { minWidth: 130, minHeight: 50, alignItems: 'center', justifyContent: 'center', borderRadius: radius.pill, backgroundColor: colors.rose },
+  retryButton: {
+    minWidth: 130,
+    minHeight: 50,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: radius.pill,
+    backgroundColor: colors.rose,
+  },
   retryText: { fontWeight: '800', color: colors.surface },
 });
