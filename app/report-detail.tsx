@@ -30,6 +30,7 @@ import {
   deletePrivateMedicalReport,
   ReportUploadError,
 } from '@/features/reports/reportUpload';
+import { ReportExtractionCard } from '@/features/reports/ReportExtractionCard';
 import { supabase } from '@/lib/supabase';
 import { colors, radius, spacing } from '@/theme/tokens';
 
@@ -275,6 +276,8 @@ export default function ReportDetailScreen() {
             <Text style={styles.safetyText}>Machine-read values below are only proposals. Compare them with the original before confirming or correcting them.</Text>
           </View>
         </View>
+
+        <ReportExtractionCard report={report} onComplete={load} />
 
         {proposedFacts.length ? (
           <View style={styles.section}>
