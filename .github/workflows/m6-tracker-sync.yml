@@ -1,0 +1,48 @@
+name: M6 Tracker Sync
+
+on:
+  push:
+    branches:
+      - codex/janani-m6-india-anc-red-flags
+    paths:
+      - .github/workflows/m6-tracker-sync.yml
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: codex/janani-m6-india-anc-red-flags
+      - run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('JANANI_REDESIGN_PROGRESS.md')
+          s = p.read_text()
+          old = '| 6 | Clinical Safety Engine integration | Infrastructure complete / approved clinical content pending | 0 |'
+          new = '| 6 | Clinical Safety Engine integration | ANC/red-flag V2 evidence extracted / clinician review + symptom runtime predicate pending | 0 |'
+          if old not in s:
+              raise SystemExit('M6 roadmap row not found')
+          s = s.replace(old, new, 1)
+          old_check = '- [ ] India clinical rules extracted from verified sources.\n- [ ] Qualified clinician review/approval recorded.'
+          new_check = '- [x] First India package (ANC/red flags) extracted from verified current ICMR source with NHM/MoHFW programme/index cross-check and visual-PDF verification.\n- [ ] Complete item-level NHM/MoHFW document reconciliation for the ANC/red-flag package.\n- [ ] Add a closed normalized symptom-concept predicate to the deterministic engine after clinical/schema review.\n- [ ] Qualified clinician review/approval recorded.\n- [ ] Remaining India clinical domains extracted and reviewed (anaemia, GDM, hypertension, thyroid, nutrition, food safety, vaccination, postpartum/breastfeeding, medication boundaries).'
+          if old_check not in s:
+              raise SystemExit('M6 checklist anchor not found')
+          s = s.replace(old_check, new_check, 1)
+          marker = 'Current live clinical state remains intentionally **0 registered production versions / 0 active clinical rule packs**.'
+          addition = marker + '\n\nANC/red-flag V2 is a **clinical-review candidate only**. It contains 16 atomic source concepts and is deliberately not registered because final urgency is unapproved and the current engine cannot safely match symptom identity.'
+          if addition not in s:
+              if marker not in s:
+                  raise SystemExit('M6 state marker not found')
+              s = s.replace(marker, addition, 1)
+          p.write_text(s)
+          PY
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+mkraja826@users.noreply.github.com"
+          git add JANANI_REDESIGN_PROGRESS.md
+          git commit -m "Record M6 ANC red flag validation progress"
+          git push origin HEAD:codex/janani-m6-india-anc-red-flags
