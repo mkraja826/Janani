@@ -1,0 +1,46 @@
+name: M4 Wire Extraction UI
+
+on:
+  push:
+    branches:
+      - codex/janani-product-redesign-m4
+    paths:
+      - .github/workflows/m4-wire-extraction.yml
+
+permissions:
+  contents: write
+
+jobs:
+  wire:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: codex/janani-product-redesign-m4
+      - name: Wire report extraction card
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('app/report-detail.tsx')
+          s = p.read_text()
+          import_anchor = "import { supabase } from '@/lib/supabase';\n"
+          import_line = "import { ReportExtractionCard } from '@/features/reports/ReportExtractionCard';\n"
+          if import_line not in s:
+              if import_anchor not in s:
+                  raise SystemExit('import anchor not found')
+              s = s.replace(import_anchor, import_line + import_anchor, 1)
+          card_anchor = "        {proposedFacts.length ? (\n"
+          card = "        <ReportExtractionCard report={report} onComplete={load} />\n\n"
+          if card not in s:
+              if card_anchor not in s:
+                  raise SystemExit('card anchor not found')
+              s = s.replace(card_anchor, card + card_anchor, 1)
+          p.write_text(s)
+          PY
+      - name: Commit wiring
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/report-detail.tsx
+          git commit -m "Wire report extraction review action"
+          git push origin HEAD:codex/janani-product-redesign-m4
