@@ -39,7 +39,18 @@ export default function PartnerFamilyScreen() {
 
   const load = useCallback(async () => {
     setLoadError(false);
-    const membership = await supabase.from('family_members').select('role').maybeSingle();
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    const userId = authData.user?.id;
+    if (authError || !userId) {
+      setLoadError(true);
+      setLoading(false);
+      return;
+    }
+    const membership = await supabase
+      .from('family_members')
+      .select('role')
+      .eq('user_id', userId)
+      .maybeSingle();
     if (membership.error || !membership.data) {
       setLoadError(true);
       setLoading(false);
