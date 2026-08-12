@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
+import type { ComponentProps, ReactNode } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -24,8 +25,8 @@ import {
   type HealthCondition,
   type HealthProfile,
 } from '@/features/health/healthProfile';
+import { getOwnHealthProfile, saveOwnHealthProfile } from '@/features/health/healthRpc';
 import { resolveActivePregnancyId } from '@/features/pregnancy/activePregnancy';
-import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
 import { colors, radius, spacing } from '@/theme/tokens';
 
@@ -57,7 +58,7 @@ export default function EditHealthProfileScreen() {
         return;
       }
       setPregnancyId(activeId);
-      const result = await supabase.rpc('get_own_health_profile', { p_pregnancy_id: activeId });
+      const result = await getOwnHealthProfile(activeId);
       if (disposed) return;
       if (result.error) {
         Alert.alert('Could not load your health details', result.error.message);
@@ -100,9 +101,9 @@ export default function EditHealthProfileScreen() {
       return;
     }
     setSaving(true);
-    const result = await supabase.rpc('save_own_health_profile', {
-      p_pregnancy_id: pregnancyId,
-      p_profile: {
+    const result = await saveOwnHealthProfile({
+      pregnancyId,
+      profile: {
         current_weight_kg: parsedWeight,
         pregnancy_type: profile.pregnancy_type,
         dietary_pattern: profile.dietary_pattern,
@@ -112,7 +113,7 @@ export default function EditHealthProfileScreen() {
         foods_avoided: splitList(foodsAvoided),
         clinician_dietary_instructions: clinicianInstructions.trim() || null,
       },
-      p_conditions: profile.conditions,
+      conditions: profile.conditions,
     });
     setSaving(false);
     if (result.error) {
@@ -202,7 +203,7 @@ export default function EditHealthProfileScreen() {
   );
 }
 
-function Section({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
+function Section({ title, subtitle, children }: { title: string; subtitle: string; children: ReactNode }) {
   return <View style={styles.section}><Text style={styles.sectionTitle}>{title}</Text><Text style={styles.sectionSubtitle}>{subtitle}</Text>{children}</View>;
 }
 
@@ -210,7 +211,7 @@ function ChoiceRow({ options, value, onChange }: { options: readonly (readonly [
   return <View style={styles.chips}>{options.map(([optionValue, label]) => <Pressable key={optionValue} onPress={() => onChange(optionValue)} style={[styles.chip, value === optionValue && styles.chipSelected]}><Text style={[styles.chipText, value === optionValue && styles.chipTextSelected]}>{label}</Text></Pressable>)}</View>;
 }
 
-function Field({ label, helper, multiline, ...props }: React.ComponentProps<typeof TextInput> & { label: string; helper?: string; multiline?: boolean }) {
+function Field({ label, helper, multiline, ...props }: ComponentProps<typeof TextInput> & { label: string; helper?: string; multiline?: boolean }) {
   return <View style={styles.field}><Text style={styles.fieldLabel}>{label}</Text>{helper ? <Text style={styles.helper}>{helper}</Text> : null}<TextInput {...props} multiline={multiline} placeholderTextColor={colors.muted} style={[styles.input, multiline && styles.inputMultiline]} /></View>;
 }
 
