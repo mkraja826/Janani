@@ -1,6 +1,6 @@
 # Janani Product Redesign Progress
 
-**Current redesign progress: 65%**
+**Current redesign progress: 71%**
 
 **Progress baseline: 0%**  
 **Baseline date:** 2026-08-12
@@ -36,13 +36,13 @@ AI is an explanation/personalization layer only. Mother-confirmed data and clini
 | 7 | Context-aware Ask Janani | Engineering complete / device/provider interaction review pending | 10 |
 | 8 | Background personalization/event engine | Engineering complete / device event review pending | 8 |
 | 9 | Journey consolidation | Engineering complete / device review pending | 6 |
-| 10 | Partner experience redesign | In progress | 0 |
+| 10 | Partner experience redesign | Engineering complete / device sharing review pending | 6 |
 | 11 | Emotional tone system | Not started | 0 |
 | 12 | Multilingual product layer | Not started | 0 |
 | 13 | Mother/partner/clinician + physical-device UX validation | Not started | 0 |
 | 14 | Production release gates | Not started | 0 |
 
-**Counted progress: 65%.** Milestone 6's infrastructure is intentionally not counted because no clinician-reviewed, source-backed clinical rule pack is active yet.
+**Counted progress: 71%.** Milestone 6's infrastructure is intentionally not counted because no clinician-reviewed, source-backed clinical rule pack is active yet.
 
 ## Milestone weights
 
@@ -145,8 +145,7 @@ Current live clinical state remains intentionally **0 registered production vers
 - [x] Existing journal RLS, sharing, cache and invalidations reused.
 - [x] Full quality workflow + native APK passed.
 
-## M10 — Partner experience acceptance
-
+### M10 — Partner experience
 - [x] Dedicated Partner & Family screen exists from the overflow menu.
 - [x] Mother can explicitly control pregnancy-progress and upcoming-care-timeline sharing.
 - [x] Partner-safe RPC excludes Health, reports and medicines.
@@ -154,7 +153,18 @@ Current live clinical state remains intentionally **0 registered production vers
 - [x] Rollback privacy tests confirm sharing OFF hides direct pregnancy rows and shares zero appointments.
 - [x] Partner Home is support-first: shared progress, shared appointment when allowed, reminder support, Thinking of You and general Ask Janani.
 - [x] Partner does not cache a mother-owned active pregnancy id.
-- [ ] Latest M10 branch passes full repository quality workflow + native APK.
+- [x] Latest M10 branch passes full repository quality workflow + native APK.
 - [ ] Physical-device mother/partner sharing review.
 
-**Next progress change:** M10 adds 6 points only after the latest branch passes repository/native validation.
+## M11 — Emotional tone system acceptance
+
+- [ ] Central tone states and writing rules exist instead of scattered ad-hoc warmth.
+- [ ] Normal/supportive copy is warm, simple and culturally familiar without sounding synthetic.
+- [ ] Uncertainty/attention copy acknowledges concern without false reassurance.
+- [ ] Urgent safety copy stays direct and action-first; emotional phrasing cannot dilute escalation.
+- [ ] Sensitive/grief copy avoids cheerfulness, blame, prediction and minimizing language.
+- [ ] Ask Janani provider prompt uses the same tone contract while clinical/safety instructions retain higher priority.
+- [ ] Representative Home, Health, Reports, Journey and partner surfaces use the shared tone system.
+- [ ] Full quality workflow + native APK passes.
+
+**Next progress change:** M11 adds 4 points after the latest branch passes repository/native validation.
