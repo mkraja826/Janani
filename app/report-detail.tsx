@@ -279,7 +279,7 @@ export default function ReportDetailScreen() {
         {proposedFacts.length ? (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Needs your review</Text>
-            <Text style={styles.sectionText}>{proposedFacts.length} proposed value{proposedFacts.length === 1 ? '' : 's'} will stay outside Janani's trusted context until reviewed.</Text>
+            <Text style={styles.sectionText}>{proposedFacts.length} proposed value{proposedFacts.length === 1 ? '' : 's'} will stay outside Janani’s trusted context until reviewed.</Text>
             {proposedFacts.map((fact) => {
               const draft = drafts[fact.id] ?? { value: '', unit: '', referenceRange: '' };
               const busy = busyFactId === fact.id;
