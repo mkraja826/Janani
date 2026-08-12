@@ -14,13 +14,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { JananiPageHeader } from '@/components/navigation/JananiPageHeader';
-import { JANANI_COPY } from '@/features/tone/toneSystem';
 import { guideForTrimester, journeyWeekLine } from '@/features/pregnancy/guideContent';
 import { getPregnancyProgress, trimesterLabel } from '@/features/pregnancy/progress';
 import { readCache, writeCache } from '@/lib/cache';
 import { supabase } from '@/lib/supabase';
 import { useMembership } from '@/providers/AuthGate';
 import { useAuth } from '@/providers/AuthProvider';
+import { useLanguage } from '@/providers/LanguageProvider';
 import { colors, radius, spacing } from '@/theme/tokens';
 
 type JourneySummary = {
@@ -54,6 +54,7 @@ function formatEntryDate(value: string): string {
 }
 
 export default function JourneyScreen() {
+  const { t } = useLanguage();
   const { session } = useAuth();
   const { markMembership, onFamilyInvalidation } = useMembership();
   const userId = session?.user.id;
@@ -209,8 +210,8 @@ export default function JourneyScreen() {
       >
         <JananiPageHeader
           eyebrow="YOUR JOURNEY"
-          title={isMother ? JANANI_COPY.journey.motherTitle : JANANI_COPY.journey.partnerTitle}
-          subtitle={isMother ? JANANI_COPY.journey.motherSubtitle : JANANI_COPY.journey.partnerSubtitle}
+          title={isMother ? t('tone.journey.motherTitle') : t('tone.journey.partnerTitle')}
+          subtitle={isMother ? t('tone.journey.motherSubtitle') : t('tone.journey.partnerSubtitle')}
         />
 
         {offline ? (

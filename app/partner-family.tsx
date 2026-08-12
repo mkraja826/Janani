@@ -23,13 +23,14 @@ import {
   type PartnerSharing,
   type PartnerSupportContext,
 } from '@/features/partner/partnerSupport';
-import { JANANI_COPY } from '@/features/tone/toneSystem';
 import { supabase } from '@/lib/supabase';
+import { useLanguage } from '@/providers/LanguageProvider';
 import { colors, radius, spacing } from '@/theme/tokens';
 
 type Role = 'mother' | 'partner';
 
 export default function PartnerFamilyScreen() {
+  const { t } = useLanguage();
   const [role, setRole] = useState<Role | null>(null);
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [sharing, setSharing] = useState<PartnerSharing | null>(null);
@@ -123,7 +124,7 @@ export default function PartnerFamilyScreen() {
           </Pressable>
           <View style={styles.flex}>
             <Text style={styles.eyebrow}>PARTNER & FAMILY</Text>
-            <Text style={styles.title}>{role === 'mother' ? 'You decide what is shared' : JANANI_COPY.partner.title}</Text>
+            <Text style={styles.title}>{role === 'mother' ? 'You decide what is shared' : t('tone.partner.title')}</Text>
           </View>
         </View>
 
@@ -187,7 +188,7 @@ export default function PartnerFamilyScreen() {
             <View style={styles.heroCard}>
               <View style={styles.heroIcon}><Ionicons name="heart-outline" size={28} color={colors.roseDark} /></View>
               <Text style={styles.heroTitle}>{partnerContext.familyName}</Text>
-              <Text style={styles.body}>{JANANI_COPY.partner.subtitle} Her Health profile and reports are not part of this partner view.</Text>
+              <Text style={styles.body}>{t('tone.partner.subtitle')} Her Health profile and reports are not part of this partner view.</Text>
             </View>
 
             <View style={styles.section}>

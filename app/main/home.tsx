@@ -14,7 +14,6 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { JananiPageHeader } from '@/components/navigation/JananiPageHeader';
-import { JANANI_COPY } from '@/features/tone/toneSystem';
 import {
   buildDailyCareSnapshot,
   type DailyReminder,
@@ -39,6 +38,7 @@ import { toLocalDate } from '@/lib/date';
 import { supabase } from '@/lib/supabase';
 import { useMembership } from '@/providers/AuthGate';
 import { useAuth } from '@/providers/AuthProvider';
+import { useLanguage } from '@/providers/LanguageProvider';
 import { subscribeToUserInvalidations } from '@/features/user/userInvalidation';
 import { colors, radius, spacing } from '@/theme/tokens';
 
@@ -125,6 +125,7 @@ function personalizationPresentation(item: DailyPersonalization) {
 }
 
 export default function HomeScreen() {
+  const { t } = useLanguage();
   const { session } = useAuth();
   const { markMembership, onFamilyInvalidation } = useMembership();
   const [summary, setSummary] = useState<FamilySummary | null>(null);
@@ -368,8 +369,8 @@ export default function HomeScreen() {
           eyebrow={summary?.familyName.toUpperCase()}
           title={`${greeting}.`}
           subtitle={isMother
-            ? JANANI_COPY.home.motherSubtitle
-            : JANANI_COPY.home.partnerSubtitle}
+            ? t('tone.home.motherSubtitle')
+            : t('tone.home.partnerSubtitle')}
         />
 
         {offline ? (
@@ -434,7 +435,7 @@ export default function HomeScreen() {
 
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>{isMother ? 'What matters today' : 'How you can help today'}</Text>
-          <Text style={styles.sectionCaption}>{isMother ? JANANI_COPY.home.motherPriorityCaption : JANANI_COPY.home.partnerPriorityCaption}</Text>
+          <Text style={styles.sectionCaption}>{isMother ? t('tone.home.motherPriorityCaption') : t('tone.home.partnerPriorityCaption')}</Text>
         </View>
 
         <Pressable

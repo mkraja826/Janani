@@ -2,9 +2,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
+import { useLanguage } from '@/providers/LanguageProvider';
 import { colors, radius } from '@/theme/tokens';
 
 export default function JananiMainLayout() {
+  const { t } = useLanguage();
+
   return (
     <Tabs
       initialRouteName="home"
@@ -21,7 +24,7 @@ export default function JananiMainLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          title: 'Home',
+          title: t('nav.home'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? 'home' : 'home-outline'} size={23} color={color} />
           ),
@@ -30,7 +33,7 @@ export default function JananiMainLayout() {
       <Tabs.Screen
         name="health"
         options={{
-          title: 'Health',
+          title: t('nav.health'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? 'heart' : 'heart-outline'} size={23} color={color} />
           ),
@@ -39,7 +42,7 @@ export default function JananiMainLayout() {
       <Tabs.Screen
         name="ask"
         options={{
-          title: 'Ask Janani',
+          title: t('nav.ask'),
           tabBarIcon: ({ color, focused }) => (
             <View style={[styles.askIcon, focused && styles.askIconFocused]}>
               <Ionicons name={focused ? 'sparkles' : 'sparkles-outline'} size={22} color={focused ? colors.surface : color} />
@@ -50,7 +53,7 @@ export default function JananiMainLayout() {
       <Tabs.Screen
         name="reports"
         options={{
-          title: 'Reports',
+          title: t('nav.reports'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? 'document-text' : 'document-text-outline'} size={23} color={color} />
           ),
@@ -59,7 +62,7 @@ export default function JananiMainLayout() {
       <Tabs.Screen
         name="journey"
         options={{
-          title: 'Journey',
+          title: t('nav.journey'),
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? 'book' : 'book-outline'} size={23} color={color} />
           ),

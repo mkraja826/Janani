@@ -5,7 +5,6 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { JananiPageHeader } from '@/components/navigation/JananiPageHeader';
-import { JANANI_COPY } from '@/features/tone/toneSystem';
 import {
   conditionLabel,
   emptyHealthProfile,
@@ -17,6 +16,7 @@ import { getOwnHealthProfile, getOwnPrivateCareContext } from '@/features/health
 import { resolveActivePregnancyId } from '@/features/pregnancy/activePregnancy';
 import { supabase } from '@/lib/supabase';
 import { useAuth } from '@/providers/AuthProvider';
+import { useLanguage } from '@/providers/LanguageProvider';
 import { colors, radius, spacing } from '@/theme/tokens';
 
 type PregnancyBasics = {
@@ -32,6 +32,7 @@ type PrivateCareContext = {
 type FamilyRole = 'mother' | 'partner' | 'caregiver';
 
 export default function HealthScreen() {
+  const { t } = useLanguage();
   const { session } = useAuth();
   const userId = session?.user.id;
   const [role, setRole] = useState<FamilyRole | null>(null);
@@ -101,8 +102,8 @@ export default function HealthScreen() {
         <ScrollView contentContainerStyle={styles.content}>
           <JananiPageHeader
             eyebrow="SUPPORT HER WELL"
-            title={JANANI_COPY.health.partnerTitle}
-            subtitle={JANANI_COPY.health.partnerSubtitle}
+            title={t('tone.health.partnerTitle')}
+            subtitle={t('tone.health.partnerSubtitle')}
           />
           <View style={styles.privacyCard}>
             <Ionicons name="shield-checkmark-outline" size={27} color={colors.roseDark} />
@@ -138,8 +139,8 @@ export default function HealthScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <JananiPageHeader
           eyebrow="YOUR HEALTH"
-          title={JANANI_COPY.health.motherTitle}
-          subtitle={JANANI_COPY.health.motherSubtitle}
+          title={t('tone.health.motherTitle')}
+          subtitle={t('tone.health.motherSubtitle')}
         />
 
         <View style={styles.understandingCard}>
@@ -147,7 +148,7 @@ export default function HealthScreen() {
             <View style={styles.understandingIcon}><Ionicons name="heart-circle-outline" size={28} color={colors.roseDark} /></View>
             <View style={styles.flex}>
               <Text style={styles.cardTitle}>{completion?.completed ?? 0} of {completion?.total ?? 6} health areas understood</Text>
-              <Text style={styles.cardText}>{JANANI_COPY.health.completionCaption}</Text>
+              <Text style={styles.cardText}>{t('tone.health.completionCaption')}</Text>
             </View>
           </View>
           <View style={styles.progressTrack}><View style={[styles.progressFill, { width: `${Math.round((completion?.ratio ?? 0) * 100)}%` }]} /></View>
