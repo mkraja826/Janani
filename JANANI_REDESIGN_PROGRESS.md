@@ -30,7 +30,7 @@ Janani should progressively understand the mother's pregnancy, health profile, m
 | Milestone | Scope | Status |
 |---|---|---|
 | 1 | Primary navigation shell + overflow menu | Engineering complete / device review pending |
-| 2 | Home redesign and daily-priority experience | Not started |
+| 2 | Home redesign and daily-priority experience | In progress |
 | 3 | Structured Health / mother profile redesign | Not started |
 | 4 | Private Reports upload + extraction + confirmation | Not started |
 | 5 | Mother Context Engine | Not started |
@@ -43,6 +43,10 @@ Janani should progressively understand the mother's pregnancy, health profile, m
 | 12 | Multilingual product layer | Not started |
 | 13 | Mother/partner/clinician + physical-device UX validation | Not started |
 | 14 | Production release gates | Not started |
+
+## Progress weights
+
+Milestone 1 contributes 5 percentage points. Milestone 2 contributes 8 percentage points, bringing the redesign to 13% once its engineering validation passes. Later milestones are weighted by product and safety complexity rather than treated as equal-sized steps.
 
 ## Milestone 1 acceptance criteria
 
@@ -61,3 +65,18 @@ Janani should progressively understand the mother's pregnancy, health profile, m
 Repository-level validation completed successfully on 2026-08-12. The quality workflow passed deterministic install, the production dependency security gate, TypeScript, lint, Expo Doctor, legal-site validation, Android PNG validation, Expo public-config resolution, Android prebuild, Janani widget-generation checks, and x86_64 debug APK compilation.
 
 Milestone 1 remains intentionally unmerged and pending physical-device navigation review before it is treated as fully accepted.
+
+## Milestone 2 acceptance criteria
+
+- [x] Home is organized around what matters today rather than a feature grid.
+- [x] Pregnancy week, trimester and due-date progress remain visible without dominating the screen.
+- [x] Home derives the next unresolved care item from existing reminder and reminder-log data.
+- [x] Home shows compact planned / taken / left care status.
+- [x] Home uses cached daily data when the network is temporarily unavailable.
+- [x] Home refreshes when pregnancy/reminder family invalidations arrive or the app becomes active.
+- [x] Partner invitation is removed from the daily Home surface and remains a secondary Partner & Family action.
+- [x] Ask Janani remains reachable as a lightweight contextual action.
+- [ ] Repository quality workflow passes on the Milestone 2 branch.
+- [ ] Physical-device Home review completed.
+
+**Progress remains 5% until Milestone 2 passes repository quality validation.**
