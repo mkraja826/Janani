@@ -1,0 +1,158 @@
+{
+  "schema_version": "1.0",
+  "package_id": "IN-ANAEMIA-IFA-CALCIUM-REVIEW-V1",
+  "jurisdiction": "IN",
+  "status": "clinical_review_pending",
+  "production_eligible": false,
+  "created_on": "2026-08-12",
+  "source_ids": [
+    "IN-NHM-AMB-PROGRAMME-2026",
+    "IN-NHM-AMB-OG-2026",
+    "IN-ICMR-ANC-2025",
+    "IN-MOHFW-CALCIUM-2014",
+    "IN-NHM-MH-INDEX-2026"
+  ],
+  "safety_note": "This package records source facts and review questions only. Janani must not prescribe, start, stop, increase, decrease, inject or replace iron, folic acid, calcium or vitamin D based on this draft. Treating-clinician instructions outrank every candidate below.",
+  "candidates": [
+    {
+      "id": "IN-M6-2-001",
+      "concept": "preconception_first_trimester_folic_acid_programme",
+      "source_facts": [
+        "Current NHM AMB programme material advises 400 mcg folic acid daily in the pre-conception period and up to the first trimester."
+      ],
+      "source_ids": ["IN-NHM-AMB-PROGRAMME-2026"],
+      "candidate_role": "education_or_reminder_context_only",
+      "autonomous_prescribing_allowed": false,
+      "status": "clinical_review_pending",
+      "review_questions": [
+        "Should Janani surface this only as national-programme education unless the user's clinician has already entered/prescribed a regimen?",
+        "How should high-risk folic-acid indications be excluded from generic consumer messaging?"
+      ]
+    },
+    {
+      "id": "IN-M6-2-002",
+      "concept": "routine_pregnancy_lactation_ifa_programme",
+      "source_facts": [
+        "Current NHM AMB programme material lists one IFA tablet daily from the fourth month/second trimester, minimum 180 days in pregnancy and 180 days postpartum.",
+        "The listed tablet contains 60 mg elemental iron and 500 mcg folic acid."
+      ],
+      "source_ids": ["IN-NHM-AMB-PROGRAMME-2026"],
+      "candidate_role": "programme_education_or_prescription_reminder_context",
+      "autonomous_prescribing_allowed": false,
+      "status": "clinical_review_pending",
+      "review_questions": [
+        "Should Janani ever show the programme dose proactively, or only explain/remind a regimen already entered by the mother/clinician?",
+        "Confirm exact gestational start wording for consumer use: fourth month versus second trimester."
+      ]
+    },
+    {
+      "id": "IN-M6-2-003",
+      "concept": "hb_dependent_ifa_intensity",
+      "source_facts": [
+        "The December 2025 ICMR ANC STW lists IFA once daily if Hb >11 g% and twice daily if Hb <11 g% during the second-trimester workflow.",
+        "The current NHM programme page provides prophylactic IFA facts but delegates anaemia treatment protocols to operational guidance."
+      ],
+      "source_ids": ["IN-ICMR-ANC-2025", "IN-NHM-AMB-PROGRAMME-2026", "IN-NHM-AMB-OG-2026"],
+      "candidate_role": "clinician_only_treatment_context",
+      "autonomous_prescribing_allowed": false,
+      "status": "clinical_review_pending",
+      "reconciliation_state": "unresolved_scope_overlap",
+      "runtime_blocked": true,
+      "block_reason": "Full 2026 AMB treatment-protocol extraction and clinician reconciliation are required before interpreting the ICMR Hb-dependent dosing statement for consumer software."
+    },
+    {
+      "id": "IN-M6-2-004",
+      "concept": "no_hb_rise_after_oral_iron_followup",
+      "source_facts": [
+        "The ICMR ANC STW states referral to a higher centre if there is no rise in Hb after four weeks of oral tablets."
+      ],
+      "source_ids": ["IN-ICMR-ANC-2025"],
+      "candidate_role": "care_contact_or_referral_candidate_after_clinician_review",
+      "autonomous_prescribing_allowed": false,
+      "status": "clinical_review_pending",
+      "runtime_blocked": true,
+      "block_reason": "Janani does not yet have a validated typed longitudinal haemoglobin-treatment-response rule that can distinguish adherence, timing, units and clinical context."
+    },
+    {
+      "id": "IN-M6-2-005",
+      "concept": "low_hb_treatment_and_referral_statements",
+      "source_facts": [
+        "The ICMR ANC STW contains parenteral-iron language for non-compliance or Hb <9 g% and referral language for Hb <7 g%.",
+        "The same STW lists Hb <7 g% among high-risk pregnancy criteria."
+      ],
+      "source_ids": ["IN-ICMR-ANC-2025"],
+      "candidate_role": "clinician_only_and_possible_escalation_context",
+      "autonomous_prescribing_allowed": false,
+      "status": "clinical_review_pending",
+      "runtime_blocked": true,
+      "block_reason": "Janani must never infer or recommend parenteral iron. Any Hb-based escalation requires typed confirmed laboratory observations, unit validation, date/provenance checks and clinician-approved urgency wording."
+    },
+    {
+      "id": "IN-M6-2-006",
+      "concept": "routine_calcium_pregnancy_regimen",
+      "source_facts": [
+        "The national calcium guideline specifies two 500 mg elemental-calcium doses per day from 14 weeks, each with 250 IU vitamin D3 and taken with meals.",
+        "The December 2025 ICMR ANC STW independently lists calcium carbonate 500 mg with vitamin D 250 units twice daily with meals."
+      ],
+      "source_ids": ["IN-MOHFW-CALCIUM-2014", "IN-ICMR-ANC-2025"],
+      "candidate_role": "programme_education_or_prescription_reminder_context",
+      "autonomous_prescribing_allowed": false,
+      "status": "clinical_review_pending",
+      "reconciliation_state": "pregnancy_phase_sources_compatible",
+      "review_questions": [
+        "Confirm whether Janani should display formulation/dose only when explaining an existing prescription rather than initiating supplementation.",
+        "Confirm whether current national programme implementation still uses the 2014 vitamin-D formulation universally."
+      ]
+    },
+    {
+      "id": "IN-M6-2-007",
+      "concept": "calcium_ifa_not_together",
+      "source_facts": [
+        "The national calcium guideline states calcium and IFA should not be taken together.",
+        "The December 2025 ICMR ANC STW also states calcium carbonate and IFA should not be given together."
+      ],
+      "source_ids": ["IN-MOHFW-CALCIUM-2014", "IN-ICMR-ANC-2025"],
+      "candidate_role": "medication_timing_safety_education_candidate",
+      "autonomous_prescribing_allowed": false,
+      "status": "clinical_review_pending",
+      "reconciliation_state": "sources_compatible",
+      "review_questions": [
+        "Approve consumer-safe wording that says not to take them together without inventing an exact separation interval not stated consistently across current sources.",
+        "Confirm reminder scheduling behavior when a clinician has entered both medicines at the same time."
+      ]
+    },
+    {
+      "id": "IN-M6-2-008",
+      "concept": "calcium_postpartum_duration",
+      "source_facts": [
+        "The 2014 national calcium guideline specifies continuation through six months postpartum.",
+        "The 2025 one-page ICMR ANC STW confirms pregnancy calcium use but does not provide an equivalent postpartum duration statement."
+      ],
+      "source_ids": ["IN-MOHFW-CALCIUM-2014", "IN-NHM-MH-INDEX-2026", "IN-ICMR-ANC-2025"],
+      "candidate_role": "postpartum_programme_education_candidate",
+      "autonomous_prescribing_allowed": false,
+      "status": "clinical_review_pending",
+      "reconciliation_state": "older_guideline_currently_listed_no_newer_postpartum_confirmation_in_anc_stw"
+    },
+    {
+      "id": "IN-M6-2-009",
+      "concept": "calcium_with_meals_and_divided_doses",
+      "source_facts": [
+        "The national calcium guideline advises calcium with meals and against taking both calcium tablets together.",
+        "The ICMR ANC STW also lists calcium twice daily with meals."
+      ],
+      "source_ids": ["IN-MOHFW-CALCIUM-2014", "IN-ICMR-ANC-2025"],
+      "candidate_role": "adherence_and_timing_education_candidate",
+      "autonomous_prescribing_allowed": false,
+      "status": "clinical_review_pending",
+      "reconciliation_state": "sources_compatible"
+    }
+  ],
+  "package_level_blocks": [
+    "Full item-level extraction of the 2026 AMB operational guideline before anaemia treatment rules are considered.",
+    "Qualified obstetric/maternal-health clinician review of all Hb thresholds, dose statements and escalation wording.",
+    "Typed laboratory-observation model for Hb with unit/date/provenance validation before Hb can drive deterministic safety decisions.",
+    "Medication-timing policy that never changes a clinician-entered prescription without explicit clinician/user action.",
+    "Reviewed English consumer wording, followed by separate Telugu/Hindi clinical-language review."
+  ]
+}
