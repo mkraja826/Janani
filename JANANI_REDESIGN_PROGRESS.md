@@ -38,7 +38,7 @@ AI is an explanation/personalization layer only. Mother-confirmed data and clini
 | 9 | Journey consolidation | Engineering complete / device review pending | 6 |
 | 10 | Partner experience redesign | Engineering complete / device sharing review pending | 6 |
 | 11 | Emotional tone system | Engineering/native complete / live AI deployment blocked | 0 |
-| 12 | Multilingual product foundation | Implementation complete / native + live backend + critical-safety language gates pending | 0 |
+| 12 | Multilingual product foundation | Engineering/native complete / live backend + critical-safety language gates pending | 0 |
 | 13 | Mother/partner/clinician + physical-device UX validation | Validation harness complete / real sessions pending | 0 |
 | 14 | Production release gates | Gate framework complete / release blocked | 0 |
 
