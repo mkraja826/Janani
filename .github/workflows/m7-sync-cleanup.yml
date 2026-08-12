@@ -1,0 +1,52 @@
+name: M7 Deployment Sync Cleanup
+
+on:
+  push:
+    branches:
+      - codex/janani-product-redesign-m7
+    paths:
+      - .github/workflows/m7-sync-cleanup.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: codex/janani-product-redesign-m7
+      - name: Sync deployed validation and chat contrast
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          edge = Path('supabase/functions/janani-ai/index.ts')
+          s = edge.read_text()
+          old = '''    const body = asObject(await readJsonBody(request, 8192));\n    const message = boundedString(body?.message, MAX_MESSAGE_CHARS);\n    if (!message) throw new PublicError(400, "Message must be between 1 and 1200 characters.");\n    const history = normalizeHistory(body?.history);'''
+          new = '''    const body = asObject(await readJsonBody(request, 8192));\n    const rawMessage = typeof body?.message === "string" ? body.message.trim() : "";\n    if (!rawMessage || rawMessage.length > MAX_MESSAGE_CHARS) {\n      throw new PublicError(400, "Message must be between 1 and 1200 characters.");\n    }\n    const message = rawMessage;\n    const history = normalizeHistory(body?.history);'''
+          if old not in s:
+              raise SystemExit('edge validation target not found')
+          edge.write_text(s.replace(old, new, 1))
+
+          ask = Path('app/main/ask.tsx')
+          s = ask.read_text()
+          old = '''                <Text selectable style={styles.messageText}>{item.text}</Text>'''
+          new = '''                <Text selectable style={[styles.messageText, item.role === 'user' && styles.userMessageText]}>{item.text}</Text>'''
+          if old not in s:
+              raise SystemExit('message text target not found')
+          s = s.replace(old, new, 1)
+          old_style = '''  messageText: { fontSize: 15, lineHeight: 23, color: colors.ink },'''
+          new_style = '''  messageText: { fontSize: 15, lineHeight: 23, color: colors.ink },\n  userMessageText: { color: colors.surface },'''
+          if old_style not in s:
+              raise SystemExit('message style target not found')
+          ask.write_text(s.replace(old_style, new_style, 1))
+          PY
+      - name: Commit synchronization
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add supabase/functions/janani-ai/index.ts app/main/ask.tsx
+          git commit -m "Sync Janani AI validation and chat contrast"
+          git push origin HEAD:codex/janani-product-redesign-m7
