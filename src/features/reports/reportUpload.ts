@@ -20,7 +20,7 @@ const ALLOWED_MIME_TYPES = new Set([
   'image/heif',
 ]);
 
-type PreparedReport = {
+export type PreparedReport = {
   asset: DocumentPicker.DocumentPickerAsset;
   file: File;
   mimeType: string;
