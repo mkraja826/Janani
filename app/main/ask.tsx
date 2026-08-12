@@ -230,7 +230,7 @@ export default function AiCompanionScreen() {
                     </View>
                   </View>
                 ) : null}
-                <Text selectable style={styles.messageText}>{item.text}</Text>
+                <Text selectable style={[styles.messageText, item.role === 'user' && styles.userMessageText]}>{item.text}</Text>
                 {item.role === 'assistant' && item.personalized && item.selectedTopics?.length ? (
                   <Text style={styles.contextHint}>Considered: {item.selectedTopics.join(' · ')}</Text>
                 ) : null}
@@ -301,6 +301,7 @@ const styles = StyleSheet.create({
   userBubble: { backgroundColor: colors.rose, borderBottomRightRadius: spacing.xs },
   jananiBubble: { backgroundColor: colors.sageSoft, borderWidth: 1, borderColor: colors.border, borderBottomLeftRadius: spacing.xs },
   messageText: { fontSize: 15, lineHeight: 23, color: colors.ink },
+  userMessageText: { color: colors.surface },
   answerHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   answerIcon: { width: 32, height: 32, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface },
   answerTitle: { fontSize: 16, fontWeight: '800', color: colors.ink },

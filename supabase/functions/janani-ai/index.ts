@@ -372,8 +372,11 @@ Deno.serve(async (request: Request): Promise<Response> => {
     }
 
     const body = asObject(await readJsonBody(request, 8192));
-    const message = boundedString(body?.message, MAX_MESSAGE_CHARS);
-    if (!message) throw new PublicError(400, "Message must be between 1 and 1200 characters.");
+    const rawMessage = typeof body?.message === "string" ? body.message.trim() : "";
+    if (!rawMessage || rawMessage.length > MAX_MESSAGE_CHARS) {
+      throw new PublicError(400, "Message must be between 1 and 1200 characters.");
+    }
+    const message = rawMessage;
     const history = normalizeHistory(body?.history);
 
     if (isEmergency(message)) {
