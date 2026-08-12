@@ -57,6 +57,19 @@ function parseCreatedReport(value: unknown): CreatedReport | null {
   return { id: candidate.id, storagePath: candidate.storagePath };
 }
 
+async function cleanupFailedUpload(reportId: string, storagePath: string): Promise<void> {
+  try {
+    await supabase.storage.from(REPORT_BUCKET).remove([storagePath]);
+  } catch {
+    // The record RPC below refuses deletion if Storage still has the object.
+  }
+  try {
+    await deleteOwnMedicalReportRecord(reportId);
+  } catch {
+    // Best-effort cleanup only; ownership metadata remains if Storage did not delete.
+  }
+}
+
 export async function pickPrivateMedicalReport(): Promise<PreparedReport | null> {
   const result = await DocumentPicker.getDocumentAsync({
     type: ['application/pdf', 'image/*'],
@@ -139,11 +152,7 @@ export async function uploadPrivateMedicalReport({
     if (finalized.error) throw new ReportUploadError(finalized.error.message);
     return { reportId: report.id };
   } catch (error) {
-    // Best-effort cleanup. The record RPC refuses to delete while an object
-    // still exists, so this cannot orphan an accessible file by deleting only
-    // its ownership metadata.
-    await supabase.storage.from(REPORT_BUCKET).remove([report.storagePath]).catch(() => undefined);
-    await deleteOwnMedicalReportRecord(report.id).catch(() => undefined);
+    await cleanupFailedUpload(report.id, report.storagePath);
     if (error instanceof ReportUploadError) throw error;
     throw new ReportUploadError('The report could not be uploaded. Check your connection and try again.');
   }
