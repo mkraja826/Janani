@@ -1,0 +1,38 @@
+name: M7 AI Parser Cleanup
+
+on:
+  push:
+    branches:
+      - codex/janani-product-redesign-m7
+    paths:
+      - .github/workflows/m7-ai-parser-fix.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: codex/janani-product-redesign-m7
+      - name: Simplify provider response parsing
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('supabase/functions/janani-ai/index.ts')
+          s = p.read_text()
+          old = '''    const result = await upstream.json().catch(() => null);\n    const answer = asObject(asObject(Array.isArray(asObject(result)?.choices) ? asObject(result)?.choices?.[0] : null)?.message)?.content;\n    const normalizedAnswer = boundedString(answer, 4000);'''
+          new = '''    const result = await upstream.json().catch(() => null);\n    const resultObject = asObject(result);\n    const choices = Array.isArray(resultObject?.choices) ? resultObject.choices : [];\n    const firstChoice = asObject(choices[0]);\n    const providerMessage = asObject(firstChoice?.message);\n    const normalizedAnswer = boundedString(providerMessage?.content, 4000);'''
+          if old not in s:
+              raise SystemExit('provider parser target not found')
+          p.write_text(s.replace(old, new, 1))
+          PY
+      - name: Commit cleanup
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add supabase/functions/janani-ai/index.ts
+          git commit -m "Fix Janani AI provider response parser"
+          git push origin HEAD:codex/janani-product-redesign-m7
