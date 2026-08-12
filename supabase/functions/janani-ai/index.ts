@@ -500,8 +500,11 @@ Deno.serve(async (request: Request): Promise<Response> => {
     }
 
     const result = await upstream.json().catch(() => null);
-    const answer = asObject(asObject(Array.isArray(asObject(result)?.choices) ? asObject(result)?.choices?.[0] : null)?.message)?.content;
-    const normalizedAnswer = boundedString(answer, 4000);
+    const resultObject = asObject(result);
+    const choices = Array.isArray(resultObject?.choices) ? resultObject.choices : [];
+    const firstChoice = asObject(choices[0]);
+    const providerMessage = asObject(firstChoice?.message);
+    const normalizedAnswer = boundedString(providerMessage?.content, 4000);
     if (!normalizedAnswer) throw new PublicError(502, "Janani AI returned an empty response.");
 
     return jsonResponse({
