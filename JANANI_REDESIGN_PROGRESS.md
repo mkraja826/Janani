@@ -37,12 +37,14 @@ AI is an explanation/personalization layer only. Mother-confirmed data and clini
 | 8 | Background personalization/event engine | Engineering complete / device event review pending | 8 |
 | 9 | Journey consolidation | Engineering complete / device review pending | 6 |
 | 10 | Partner experience redesign | Engineering complete / device sharing review pending | 6 |
-| 11 | Emotional tone system | Not started | 0 |
-| 12 | Multilingual product layer | Not started | 0 |
-| 13 | Mother/partner/clinician + physical-device UX validation | Not started | 0 |
-| 14 | Production release gates | Not started | 0 |
+| 11 | Emotional tone system | Engineering/native complete / live AI deployment blocked | 0 |
+| 12 | Multilingual product foundation | Implementation complete / native + live backend + critical-safety language gates pending | 0 |
+| 13 | Mother/partner/clinician + physical-device UX validation | Validation harness complete / real sessions pending | 0 |
+| 14 | Production release gates | Gate framework complete / release blocked | 0 |
 
 **Counted progress: 71%.** Milestone 6's infrastructure is intentionally not counted because no clinician-reviewed, source-backed clinical rule pack is active yet.
+
+M11–M14 also remain uncounted until their acceptance evidence is complete. M11/M12 live AI deployment is currently blocked by connected Supabase permissions; M12 critical safety translations require review; M13 requires real physical-device/clinician sessions; M14 requires every release gate to pass.
 
 ## Milestone weights
 
