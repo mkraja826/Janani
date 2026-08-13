@@ -1,3 +1,5 @@
+import { createClient } from "@supabase/supabase-js";
+
 import {
   corsHeadersFor,
   jsonResponse,
@@ -20,6 +22,8 @@ Rules:
 const MAX_MESSAGE_LENGTH = 1200;
 const MAX_REQUEST_BYTES = 4096;
 const PROVIDER_TIMEOUT_MS = 15_000;
+const AI_REQUEST_LIMIT = 20;
+const AI_WINDOW_MINUTES = 60;
 
 function isEmergency(text: string) {
   const value = text.toLowerCase();
@@ -45,6 +49,12 @@ function requestIdFor(req: Request) {
   return req.headers.get("x-request-id") ?? crypto.randomUUID();
 }
 
+function requiredEnvironment(name: string) {
+  const value = Deno.env.get(name);
+  if (!value) throw new Error(`Missing required environment variable: ${name}`);
+  return value;
+}
+
 Deno.serve(async (req) => {
   const requestId = requestIdFor(req);
   const corsHeaders = corsHeadersFor(req);
@@ -65,6 +75,49 @@ Deno.serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return jsonResponse({ error: "Authentication required" }, 401, corsHeaders, requestId);
+    }
+
+    const supabaseUrl = requiredEnvironment("SUPABASE_URL");
+    const anonKey = requiredEnvironment("SUPABASE_ANON_KEY");
+    const serviceRoleKey = requiredEnvironment("SUPABASE_SERVICE_ROLE_KEY");
+
+    const authClient = createClient(supabaseUrl, anonKey, {
+      global: { headers: { Authorization: authHeader } },
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+
+    const { data: userData, error: userError } = await authClient.auth.getUser();
+    const user = userData.user;
+    if (userError || !user) {
+      return jsonResponse({ error: "Authentication required" }, 401, corsHeaders, requestId);
+    }
+
+    const admin = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+
+    const { data: quotaRows, error: quotaError } = await admin.rpc("consume_janani_ai_quota", {
+      p_user_id: user.id,
+      p_limit: AI_REQUEST_LIMIT,
+      p_window_minutes: AI_WINDOW_MINUTES,
+    });
+
+    if (quotaError) {
+      console.error(JSON.stringify({ request_id: requestId, stage: "quota", code: quotaError.code }));
+      return jsonResponse({ error: "Janani AI is temporarily unavailable." }, 503, corsHeaders, requestId);
+    }
+
+    const quota = Array.isArray(quotaRows) ? quotaRows[0] : quotaRows;
+    if (!quota?.allowed) {
+      return jsonResponse(
+        {
+          error: "You have reached the Janani AI hourly limit. Please try again later.",
+          reset_at: quota?.reset_at ?? null,
+        },
+        429,
+        corsHeaders,
+        requestId,
+      );
     }
 
     const body = await readJsonBody(req, MAX_REQUEST_BYTES) as { message?: unknown };
@@ -162,7 +215,12 @@ Deno.serve(async (req) => {
     }
 
     return jsonResponse(
-      { answer: answer.trim(), safety: "general" },
+      {
+        answer: answer.trim(),
+        safety: "general",
+        remaining: quota?.remaining ?? null,
+        reset_at: quota?.reset_at ?? null,
+      },
       200,
       corsHeaders,
       requestId,
