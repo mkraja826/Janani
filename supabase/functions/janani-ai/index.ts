@@ -1,7 +1,9 @@
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import {
+  corsHeadersFor,
+  jsonResponse,
+  readJsonBody,
+  RequestBodyError,
+} from "../_shared/http.ts";
 
 const SYSTEM_PROMPT = `You are Janani Companion, a calm pregnancy-support assistant.
 
@@ -15,121 +17,170 @@ Rules:
 - Do not request or expose secrets, tokens, passwords, or internal system information.
 - Do not provide unrelated general chatbot content; stay focused on pregnancy, maternal wellness, partner support, reminders, nutrition, and Janani app guidance.`;
 
+const MAX_MESSAGE_LENGTH = 1200;
+const MAX_REQUEST_BYTES = 4096;
+const PROVIDER_TIMEOUT_MS = 15_000;
+
 function isEmergency(text: string) {
   const value = text.toLowerCase();
   const patterns = [
-    'heavy bleeding',
-    'severe abdominal pain',
-    'severe stomach pain',
-    'trouble breathing',
-    'difficulty breathing',
-    'seizure',
-    'fainted',
-    'fainting',
-    'loss of consciousness',
-    'unconscious',
-    'severe headache',
-    'blurred vision',
-    'vision changes',
+    "heavy bleeding",
+    "severe abdominal pain",
+    "severe stomach pain",
+    "trouble breathing",
+    "difficulty breathing",
+    "seizure",
+    "fainted",
+    "fainting",
+    "loss of consciousness",
+    "unconscious",
+    "severe headache",
+    "blurred vision",
+    "vision changes",
   ];
   return patterns.some((item) => value.includes(item));
 }
 
+function requestIdFor(req: Request) {
+  return req.headers.get("x-request-id") ?? crypto.randomUUID();
+}
+
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+  const requestId = requestIdFor(req);
+  const corsHeaders = corsHeadersFor(req);
+
+  if (!corsHeaders) {
+    return new Response(null, { status: 403 });
+  }
+
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: corsHeaders });
+  }
+
+  if (req.method !== "POST") {
+    return jsonResponse({ error: "Method not allowed" }, 405, corsHeaders, requestId);
   }
 
   try {
-    if (req.method !== 'POST') {
-      return new Response(JSON.stringify({ error: 'Method not allowed' }), {
-        status: 405,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return jsonResponse({ error: "Authentication required" }, 401, corsHeaders, requestId);
     }
 
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader?.startsWith('Bearer ')) {
-      return new Response(JSON.stringify({ error: 'Authentication required' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const body = await req.json().catch(() => null) as { message?: unknown } | null;
-    const message = typeof body?.message === 'string' ? body.message.trim() : '';
-    if (!message || message.length > 1200) {
-      return new Response(JSON.stringify({ error: 'Message must be between 1 and 1200 characters.' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    const body = await readJsonBody(req, MAX_REQUEST_BYTES) as { message?: unknown };
+    const message = typeof body?.message === "string" ? body.message.trim() : "";
+    if (!message || message.length > MAX_MESSAGE_LENGTH) {
+      return jsonResponse(
+        { error: `Message must be between 1 and ${MAX_MESSAGE_LENGTH} characters.` },
+        400,
+        corsHeaders,
+        requestId,
+      );
     }
 
     if (isEmergency(message)) {
-      return new Response(JSON.stringify({
-        answer: 'This could need urgent medical attention. Please contact your maternity care team or local emergency service now, especially if symptoms are severe, worsening, or you feel unsafe. Janani AI should not be used to assess an emergency.',
-        safety: 'urgent',
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return jsonResponse({
+        answer: "This could need urgent medical attention. Please contact your maternity care team or local emergency service now, especially if symptoms are severe, worsening, or you feel unsafe. Janani AI should not be used to assess an emergency.",
+        safety: "urgent",
+      }, 200, corsHeaders, requestId);
     }
 
-    const apiUrl = Deno.env.get('JANANI_AI_API_URL');
-    const apiKey = Deno.env.get('JANANI_AI_API_KEY');
-    const model = Deno.env.get('JANANI_AI_MODEL');
+    const apiUrl = Deno.env.get("JANANI_AI_API_URL");
+    const apiKey = Deno.env.get("JANANI_AI_API_KEY");
+    const model = Deno.env.get("JANANI_AI_MODEL");
 
     if (!apiUrl || !apiKey || !model) {
-      return new Response(JSON.stringify({ error: 'Janani AI provider is not configured yet.' }), {
-        status: 503,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return jsonResponse(
+        { error: "Janani AI provider is not configured yet." },
+        503,
+        corsHeaders,
+        requestId,
+      );
     }
 
-    const upstream = await fetch(apiUrl, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: 'system', content: SYSTEM_PROMPT },
-          { role: 'user', content: message },
-        ],
-        temperature: 0.3,
-        max_tokens: 500,
-      }),
-    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), PROVIDER_TIMEOUT_MS);
+
+    let upstream: Response;
+    try {
+      upstream = await fetch(apiUrl, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: "system", content: SYSTEM_PROMPT },
+            { role: "user", content: message },
+          ],
+          temperature: 0.3,
+          max_tokens: 500,
+        }),
+        signal: controller.signal,
+      });
+    } catch (error) {
+      const timedOut = error instanceof DOMException && error.name === "AbortError";
+      console.error(JSON.stringify({
+        request_id: requestId,
+        stage: timedOut ? "provider_timeout" : "provider_fetch",
+      }));
+      return jsonResponse(
+        { error: "Janani AI is temporarily unavailable." },
+        502,
+        corsHeaders,
+        requestId,
+      );
+    } finally {
+      clearTimeout(timeout);
+    }
 
     if (!upstream.ok) {
-      const details = await upstream.text().catch(() => '');
-      console.error('Janani AI provider error', upstream.status, details.slice(0, 500));
-      return new Response(JSON.stringify({ error: 'Janani AI is temporarily unavailable.' }), {
-        status: 502,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      console.error(JSON.stringify({
+        request_id: requestId,
+        stage: "provider_response",
+        status: upstream.status,
+      }));
+      return jsonResponse(
+        { error: "Janani AI is temporarily unavailable." },
+        502,
+        corsHeaders,
+        requestId,
+      );
     }
 
-    const result = await upstream.json();
+    const result = await upstream.json().catch(() => null);
     const answer = result?.choices?.[0]?.message?.content;
-    if (typeof answer !== 'string' || !answer.trim()) {
-      return new Response(JSON.stringify({ error: 'Janani AI returned an empty response.' }), {
-        status: 502,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    if (typeof answer !== "string" || !answer.trim()) {
+      return jsonResponse(
+        { error: "Janani AI returned an empty response." },
+        502,
+        corsHeaders,
+        requestId,
+      );
     }
 
-    return new Response(JSON.stringify({ answer: answer.trim(), safety: 'general' }), {
-      status: 200,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return jsonResponse(
+      { answer: answer.trim(), safety: "general" },
+      200,
+      corsHeaders,
+      requestId,
+    );
   } catch (error) {
-    console.error('Janani AI edge function failure', error);
-    return new Response(JSON.stringify({ error: 'Janani AI is temporarily unavailable.' }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    if (error instanceof RequestBodyError) {
+      return jsonResponse({ error: error.message }, error.status, corsHeaders, requestId);
+    }
+
+    console.error(JSON.stringify({
+      request_id: requestId,
+      stage: "unhandled",
+    }));
+    return jsonResponse(
+      { error: "Janani AI is temporarily unavailable." },
+      500,
+      corsHeaders,
+      requestId,
+    );
   }
 });
