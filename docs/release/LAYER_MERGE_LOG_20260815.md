@@ -175,6 +175,26 @@ Result:
 - A compact local validator was added for the Cloudflare static deletion bundle. The original old-branch validator was intentionally reduced while preserving the important static/security checks.
 - Did not merge app-config, launcher asset, package, Supabase, broad docs or other branch churn from `release/production-deploy-controls`.
 
+### Layer 8 — production feature-gate review
+
+Source inspected:
+
+- `release/production-feature-gates`
+
+Status: reviewed and skipped; no code copied.
+
+Files added/changed:
+
+- None.
+
+Result:
+
+- The candidate already has the safer `src/config/production.ts` feature-gate shape.
+- The candidate keeps `aiUiEnabled` as a UI-only public flag rather than treating a public environment variable as authoritative backend AI enablement.
+- The candidate also documents that server-side Care+ entitlement, `JANANI_AI_ENABLED`, provider configuration, clinical rule approval and usage enforcement remain authoritative safety/security boundaries.
+- The older branch version used a broader `aiEnabled` client flag and did not include the same explicit server-side boundary note, so copying it would be a downgrade.
+- App config, launcher asset and package churn from the old branch remain intentionally unmerged.
+
 Validation required after this batch:
 
 ```bash
@@ -191,9 +211,8 @@ node .github/scripts/validate-legal-site.mjs
 
 ## Next branch inspection order
 
-1. `release/production-feature-gates`
-2. `feature/release-readiness-validation`
-3. `release/play-production-package`
-4. Stable backend/privacy branches only if their changes are still missing from this candidate.
+1. `feature/release-readiness-validation`
+2. `release/play-production-package`
+3. Stable backend/privacy branches only if their changes are still missing from this candidate.
 
 Do not inspect product-redesign, AI, reports, billing or clinical branches for Janani 1.0 unless a production blocker specifically requires a small isolated change from them.
