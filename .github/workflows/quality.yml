@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   quality:
-    name: TypeScript, Expo, legal site, and Android
+    name: TypeScript, Expo, production bundle, and Android
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -24,25 +24,43 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - uses: denoland/setup-deno@667a34cdef165d8d2b2e98dde39547c9daac7282 # v2.0.4
+        with:
+          deno-version: v2.9.3
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         with:
           distribution: temurin
           java-version: 17
       - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
       - run: npm ci --no-audit --no-fund
-      - run: npm audit --omit=dev --audit-level=high
+      - name: Enforce production dependency audit policy
+        run: node scripts/validate-production-audit.mjs
       - run: npm run typecheck
       - run: npm run lint
+      - name: Type-check Janani AI Edge Function
+        run: deno check supabase/functions/janani-ai/index.ts
       - run: npx expo-doctor
       - run: node .github/scripts/validate-legal-site.mjs
+      - name: Validate Android release configuration
+        run: node scripts/validate-android-release.mjs
       - run: npx expo config --type public
+      - name: Bundle production Android JavaScript
+        env:
+          NODE_ENV: production
+        run: npx expo export --platform android --clear
       - run: npx expo prebuild --platform android --clean --no-install
+      - name: Validate generated Android native wiring
+        run: node scripts/validate-generated-android.mjs
       - name: Verify widget generation
         run: |
           test -f android/app/src/main/java/com/mkraja826/janani/JananiWidgetModule.kt
           test -f android/app/src/main/java/com/mkraja826/janani/JananiWidgetPackage.kt
-          test -f android/app/src/main/java/com/mkraja826/janani/JananiCareWidget.kt
+          test -f android/app/src/main/java/com/mkraja826/janani/JananiWidgets.kt
           test -f android/app/src/main/res/layout/janani_care_widget.xml
+          test -f android/app/src/main/res/layout/janani_small_widget.xml
+          for widget in JananiCareWidget JananiMedicineWidget JananiLoveWidget JananiBabyWidget JananiAppointmentWidget JananiWellnessWidget; do
+            grep -q "class ${widget}" android/app/src/main/java/com/mkraja826/janani/JananiWidgets.kt
+          done
           grep -Eq '^[[:space:]]*(packages\.)?add\(JananiWidgetPackage\(\)\)[[:space:]]*$' android/app/src/main/java/com/mkraja826/janani/MainApplication.kt
       - name: Compile Android x86_64 debug APK
         working-directory: android
