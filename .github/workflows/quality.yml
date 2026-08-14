@@ -33,7 +33,8 @@ jobs:
           java-version: 17
       - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
       - run: npm ci --no-audit --no-fund
-      - run: npm audit --omit=dev --audit-level=high
+      - name: Enforce production dependency audit policy
+        run: node scripts/validate-production-audit.mjs
       - run: npm run typecheck
       - run: npm run lint
       - name: Type-check Janani AI Edge Function
