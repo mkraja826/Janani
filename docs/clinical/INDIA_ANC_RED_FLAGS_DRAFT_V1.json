@@ -1,0 +1,118 @@
+{
+  "schema_version": "1.0",
+  "package_id": "IN-ANC-RED-FLAGS-DRAFT-V1",
+  "jurisdiction": "IN",
+  "status": "clinical_review_pending",
+  "production_eligible": false,
+  "created_on": "2026-08-12",
+  "source_ids": [
+    "IN-ICMR-ANC-2025"
+  ],
+  "source_section": "DANGER SIGNALS FOR PATIENT TO REPORT TO HEALTH FACILITY",
+  "safety_note": "This is a source extraction draft only. It does not assign final triage urgency, diagnosis, treatment, medication, or reassurance. A qualified maternal-health clinician must review and approve every rule before runtime use.",
+  "rules": [
+    {
+      "id": "IN-ANC-RF-001",
+      "trigger_concept": "fever_during_pregnancy",
+      "source_trigger": "Fever",
+      "source_directed_action": "report_to_health_facility",
+      "final_urgency": null,
+      "diagnosis_allowed": false,
+      "status": "clinical_review_pending"
+    },
+    {
+      "id": "IN-ANC-RF-002",
+      "trigger_concept": "persistent_vomiting_during_pregnancy",
+      "source_trigger": "Persistent vomiting",
+      "source_directed_action": "report_to_health_facility",
+      "final_urgency": null,
+      "diagnosis_allowed": false,
+      "status": "clinical_review_pending"
+    },
+    {
+      "id": "IN-ANC-RF-003",
+      "trigger_concept": "abnormal_vaginal_discharge_during_pregnancy",
+      "source_trigger": "Abnormal vaginal discharge",
+      "source_directed_action": "report_to_health_facility",
+      "final_urgency": null,
+      "diagnosis_allowed": false,
+      "status": "clinical_review_pending"
+    },
+    {
+      "id": "IN-ANC-RF-004",
+      "trigger_concept": "palpitations_fatigue_or_breathlessness",
+      "source_trigger": "Palpitations, easy fatigability and breathlessness at rest and/or on mild exertion",
+      "source_directed_action": "report_to_health_facility",
+      "final_urgency": null,
+      "diagnosis_allowed": false,
+      "status": "clinical_review_pending"
+    },
+    {
+      "id": "IN-ANC-RF-005",
+      "trigger_concept": "vaginal_bleeding_during_pregnancy",
+      "source_trigger": "Vaginal bleeding",
+      "source_directed_action": "report_to_health_facility",
+      "additional_source_context": "The same ICMR STW states that a woman presenting with bleeding per vaginum should be assessed for the amount/local causes and referred to CHC or higher centre.",
+      "final_urgency": null,
+      "diagnosis_allowed": false,
+      "status": "clinical_review_pending"
+    },
+    {
+      "id": "IN-ANC-RF-006",
+      "trigger_concept": "reduced_or_absent_fetal_movement",
+      "source_trigger": "Decreased or absent fetal movements at greater than 28 weeks gestation",
+      "gestational_age_constraint": ">28 weeks",
+      "source_directed_action": "report_to_health_facility",
+      "final_urgency": null,
+      "diagnosis_allowed": false,
+      "status": "clinical_review_pending"
+    },
+    {
+      "id": "IN-ANC-RF-007",
+      "trigger_concept": "watery_fluid_leakage_per_vaginum",
+      "source_trigger": "Leaking of watery fluid per vaginum",
+      "source_directed_action": "report_to_health_facility",
+      "final_urgency": null,
+      "diagnosis_allowed": false,
+      "status": "clinical_review_pending"
+    },
+    {
+      "id": "IN-ANC-RF-008",
+      "trigger_concept": "severe_headache_blurred_vision_or_convulsion",
+      "source_trigger": "Severe headache / blurring of vision / convulsion",
+      "source_directed_action": "report_to_health_facility",
+      "final_urgency": null,
+      "diagnosis_allowed": false,
+      "status": "clinical_review_pending",
+      "review_note": "Clinician must split this composite source item into symptom-specific urgency rules before production use."
+    },
+    {
+      "id": "IN-ANC-RF-009",
+      "trigger_concept": "reduced_urine_or_burning_micturition",
+      "source_trigger": "Passing lesser amounts of urine and/or burning sensation during micturition",
+      "source_directed_action": "report_to_health_facility",
+      "final_urgency": null,
+      "diagnosis_allowed": false,
+      "status": "clinical_review_pending"
+    },
+    {
+      "id": "IN-ANC-RF-010",
+      "trigger_concept": "generalized_itching_during_pregnancy",
+      "source_trigger": "Itching all over the body",
+      "source_directed_action": "report_to_health_facility",
+      "final_urgency": null,
+      "diagnosis_allowed": false,
+      "status": "clinical_review_pending"
+    }
+  ],
+  "required_before_promotion": [
+    "Cross-check each trigger against current NHM/MoHFW maternal-health guidance",
+    "Separate composite symptom rules where clinically necessary",
+    "Assign consumer-safe urgency levels through clinician review",
+    "Define exclusions and gestational-age constraints",
+    "Create deterministic unit tests",
+    "Create false-reassurance tests",
+    "Create conflict tests against WHO baseline and later specialist sources",
+    "Approve multilingual wording independently from the clinical rule"
+  ]
+}
