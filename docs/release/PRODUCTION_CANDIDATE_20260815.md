@@ -38,23 +38,19 @@ Validation still required:
 - Expired/invalid confirmation link handling.
 - Confirmed user with no family routes to onboarding.
 - Confirmed existing family member routes to home.
-- `npm run typecheck`, `npm run lint`, `npx expo-doctor`, and `npx expo config --type public` pass after pulling.
 
-## Next safe milestones
+## Milestone 2 — Android config cleanup
 
-1. Android debug warning fixes.
-2. Release AAB/signing workflow cleanup.
-3. Production config validation and legal/support URL readiness.
-4. Reminder notification hardening that does not require redesign screens.
-5. Final production build gate documentation.
+Status: config cleanup added, local/CI validation pending.
 
-## Explicitly excluded for now
+Included changes:
 
-Do not bring these into this production candidate until separate validation is complete:
+- Removed `android.edgeToEdgeEnabled` from `app.json` to eliminate the Expo-manifest warning while keeping the existing Android package, permissions, adaptive icon, Firebase configuration, widget plugin and release-signing plugin unchanged.
+- Reviewed old `fix/android-debug-warnings`; it is intentionally not merged because it is far behind current `main` and only contains an old `app/home.tsx` change plus progress-doc edits.
+- Reviewed the signed-AAB workflow and release-signing plugin already present on this candidate branch; no replacement was made because the candidate plugin already includes the safer EAS Build guard.
 
-- full product redesign navigation shell,
-- Care+ and Play Billing,
-- reports extraction/provider flow,
-- Ask Janani AI personalization,
-- clinical rule engine production activation,
-- multilingual clinical safety copy claims.
+Validation still required:
+
+- `npx expo config --type public` must resolve without the `edgeToEdgeEnabled` warning.
+- `npm run typecheck`, `npm run lint`, and `npx expo-doctor` must pass after pulling this branch locally.
+- Signed AAB workflow still requires GitHub production environment secrets/vars before it can be used for a real release build.
