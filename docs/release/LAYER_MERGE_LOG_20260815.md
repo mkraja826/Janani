@@ -147,7 +147,35 @@ Result:
 - Added a small helper for production support email handling using `EXPO_PUBLIC_SUPPORT_EMAIL` through `productionConfig`.
 - Did not merge broad app config, asset, site, Cloudflare, docs or Supabase changes from the old branch.
 
-Validation required after pulling this branch:
+### Layer 7 — deploy controls for account deletion and legal-site safety
+
+Source inspected:
+
+- `release/production-deploy-controls`
+
+Status: merged selectively, validation deferred to batch-end.
+
+Files added/changed:
+
+- `.github/scripts/validate-legal-site.mjs`
+- `site/account-deletion/index.html`
+- `cloudflare/account-deletion/README.md`
+- `cloudflare/account-deletion/public/_headers`
+- `cloudflare/account-deletion/public/config.js`
+- `cloudflare/account-deletion/public/app.js`
+- `cloudflare/account-deletion/public/index.html`
+- `cloudflare/account-deletion/public/styles.css`
+- `cloudflare/account-deletion/validate.mjs`
+
+Result:
+
+- The shared GitHub Pages account-deletion page is now information-only and links to the dedicated Cloudflare Pages deletion origin.
+- The dedicated Cloudflare static deletion page was added with strict security headers, no storage usage, direct Supabase Auth verification, `DELETE` confirmation and timeout-uncertainty copy.
+- The legal-site validator now blocks credential-handling scripts/forms on the shared GitHub Pages origin and requires the dedicated Cloudflare deletion link.
+- A compact local validator was added for the Cloudflare static deletion bundle. The original old-branch validator was intentionally reduced while preserving the important static/security checks.
+- Did not merge app-config, launcher asset, package, Supabase, broad docs or other branch churn from `release/production-deploy-controls`.
+
+Validation required after this batch:
 
 ```bash
 npm ci
@@ -157,14 +185,15 @@ npm run typecheck
 npm run lint
 npx expo-doctor
 npx expo config --type public
+node cloudflare/account-deletion/validate.mjs
+node .github/scripts/validate-legal-site.mjs
 ```
 
 ## Next branch inspection order
 
-1. `release/production-deploy-controls`
-2. `release/production-feature-gates`
-3. `feature/release-readiness-validation`
-4. `release/play-production-package`
-5. Stable backend/privacy branches only if their changes are still missing from this candidate.
+1. `release/production-feature-gates`
+2. `feature/release-readiness-validation`
+3. `release/play-production-package`
+4. Stable backend/privacy branches only if their changes are still missing from this candidate.
 
 Do not inspect product-redesign, AI, reports, billing or clinical branches for Janani 1.0 unless a production blocker specifically requires a small isolated change from them.
