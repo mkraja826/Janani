@@ -287,7 +287,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
   if (loading) {
     content = <LoadingGate />;
   } else {
-    const publicPath = pathname === '/' || pathname === '/auth';
+    const publicPath = pathname === '/' || pathname === '/auth' || pathname === '/auth/callback';
     if (!session) {
       if (!publicPath) content = <Redirect href="/auth" />;
     } else if (!publicPath && currentMembership === 'loading') {
