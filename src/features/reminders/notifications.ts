@@ -9,6 +9,7 @@ import {
 } from '@/features/notifications/channels';
 import { toLocalDate } from '@/lib/date';
 import { encryptedLocalStorage } from '@/lib/encryptedLocalStorage';
+import { supabase } from '@/lib/supabase';
 
 export const REMINDER_CHANNEL_ID = CARE_REMINDER_CHANNEL_ID;
 const REGISTRY_PREFIX = 'janani:reminder-notifications:v2:';
@@ -23,12 +24,14 @@ export type ReminderScheduleInput = {
   id: string;
   title: string;
   instructions: string | null;
-  kind: ReminderKind;
+  kind?: ReminderKind;
   localTime: string;
   startDate: string;
   endDate: string | null;
   daysOfWeek: number[];
 };
+
+type ResolvedReminderScheduleInput = Omit<ReminderScheduleInput, 'kind'> & { kind: ReminderKind };
 
 type StoredSchedule = {
   identifiers: string[];
@@ -83,7 +86,33 @@ function addDays(value: Date, days: number): Date {
   return next;
 }
 
-function scheduleSignature(input: ReminderScheduleInput) {
+function isReminderKind(value: unknown): value is ReminderKind {
+  return value === 'medication'
+    || value === 'appointment'
+    || value === 'hydration'
+    || value === 'nutrition'
+    || value === 'custom';
+}
+
+async function resolveReminderScheduleInput(
+  input: ReminderScheduleInput,
+): Promise<ResolvedReminderScheduleInput> {
+  if (input.kind) return input as ResolvedReminderScheduleInput;
+
+  const { data, error } = await supabase
+    .from('reminders')
+    .select('kind')
+    .eq('id', input.id)
+    .maybeSingle();
+
+  if (error || !isReminderKind(data?.kind)) {
+    throw new Error('Reminder type could not be verified before scheduling its phone alert.');
+  }
+
+  return { ...input, kind: data.kind };
+}
+
+function scheduleSignature(input: ResolvedReminderScheduleInput) {
   return JSON.stringify({
     title: input.title,
     instructions: input.instructions,
@@ -138,10 +167,11 @@ export async function scheduleReminderNotifications(
 
 async function scheduleReminderNotificationsUnlocked(
   userId: string,
-  input: ReminderScheduleInput,
+  unresolvedInput: ReminderScheduleInput,
 ): Promise<number> {
   await migrateLegacyReminderNotifications();
   await prepareReminderNotifications();
+  const input = await resolveReminderScheduleInput(unresolvedInput);
 
   const registry = await readRegistry(userId);
   const current = registry[input.id];
