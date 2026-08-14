@@ -54,3 +54,21 @@ Validation still required:
 - `npx expo config --type public` must resolve without the `edgeToEdgeEnabled` warning.
 - `npm run typecheck`, `npm run lint`, and `npx expo-doctor` must pass after pulling this branch locally.
 - Signed AAB workflow still requires GitHub production environment secrets/vars before it can be used for a real release build.
+
+## Milestone 3 — Production config and audit gate cleanup
+
+Status: documentation/config alignment added, local/CI validation pending.
+
+Included changes:
+
+- `.env.example` now lists every public variable required by `scripts/validate-production-config.mjs`: Supabase URL, Supabase publishable key, support email, privacy URL and account-deletion URL.
+- `.env.example` explicitly keeps future Care+ flags disabled by default: `EXPO_PUBLIC_CARE_PLUS_VISIBLE=false`, `EXPO_PUBLIC_CARE_PLUS_PURCHASES_ENABLED=false`, and `EXPO_PUBLIC_CARE_PLUS_AI_ENABLED=false`.
+- Existing production validator was reviewed and kept strict: support email must be valid, legal/account URLs must be HTTPS, Care+ AI/purchases cannot be enabled while hidden, and purchases remain blocked until the billing milestone is intentionally integrated.
+- Existing production audit script was reviewed and kept strict: it still blocks unmitigated high/critical dependency findings and keeps the image-size Metro adapter guard.
+
+Validation still required:
+
+- Copy `.env.example` to `.env` locally and replace placeholder values with real production-safe values.
+- Run `npm run validate:production-config` with real values loaded.
+- Run `npm run audit:production` after `npm ci` from a clean checkout.
+- Do not weaken the audit gate just to make the branch merge faster.
