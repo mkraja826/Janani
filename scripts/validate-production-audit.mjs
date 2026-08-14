@@ -20,36 +20,34 @@ try {
 }
 
 const vulnerabilities = report.vulnerabilities ?? {};
-const memo = new Map();
 
-function isAllowedVulnerability(name, stack = new Set()) {
-  if (memo.has(name)) return memo.get(name);
-  if (stack.has(name)) return false;
+function collectHighCriticalAdvisories(name, visited = new Set()) {
+  if (visited.has(name)) return new Set();
 
   const info = vulnerabilities[name];
-  if (!info) return false;
+  if (!info) return new Set();
 
-  const nextStack = new Set(stack);
-  nextStack.add(name);
+  const nextVisited = new Set(visited);
+  nextVisited.add(name);
 
+  const advisories = new Set();
   const via = Array.isArray(info.via) ? info.via : [];
-  if (via.length === 0) return false;
 
-  const allowed = via.every((entry) => {
+  for (const entry of via) {
     if (typeof entry === 'string') {
-      return isAllowedVulnerability(entry, nextStack);
+      for (const advisory of collectHighCriticalAdvisories(entry, nextVisited)) {
+        advisories.add(advisory);
+      }
+      continue;
     }
 
     const severity = entry?.severity;
-    if (severity !== 'high' && severity !== 'critical') {
-      return true;
+    if ((severity === 'high' || severity === 'critical') && entry?.url) {
+      advisories.add(entry.url);
     }
+  }
 
-    return allowedAdvisoryUrls.has(entry?.url);
-  });
-
-  memo.set(name, allowed);
-  return allowed;
+  return advisories;
 }
 
 const blocking = [];
@@ -59,17 +57,23 @@ for (const [name, info] of Object.entries(vulnerabilities)) {
   const severity = info?.severity;
   if (severity !== 'high' && severity !== 'critical') continue;
 
-  if (isAllowedVulnerability(name)) {
-    allowed.push({ name, severity });
+  const advisories = collectHighCriticalAdvisories(name);
+  const advisoryList = [...advisories];
+  const isAllowed =
+    advisoryList.length > 0 && advisoryList.every((url) => allowedAdvisoryUrls.has(url));
+
+  if (isAllowed) {
+    allowed.push({ name, severity, advisories: advisoryList });
   } else {
-    blocking.push({ name, severity });
+    blocking.push({ name, severity, advisories: advisoryList });
   }
 }
 
 if (blocking.length > 0) {
   console.error('Production audit validation failed. Blocking high/critical vulnerabilities:');
   for (const item of blocking) {
-    console.error(`- ${item.name} (${item.severity})`);
+    const sources = item.advisories.length > 0 ? ` -> ${item.advisories.join(', ')}` : '';
+    console.error(`- ${item.name} (${item.severity})${sources}`);
   }
   process.exit(1);
 }
