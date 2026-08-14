@@ -1,6 +1,9 @@
 import { spawnSync } from 'node:child_process';
 
-const allowedHighPackages = new Set(['image-size']);
+const allowedAdvisoryUrls = new Set([
+  'https://github.com/advisories/GHSA-w3rx-r6r6-pgpr',
+  'https://github.com/advisories/GHSA-5p2g-fcmc-qvqq',
+]);
 
 const result = spawnSync('npm', ['audit', '--omit=dev', '--json'], {
   encoding: 'utf8',
@@ -17,6 +20,38 @@ try {
 }
 
 const vulnerabilities = report.vulnerabilities ?? {};
+const memo = new Map();
+
+function isAllowedVulnerability(name, stack = new Set()) {
+  if (memo.has(name)) return memo.get(name);
+  if (stack.has(name)) return false;
+
+  const info = vulnerabilities[name];
+  if (!info) return false;
+
+  const nextStack = new Set(stack);
+  nextStack.add(name);
+
+  const via = Array.isArray(info.via) ? info.via : [];
+  if (via.length === 0) return false;
+
+  const allowed = via.every((entry) => {
+    if (typeof entry === 'string') {
+      return isAllowedVulnerability(entry, nextStack);
+    }
+
+    const severity = entry?.severity;
+    if (severity !== 'high' && severity !== 'critical') {
+      return true;
+    }
+
+    return allowedAdvisoryUrls.has(entry?.url);
+  });
+
+  memo.set(name, allowed);
+  return allowed;
+}
+
 const blocking = [];
 const allowed = [];
 
@@ -24,12 +59,11 @@ for (const [name, info] of Object.entries(vulnerabilities)) {
   const severity = info?.severity;
   if (severity !== 'high' && severity !== 'critical') continue;
 
-  if (allowedHighPackages.has(name)) {
-    allowed.push({ name, severity, via: info?.via ?? [] });
-    continue;
+  if (isAllowedVulnerability(name)) {
+    allowed.push({ name, severity });
+  } else {
+    blocking.push({ name, severity });
   }
-
-  blocking.push({ name, severity, via: info?.via ?? [] });
 }
 
 if (blocking.length > 0) {
@@ -41,10 +75,11 @@ if (blocking.length > 0) {
 }
 
 if (allowed.length > 0) {
-  console.warn('Production audit contains explicitly tracked upstream exception(s):');
+  console.warn('Production audit contains tracked upstream image-size advisory chain(s):');
   for (const item of allowed) {
     console.warn(`- ${item.name} (${item.severity})`);
   }
+  console.warn('Allowed advisories: GHSA-w3rx-r6r6-pgpr, GHSA-5p2g-fcmc-qvqq');
 }
 
 console.log('Production dependency audit policy passed.');
