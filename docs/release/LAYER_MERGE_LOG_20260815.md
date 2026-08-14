@@ -238,6 +238,26 @@ Result:
 - It is intended for the future health/Care+/AI stack after staging migrations/functions exist.
 - Did not merge the branch's app screens, billing module, AI functions, clinical docs, future migrations or feature UI.
 
+### Layer 12 — final missing-files review
+
+Sources searched/inspected:
+
+- branch search: `privacy`
+- branch search: `legal`
+- branch search: `support`
+- branch search: `backend`
+- branch search: `release`
+- `release/auth-support-readiness`
+
+Status: reviewed; no code copied.
+
+Result:
+
+- No separate privacy/legal branch remains.
+- Remaining support/backend branches had already been inspected through Layers 6, 10 and 11.
+- `release/auth-support-readiness` still contains broad old asset/config/Supabase churn, but the candidate already has the safe support helper, auth/support gates, legal-site validation and Cloudflare account-deletion flow.
+- No additional Janani 1.0-safe files were identified.
+
 ## Batch validation required before merge to main
 
 ```bash
@@ -260,5 +280,8 @@ node scripts/staging-backend-smoke.mjs
 
 ## Remaining inspection order
 
-1. Check whether any stable backend/privacy branch remains unreviewed.
-2. Do not inspect product-redesign, AI, reports, billing or clinical branches for Janani 1.0 unless a production blocker specifically requires a small isolated change from them.
+1. Run batch validation locally or in GitHub Actions.
+2. Fix only validation failures, if any.
+3. Open/merge candidate to `main` only after validation and owner release checklist are accepted.
+
+Do not inspect product-redesign, AI, reports, billing or clinical branches for Janani 1.0 unless a production blocker specifically requires a small isolated change from them.
