@@ -1,8 +1,18 @@
 const DAY_MS = 24 * 60 * 60 * 1000;
 
-function parseDateOnly(value: string): Date {
+function parseDateOnlyUtc(value: string): number {
   const [year, month, day] = value.split('-').map(Number);
-  return new Date(year, month - 1, day);
+  if (!year || !month || !day) throw new Error(`Invalid date-only value: ${value}`);
+  const timestamp = Date.UTC(year, month - 1, day);
+  const parsed = new Date(timestamp);
+  if (
+    parsed.getUTCFullYear() !== year ||
+    parsed.getUTCMonth() !== month - 1 ||
+    parsed.getUTCDate() !== day
+  ) {
+    throw new Error(`Invalid date-only value: ${value}`);
+  }
+  return timestamp;
 }
 
 export type PregnancyProgress = {
@@ -14,9 +24,9 @@ export type PregnancyProgress = {
 };
 
 export function getPregnancyProgress(dueDate: string, now = new Date()): PregnancyProgress {
-  const due = parseDateOnly(dueDate);
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const daysRemaining = Math.ceil((due.getTime() - today.getTime()) / DAY_MS);
+  const due = parseDateOnlyUtc(dueDate);
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  const daysRemaining = Math.round((due - today) / DAY_MS);
   const elapsedDays = Math.max(0, 280 - daysRemaining);
   const gestationalWeek = Math.min(42, Math.floor(elapsedDays / 7));
   const gestationalDay = elapsedDays % 7;
