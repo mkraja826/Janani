@@ -127,6 +127,7 @@ async function processMutation(
           id: reminderId,
           title: args.p_title,
           instructions: args.p_instructions,
+          kind: args.p_kind,
           localTime: args.p_local_time,
           startDate: args.p_start_date,
           endDate: args.p_end_date,
@@ -170,7 +171,7 @@ async function processMutation(
         await cancelReminderNotifications(mutation.userId, reminderId);
         const reminder = await client
           .from('reminders')
-          .select('id,title,instructions,local_time,start_date,end_date,days_of_week,is_active')
+          .select('id,title,instructions,kind,local_time,start_date,end_date,days_of_week,is_active')
           .eq('id', reminderId)
           .maybeSingle();
         if (!await canReplay()) return { status: 'completed' };
@@ -179,6 +180,7 @@ async function processMutation(
             id: reminder.data.id,
             title: reminder.data.title,
             instructions: reminder.data.instructions,
+            kind: reminder.data.kind,
             localTime: reminder.data.local_time,
             startDate: reminder.data.start_date,
             endDate: reminder.data.end_date,

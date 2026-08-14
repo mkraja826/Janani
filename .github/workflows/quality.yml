@@ -30,19 +30,25 @@ jobs:
           java-version: 17
       - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
       - run: npm ci --no-audit --no-fund
-      - run: npm audit --omit=dev --audit-level=high
+      - run: npm run audit:production
       - run: npm run typecheck
       - run: npm run lint
       - run: npx expo-doctor
       - run: node .github/scripts/validate-legal-site.mjs
       - run: npx expo config --type public
-      - run: npx expo prebuild --platform android --clean --no-install
+      - name: Android clean prebuild (diagnostic icon fallback only)
+        env:
+          JANANI_CI_NATIVE_ICON_FALLBACK: '1'
+        run: npx expo prebuild --platform android --clean --no-install
       - name: Verify widget generation
         run: |
           test -f android/app/src/main/java/com/mkraja826/janani/JananiWidgetModule.kt
           test -f android/app/src/main/java/com/mkraja826/janani/JananiWidgetPackage.kt
-          test -f android/app/src/main/java/com/mkraja826/janani/JananiCareWidget.kt
+          test -f android/app/src/main/java/com/mkraja826/janani/JananiWidgets.kt
           test -f android/app/src/main/res/layout/janani_care_widget.xml
+          grep -q 'class JananiCareWidget' android/app/src/main/java/com/mkraja826/janani/JananiWidgets.kt
+          grep -q 'class JananiMedicineWidget' android/app/src/main/java/com/mkraja826/janani/JananiWidgets.kt
+          grep -q 'class JananiLoveWidget' android/app/src/main/java/com/mkraja826/janani/JananiWidgets.kt
           grep -Eq '^[[:space:]]*(packages\.)?add\(JananiWidgetPackage\(\)\)[[:space:]]*$' android/app/src/main/java/com/mkraja826/janani/MainApplication.kt
       - name: Compile Android x86_64 debug APK
         working-directory: android

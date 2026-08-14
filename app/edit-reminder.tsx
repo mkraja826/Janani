@@ -5,11 +5,9 @@ import { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import {
-  cancelReminderNotifications,
-  NotificationPermissionError,
-  scheduleReminderNotifications,
-} from '@/features/reminders/notifications';
+import { cancelReminderNotifications, NotificationPermissionError, scheduleReminderNotifications, type ReminderKind } from '@/features/reminders/notifications';
+import { formsAccountCopy } from '@/i18n/formsAccount';
+import { readUiLanguage } from '@/i18n';
 import { isTransientError } from '@/lib/errors';
 import { enqueueMutation } from '@/lib/offlineQueue';
 import { supabase } from '@/lib/supabase';
@@ -17,71 +15,17 @@ import { useAuth } from '@/providers/AuthProvider';
 import { colors, radius, spacing } from '@/theme/tokens';
 
 const toTime = (value: Date) => `${String(value.getHours()).padStart(2,'0')}:${String(value.getMinutes()).padStart(2,'0')}`;
-
 export default function EditReminderScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const { session } = useAuth();
-  const [title,setTitle]=useState(''); const [instructions,setInstructions]=useState('');
+  const { id } = useLocalSearchParams<{ id: string }>(); const { session } = useAuth();
+  const [copy,setCopy]=useState(()=>formsAccountCopy('en')); const [title,setTitle]=useState(''); const [instructions,setInstructions]=useState('');
   const [timeValue,setTimeValue]=useState(()=>new Date(2000,0,1,9,0)); const [showTime,setShowTime]=useState(false);
-  const [schedule,setSchedule]=useState<{startDate:string;endDate:string|null;daysOfWeek:number[]}|null>(null); const [loading,setLoading]=useState(true); const [saving,setSaving]=useState(false);
-
-  useEffect(()=>{async function load(){const {data,error}=await supabase.from('reminders').select('title,instructions,local_time,start_date,end_date,days_of_week').eq('id',id).single();if(error||!data){Alert.alert('Reminder unavailable',error?.message??'This reminder could not be found.');router.back();return;}const[h,m]=data.local_time.split(':').map(Number);setTitle(data.title);setInstructions(data.instructions??'');setTimeValue(new Date(2000,0,1,h,m));setSchedule({startDate:data.start_date,endDate:data.end_date,daysOfWeek:data.days_of_week});setLoading(false);}if(id)load();},[id]);
-
+  const [schedule,setSchedule]=useState<{startDate:string;endDate:string|null;daysOfWeek:number[];kind:ReminderKind}|null>(null); const [loading,setLoading]=useState(true); const [saving,setSaving]=useState(false);
+  useEffect(()=>{void readUiLanguage().then((language)=>setCopy(formsAccountCopy(language)));},[]);
+  useEffect(()=>{async function load(){const {data,error}=await supabase.from('reminders').select('title,instructions,kind,local_time,start_date,end_date,days_of_week').eq('id',id).single();if(error||!data){Alert.alert('Reminder unavailable',error?.message??'This reminder could not be found.');router.back();return;}const[h,m]=data.local_time.split(':').map(Number);setTitle(data.title);setInstructions(data.instructions??'');setTimeValue(new Date(2000,0,1,h,m));setSchedule({startDate:data.start_date,endDate:data.end_date,daysOfWeek:data.days_of_week,kind:data.kind});setLoading(false);}if(id)load();},[id]);
   function onTimeChange(event:DateTimePickerEvent,value?:Date){if(Platform.OS==='android')setShowTime(false);if(event.type!=='dismissed'&&value)setTimeValue(value);}
-
-  async function save(){
-    if(!session||!id||!title.trim()){Alert.alert('Check reminder','Add a reminder title.');return;}
-    setSaving(true);
-    const time=toTime(timeValue);
-    const payload={p_reminder_id:id,p_title:title.trim(),p_instructions:instructions.trim(),p_local_time:`${time}:00`};
-    const {data,error}=await supabase.rpc('update_reminder_offline_safe',{p_reminder_id:id,p_title:title.trim(),p_instructions:instructions.trim(),p_local_time:`${time}:00`});
-    if(error||typeof data!=='string'){
-      if (error && !isTransientError(error)) {
-        setSaving(false);
-        Alert.alert('Could not update reminder', error.message);
-        return;
-      }
-      await enqueueMutation(session.user.id,'reminder_edit',payload);
-      setSaving(false);
-      Alert.alert('Saved for sync','Janani will update and reschedule this reminder when the connection returns.');
-      router.replace('/reminders');
-      return;
-    }
-    let scheduleError: 'permission-denied' | 'failed' | null = null;
-    try {
-      await cancelReminderNotifications(session.user.id, id);
-      if (schedule) {
-        await scheduleReminderNotifications(session.user.id, {
-          id,
-          title: title.trim(),
-          instructions: instructions.trim() || null,
-          localTime: `${time}:00`,
-          startDate: schedule.startDate,
-          endDate: schedule.endDate,
-          daysOfWeek: schedule.daysOfWeek,
-        });
-      }
-    } catch (notificationError) {
-      scheduleError = notificationError instanceof NotificationPermissionError
-        ? 'permission-denied'
-        : 'failed';
-    }
-    setSaving(false);
-    if (scheduleError) {
-      Alert.alert(
-        'Reminder updated',
-        scheduleError === 'permission-denied'
-          ? 'Phone alerts are off. Enable notifications in device settings to receive this reminder.'
-          : 'The reminder was updated, but this phone could not reschedule its alert. Reopen Janani to try again.',
-        [{ text: 'View reminders', onPress: () => router.replace('/reminders') }],
-      );
-      return;
-    }
-    router.replace('/reminders');
-  }
-
+  async function save(){if(!session||!id||!title.trim()){Alert.alert('Check reminder','Add a reminder title.');return;}setSaving(true);const time=toTime(timeValue);const payload={p_reminder_id:id,p_title:title.trim(),p_instructions:instructions.trim(),p_local_time:`${time}:00`};const {data,error}=await supabase.rpc('update_reminder_offline_safe',payload);if(error||typeof data!=='string'){if(error&&!isTransientError(error)){setSaving(false);Alert.alert('Could not update reminder',error.message);return;}await enqueueMutation(session.user.id,'reminder_edit',payload);setSaving(false);Alert.alert('Saved for sync','Janani will update and reschedule this reminder when the connection returns.');router.replace('/reminders');return;}let scheduleError:'permission-denied'|'failed'|null=null;try{await cancelReminderNotifications(session.user.id,id);if(schedule)await scheduleReminderNotifications(session.user.id,{id,title:title.trim(),instructions:instructions.trim()||null,kind:schedule.kind,localTime:`${time}:00`,startDate:schedule.startDate,endDate:schedule.endDate,daysOfWeek:schedule.daysOfWeek});}catch(notificationError){scheduleError=notificationError instanceof NotificationPermissionError?'permission-denied':'failed';}setSaving(false);if(scheduleError){Alert.alert('Reminder updated',scheduleError==='permission-denied'?'Phone alerts are off. Enable notifications in device settings to receive this reminder.':'The reminder was updated, but this phone could not reschedule its alert. Reopen Janani to try again.',[{text:'View reminders',onPress:()=>router.replace('/reminders')}]);return;}router.replace('/reminders');}
   if(loading)return <View style={styles.center}><ActivityIndicator color={colors.rose}/></View>;
-  return <SafeAreaView style={styles.page}><View style={styles.header}><Pressable onPress={()=>router.back()} style={styles.icon}><Ionicons name="close" size={22} color={colors.ink}/></Pressable><View><Text style={styles.eyebrow}>EDIT CARE ROUTINE</Text><Text style={styles.title}>Keep it accurate</Text></View></View><ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled"><Field label="Reminder title" value={title} onChangeText={setTitle}/><Field label="Instructions" value={instructions} onChangeText={setInstructions} multiline/><View><Text style={styles.label}>Daily time</Text><Pressable onPress={()=>setShowTime(true)} style={styles.timeButton}><Ionicons name="time-outline" size={20} color={colors.rose}/><Text style={styles.timeText}>{timeValue.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}</Text></Pressable>{showTime&&<DateTimePicker value={timeValue} mode="time" display={Platform.OS==='ios'?'spinner':'default'} onChange={onTimeChange}/>}</View><Text style={styles.help}>Saving replaces the previous phone schedule and reactivates the reminder. Offline edits sync automatically.</Text><Pressable disabled={saving} onPress={save} style={styles.save}>{saving?<ActivityIndicator color={colors.surface}/>:<Text style={styles.saveText}>Save and reschedule</Text>}</Pressable></ScrollView></SafeAreaView>;
+  return <SafeAreaView style={styles.page}><View style={styles.header}><Pressable onPress={()=>router.back()} style={styles.icon}><Ionicons name="close" size={22} color={colors.ink}/></Pressable><View><Text style={styles.eyebrow}>{copy.editReminderEyebrow}</Text><Text style={styles.title}>{copy.editReminderTitle}</Text></View></View><ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled"><Field label={copy.reminderTitle} value={title} onChangeText={setTitle}/><Field label={copy.instructions} value={instructions} onChangeText={setInstructions} multiline/><View><Text style={styles.label}>{copy.dailyTime}</Text><Pressable onPress={()=>setShowTime(true)} style={styles.timeButton}><Ionicons name="time-outline" size={20} color={colors.rose}/><Text style={styles.timeText}>{timeValue.toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}</Text></Pressable>{showTime&&<DateTimePicker value={timeValue} mode="time" display={Platform.OS==='ios'?'spinner':'default'} onChange={onTimeChange}/>}</View><Text style={styles.help}>Saving replaces the previous phone schedule and reactivates the reminder. Offline edits sync automatically.</Text><Pressable disabled={saving} onPress={save} style={styles.save}>{saving?<ActivityIndicator color={colors.surface}/>:<Text style={styles.saveText}>{copy.saveAndReschedule}</Text>}</Pressable></ScrollView></SafeAreaView>;
 }
 function Field({label,...props}:{label:string}&React.ComponentProps<typeof TextInput>){return <View><Text style={styles.label}>{label}</Text><TextInput {...props} placeholderTextColor={colors.muted} style={[styles.input,props.multiline&&styles.multiline]}/></View>}
 const styles=StyleSheet.create({page:{flex:1,backgroundColor:colors.background},center:{flex:1,alignItems:'center',justifyContent:'center',backgroundColor:colors.background},header:{flexDirection:'row',alignItems:'center',gap:spacing.md,padding:spacing.lg},icon:{width:44,height:44,borderRadius:radius.pill,alignItems:'center',justifyContent:'center',backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border},eyebrow:{fontSize:11,letterSpacing:1.8,fontWeight:'800',color:colors.rose},title:{fontSize:27,fontWeight:'800',color:colors.ink},content:{padding:spacing.lg,gap:spacing.lg},label:{marginBottom:spacing.sm,fontSize:13,fontWeight:'800',color:colors.roseDark},input:{minHeight:54,paddingHorizontal:spacing.md,borderRadius:radius.md,backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border,fontSize:16,color:colors.ink},multiline:{minHeight:110,paddingTop:spacing.md,textAlignVertical:'top'},timeButton:{minHeight:54,paddingHorizontal:spacing.md,flexDirection:'row',alignItems:'center',gap:spacing.sm,borderRadius:radius.md,backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border},timeText:{fontSize:16,fontWeight:'700',color:colors.ink},help:{fontSize:13,lineHeight:19,color:colors.muted},save:{minHeight:56,borderRadius:radius.pill,alignItems:'center',justifyContent:'center',backgroundColor:colors.rose},saveText:{fontSize:16,fontWeight:'800',color:colors.surface}});

@@ -1,86 +1,226 @@
-# Janani Project Progress
+# Janani Project Progress — Production 1.0
 
-**Overall progress: 95%**
+**Overall production readiness: ~88%**
 
-**Status:** Production-readiness verification; not publicly launched
+**Status:** Unified production integration; not publicly launched
 
-**Last verified:** 2026-08-03
+**Last verified:** 2026-08-11
 
-The percentage describes engineering readiness, not store approval or production availability. Janani must not be represented as 100% complete until every open release gate below has evidence.
+This percentage describes complete-product production readiness, not just feature implementation. Janani must not be represented as 100% complete until every remaining launch gate below has evidence.
 
-## Verified application and repository work
+## Production source of truth
 
-- Deterministic `package-lock.json` and Node.js 22 runtime policy are present.
-- A clean `npm ci`, TypeScript, Expo lint, all 18 Expo Doctor checks, high-severity production dependency audit, legal-site validation, Edge Function formatting/lint/type checks, Expo public-config resolution, and final diff check passed on the finished source.
-- Expo SDK 54 Android prebuild completed cleanly after the final client hardening changes, including the SDK-compatible System UI module, and widget package registration remained idempotent.
-- The final application/native source compiled into an x86_64 debug APK at `android/app/build/outputs/apk/debug/app-debug.apk` (46,080,516 bytes; SHA-256 `16d05f331d5392a8745b44131a6c510ae0c6ddf326277259f330efcb2721c088`).
-- A physical-device Logcat session showed no fatal Janani crash or ANR. The observed sign-out navigation race was fixed by removing the redundant root-route replacement and delegating post-sign-out routing to `AuthGate`.
-- Auth sessions and user-scoped local data are encrypted, with key material held in SecureStore.
-- Caches, offline queues, local reminder schedules, push-token state, and widget state are isolated or cleared by authenticated user.
-- Authenticated screens are gated by both session and current family membership.
-- Sign-up validates the password policy, preserves mother/partner intent, and supports email-confirmation flows.
-- Mother onboarding validates pregnancy dates and optional measurements; partner onboarding uses a 20-character high-entropy invite code.
-- Offline reminder and journal mutations are idempotent, user-scoped, ordered, and separated into retryable and permanent failures.
-- Reminder notifications use private lock-screen copy and a per-user local registry.
-- Local reminder schedules honor start date, end date, local time, and selected weekdays, and are reconciled on a rolling horizon.
-- Original app icon, adaptive foreground, monochrome, splash, notification, and favicon assets are wired into Expo configuration.
-- The legal-site source contains Privacy, Terms, Account Deletion, Support, robots, sitemap, accessibility, and security metadata.
-- GitHub Pages is enabled in workflow mode; the home, privacy, terms, account-deletion, and support routes were deployed and returned HTTP 200 over HTTPS.
-- EAS is linked to `@astromicirql/janani` with project ID `2897dd94-47bf-4b4c-a7a9-82e40aaa65a1`; public environment variables are configured for development, preview, and production profiles.
+- Active integration branch: `production/janani-1.0-integration`.
+- The branch contains the consolidated Janani 1.0 application and supersedes the older stacked health/Care+/release branches as the production integration line.
+- At the latest audited head before this document update (`89ec037`), the branch was 175 commits ahead of `main` and GitHub Actions **Janani Quality run #333 passed successfully**.
+- `main` has two later bookkeeping commits that add and then remove an accidental empty `docs/PRODUCTION_BACKEND_OPERATIONS.md`; they do not contain product functionality that must be ported into production.
+- The preserved `codex/milestones-1-5` branch has two unique commits that must be selectively reviewed before final merge, especially pregnancy week content, pregnancy validation, offline/reliability changes, legal-site validation, and icon configuration. Do not merge that branch wholesale.
 
-## Verified live Supabase backend
+## Integrated application domains
 
-- Connected project: `brdjnhfvytdmsnwexras`, Mumbai region.
-- All 15 source-controlled migrations are recorded in the live migration history.
-- The three production-hardening migrations cover core policy/grant repairs, partner-join ambiguity, and final deletion, token, nudge, and Realtime audit gaps.
-- `send-partner-nudge` version 5 is active with JWT verification, family membership checks, rate limiting, mutation idempotency, former-partner replay protection, and an atomic push-dispatch claim.
-- `delete-account` version 5 is active with JWT verification, current-password reauthentication, durable cleanup requests, role-aware deletion, and retryable storage cleanup.
-- Push tokens cannot be taken over by another active account; inactive-token reassignment is controlled.
-- Partners cannot read a mother's invite code, last menstrual period, height, or pre-pregnancy weight. Mother-only RPCs expose the private fields to their owner.
-- Mothers can delete partner-created family reminders, and partner removal rotates the family invite code, including deletion cascades.
-- Private Realtime Broadcast policies and sanitized family invalidation triggers cover family, membership, pregnancy, reminder, journal, and partner-message changes.
-- A transactional database smoke test passed and rolled back without leaving test rows.
-- A disposable account completed the version 5 deletion flow; its Auth, profile, cleanup-request, and storage records were verified absent afterward.
-- Browser preflight checks accept the intended GitHub Pages origin, and unauthenticated function calls are rejected.
-- Current Security Advisor warnings for authenticated `SECURITY DEFINER` RPCs are intentional because each function performs explicit authenticated ownership or family checks. The server-only deletion queue intentionally has RLS enabled without authenticated policies.
+### Core pregnancy and family experience
 
-## Release gates still open
+- Mother and partner onboarding and family linking.
+- Private mother/partner membership boundaries.
+- Pregnancy progress and trimester guidance.
+- Medication/care reminders with notification channels and alarm-style medicine behavior.
+- Journal with explicit partner sharing.
+- Thinking of You partner connection.
+- Android home-screen widget suite with user-scoped privacy reset.
+- Offline cache and queued mutation architecture.
 
-1. Reinstall the patched APK on a physical device and confirm sign-out no longer emits the unhandled `REPLACE index` warning.
-2. Complete the full mother/partner checklist on two physical Android devices, including offline replay and membership revocation.
-3. Verify real push delivery, notification timing/taps, reboot recovery, and widget rendering/deep links on physical hardware.
-4. Enable leaked-password protection in the live Supabase Auth settings. This remains an external dashboard/plan gate.
-5. Configure production signing, build a signed AAB, and verify its install/update behavior.
-6. Pass the final GitHub Actions quality run, complete review, and merge intentionally.
-7. Reconcile the final dependency tree and behavior with the current Play Console Data Safety form, then complete closed-testing and store-listing materials.
+### Maternal health platform
 
-## Environment and operational notes
+- Private Health Profile.
+- Health Tracker for weight, blood pressure, glucose, labs and symptoms.
+- Correct latest-entry ordering and current-weight reconciliation after deletion.
+- Mother-only RPC access to sensitive health data.
+- Care Timeline for appointments, scans, tests and follow-up context.
+- Private Care Context for medications, supplements, medical history, previous pregnancy history, clinician instructions, language/region and sharing preferences.
 
-- The disposable Android 15 `Janani_Test` AVD was freshly wiped and booted under WHPX. ADB repeatedly returned to `offline`; the only streamed install reached the OS but failed before installing Janani because the still-initializing emulator storage service had no `PackageManagerInternal`. The AVD was stopped afterward.
-- The existing `Pixel_7` AVD was not wiped or modified.
-- A later physical-device session showed Janani running without a fatal native crash or ANR; sign-out produced a development navigation warning that is now patched and awaiting regression verification.
-- Two-device and physical-hardware feature behavior has not been claimed as fully tested.
-- GitHub Pages is live at `https://mkraja826.github.io/Janani/`; all five published routes were checked successfully after deployment.
-- One pre-existing Auth/profile account remains in the live project. Its ownership is unknown, so it is intentionally preserved and must not be used as disposable test data.
-- Supabase leaked-password protection is still disabled. Enabling it requires access to the correct project dashboard and may depend on the project plan.
-- `npm audit --omit=dev --audit-level=high` passes. It reports 15 moderate transitive `uuid`/Expo build-tool findings whose offered forced fix downgrades Expo incompatibly; no forced major change was applied.
+### Janani Profile Engine v2
 
-## Known behavior to validate on devices
+The normalized profile/context layer now combines relevant pregnancy, health, care and preference data and exposes task-specific contexts:
 
-- A reminder created fully offline receives its local phone schedule only after the queued mutation reaches Supabase.
-- Local alerts are scheduled on a rolling 60-day horizon and refreshed when Janani returns to the foreground.
-- Production push delivery depends on EAS/Expo credentials and physical-device behavior even though the project is now linked.
-- Account deletion and family unlinking have backend verification but still require end-to-end app acceptance on disposable accounts.
+- Nutrition Context
+- Health Trend Context
+- Appointment Context
+- Daily Care Context
+- Education Context
+- Partner Support Context
 
-## Safety and privacy principles
+AI should receive only the minimum task-relevant context rather than the user's entire raw database record.
+
+### Nutrition
+
+- Deterministic pregnancy nutrition foundation.
+- Diet, allergy, food-avoidance, region/cuisine and clinician-instruction personalization.
+- Condition-specific personalization fails closed unless the corresponding clinical rule pack is formally approved.
+
+### Janani Care+
+
+- Old generic `janani-ai` backend removed from the production path.
+- Single `care-plus-ai` gateway with authenticated mother context.
+- Care+ entitlement check.
+- Relevant-context selection.
+- Clinical-rule approval gate.
+- Provider abstraction for an OpenAI-compatible endpoint.
+- Urgent-input interception.
+- Output safety validation.
+- Server-only quota reservation/finalization.
+- Provider failure accounting that does not silently burn successful-usage allowance.
+- Structured metadata-only observability.
+- AI provider keys and Supabase service-role credentials remain server-only.
+
+### Clinical rule lifecycle
+
+- Database-backed rule-pack lifecycle replaces hard-coded approvals.
+- States support draft, pending review, approved, suspended and retired behavior.
+- Approval requires version, reviewer identity/credentials, source manifest and review/effective metadata.
+- Active rule resolution occurs server-side and fails closed.
+- GDM, diabetes, hypertension, anemia and thyroid packs remain pending review and must not be represented as clinically approved.
+
+### Localization
+
+- Persistent locale architecture is integrated.
+- High-traffic non-clinical UI has English, Telugu and Hindi coverage across Home, auth/onboarding, Health Profile/Tracker, Care Context/Timeline, Food Guide shell, Pregnancy Guide shell, reminders, journal, Thinking of You, Care+ shell and Settings/form surfaces.
+- Additional global locale/RTL infrastructure exists for future international expansion.
+- Medical, urgent-care, legal, destructive-action and other safety-critical wording must remain source-approved until reviewed translations are available.
+
+### Production hardening and release infrastructure
+
+- Production feature gates and config validation.
+- Billing forced off until the final billing milestone.
+- Firebase Analytics, Crashlytics and Performance configuration preserved.
+- Fail-closed Android release-signing plugin.
+- Signed-AAB GitHub workflow.
+- Production audit scripts and dependency mitigations.
+- Production backend operations and database/RPC audit documentation.
+- Widget/icon/native CI diagnostics hardened.
+- Latest audited Janani Quality workflow: **success** on production head `89ec037` (run #333).
+
+## Backend/security audit state
+
+Verified in source/audit:
+
+- Health, Care Timeline, Private Care Context, Care+ usage/entitlement and clinical-rule tables use RLS and revoked direct client table access where appropriate.
+- Mother-facing access is through ownership-checking RPCs.
+- Care+ reservation/finalization RPCs are service-role only.
+- Clinical-rule approval/state mutation is service-role only.
+- Push registration derives the authenticated user rather than trusting client ownership input.
+- Care+ logging policy prohibits prompts, generated health text, medication names, readings, lab data, symptoms, appointments, push tokens, credentials and direct user/pregnancy identifiers.
+- Billing is deliberately deferred and production validation rejects enabling purchases.
+
+## Current readiness by program
+
+| Program | Approx. readiness |
+|---|---:|
+| Core mother/partner app | 97% |
+| Pregnancy/reminders/journal/widgets | 95% |
+| Health Profile + Tracker | 95% |
+| Care Timeline + Care Context | 92% |
+| Janani Profile Engine | 90% |
+| Nutrition engine | 88% |
+| Care+ architecture | 88% |
+| Security/privacy foundation | 93% |
+| Localization code foundation | 90% |
+| Production signing/release tooling | 92% |
+| Production backend deployment proof | 70% |
+| Clinical approval/content review | 30% |
+| Google Play Billing + RTDN | deferred/final milestone |
+| Play Console/public release | not completed |
+
+## Remaining production programs
+
+### 1. Final branch reconciliation
+
+- Selectively review the two unique `codex/milestones-1-5` commits.
+- Port only improvements that are newer/better than production, especially pregnancy content validation and reliability fixes.
+- Confirm the two newer `main` bookkeeping commits require no product merge.
+- End with one reviewed production branch and a clean merge path to `main`.
+
+### 2. Production backend deployment proof
+
+- Apply the complete integration migration chain to a clean staging database first.
+- Confirm every migration succeeds without hidden/manual prerequisites.
+- Re-run mother/partner/cross-family access checks.
+- Verify private table REST access remains denied.
+- Deploy Edge Functions from the same reviewed commit.
+- Configure production secret names documented in `docs/PRODUCTION_BACKEND_OPERATIONS.md`.
+- Start Care+ with `JANANI_AI_ENABLED=false` and enable only after provider/context/usage smoke tests pass.
+- Verify production logs are metadata-only.
+
+### 3. Observability and privacy verification
+
+- Confirm Crashlytics/Analytics events never contain health values, journal text, AI prompts, medications or clinician instructions.
+- Configure launch alerting for Edge Function 5xx, Care+ provider failures, usage-finalization failures, authentication/RLS regressions and push failures.
+- Verify request IDs are sufficient for incident correlation without direct user identifiers.
+
+### 4. Clinical review
+
+- Qualified clinical review of every condition pack.
+- Review and approve source manifests and prohibited/allowed guidance.
+- Approve Telugu/Hindi medical and urgent-care wording before enabling translated clinical guidance.
+- Only approved rule-pack versions may be activated in the server registry.
+
+### 5. Physical-device acceptance
+
+- Two-device mother/partner acceptance flow.
+- Reminder timing, alarm behavior, taps and reboot recovery.
+- Push delivery and device-token lifecycle.
+- Widget rendering/deep links/privacy reset.
+- Offline create/edit/replay behavior.
+- Partner removal/rejoin and access revocation.
+- Account deletion/export on disposable accounts.
+- Care+ unavailable/blocked/success paths.
+
+### 6. Google Play Billing + RTDN — final major integration
+
+Billing remains intentionally deferred. Final implementation must include:
+
+- Google Play Billing client flow.
+- Google server verification.
+- Atomic purchase-token ownership claim.
+- Server-authoritative Care+ entitlement.
+- Purchase acknowledgement with durable retry.
+- Restore/renew/cancel/grace/hold/expire/refund/revoke lifecycle.
+- RTDN reconciliation.
+- Billing observability and idempotency.
+
+### 7. Final release
+
+- Reconcile and merge production integration intentionally into `main`.
+- Configure protected production signing secrets.
+- Generate the final reproducible signed AAB from one reviewed commit.
+- Verify install/update behavior on physical Android devices.
+- Complete Privacy, Account Deletion, Support and Terms production URLs.
+- Complete Play Data Safety and health/medical declarations based on the actual final AAB.
+- Complete subscription disclosure after billing is integrated.
+- Upload screenshots, feature graphic, descriptions and release notes.
+- Complete closed/open testing as required, then production rollout.
+
+## Definition of 100%
+
+Janani reaches 100% production readiness only when:
+
+1. The production integration branch is reconciled and merged into `main`.
+2. CI/typecheck/lint/Expo Doctor/production audit/native release gates pass on the final commit.
+3. Staging and production migrations are verified.
+4. RLS/RPC/privacy boundaries pass acceptance tests.
+5. Required production secrets and monitoring are configured.
+6. Clinical rule packs intended for launch are formally approved or remain disabled.
+7. Physical mother/partner/device acceptance passes.
+8. Billing/RTDN is complete if Care+ purchases are part of launch.
+9. Final signed AAB is reproducible and verified.
+10. Play Console declarations/listing/release gates are complete.
+
+## Safety principles
 
 - Janani is supportive and educational, never diagnostic.
-- Medicine details must follow the prescribing clinician.
-- Urgent concerns must direct users to qualified medical or emergency care.
-- Journal sharing is explicit and private by default.
-- Partner access is explicit, revocable, and enforced in the database.
-- Sensitive mother-only pregnancy details and family invite codes are not partner-readable.
-- Push tokens and profile details are private to the owning user.
-- Offline data is scoped to the authenticated user; Supabase remains authoritative.
-- Destructive account actions require explicit confirmation and current-password reauthentication.
-- No service-role keys, passwords, signing files, or production secrets may enter the mobile repository.
+- AI cannot prescribe, change medications or declare mother/baby safety.
+- Clinician instructions take priority over generated guidance.
+- Urgent concerns bypass ordinary AI advice.
+- Sensitive health information is mother-only by default.
+- Partner sharing is explicit and revocable.
+- AI receives task-relevant context only.
+- No service-role keys, AI provider secrets, signing files or passwords may enter the mobile bundle or repository.
