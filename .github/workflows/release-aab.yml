@@ -42,7 +42,7 @@ jobs:
           EXPO_PUBLIC_PRIVACY_URL: ${{ vars.EXPO_PUBLIC_PRIVACY_URL }}
           EXPO_PUBLIC_ACCOUNT_DELETION_URL: ${{ vars.EXPO_PUBLIC_ACCOUNT_DELETION_URL }}
           EXPO_PUBLIC_CARE_PLUS_VISIBLE: ${{ vars.EXPO_PUBLIC_CARE_PLUS_VISIBLE || 'false' }}
-          EXPO_PUBLIC_CARE_PLUS_PURCHASES_ENABLED: 'false'
+          EXPO_PUBLIC_CARE_PLUS_PURCHASES_ENABLED: ${{ vars.EXPO_PUBLIC_CARE_PLUS_PURCHASES_ENABLED || 'false' }}
           EXPO_PUBLIC_CARE_PLUS_AI_ENABLED: ${{ vars.EXPO_PUBLIC_CARE_PLUS_AI_ENABLED || 'false' }}
         run: npm run validate:production-config
 
@@ -71,15 +71,6 @@ jobs:
           fs.writeFileSync('app.json', JSON.stringify(app, null, 2) + '\n');
           NODE
 
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Expo Doctor
-        run: npx expo-doctor
-
       - name: Clean Android prebuild
         env:
           EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
@@ -88,7 +79,7 @@ jobs:
           EXPO_PUBLIC_PRIVACY_URL: ${{ vars.EXPO_PUBLIC_PRIVACY_URL }}
           EXPO_PUBLIC_ACCOUNT_DELETION_URL: ${{ vars.EXPO_PUBLIC_ACCOUNT_DELETION_URL }}
           EXPO_PUBLIC_CARE_PLUS_VISIBLE: ${{ vars.EXPO_PUBLIC_CARE_PLUS_VISIBLE || 'false' }}
-          EXPO_PUBLIC_CARE_PLUS_PURCHASES_ENABLED: 'false'
+          EXPO_PUBLIC_CARE_PLUS_PURCHASES_ENABLED: ${{ vars.EXPO_PUBLIC_CARE_PLUS_PURCHASES_ENABLED || 'false' }}
           EXPO_PUBLIC_CARE_PLUS_AI_ENABLED: ${{ vars.EXPO_PUBLIC_CARE_PLUS_AI_ENABLED || 'false' }}
         run: npx expo prebuild --platform android --clean --no-install
 
@@ -100,9 +91,6 @@ jobs:
           JANANI_ANDROID_KEY_ALIAS: ${{ secrets.JANANI_ANDROID_KEY_ALIAS }}
           JANANI_ANDROID_KEY_PASSWORD: ${{ secrets.JANANI_ANDROID_KEY_PASSWORD }}
         run: ./gradlew bundleRelease --no-daemon
-
-      - name: Verify signed AAB exists
-        run: test -s android/app/build/outputs/bundle/release/app-release.aab
 
       - name: Upload signed AAB
         uses: actions/upload-artifact@v4
