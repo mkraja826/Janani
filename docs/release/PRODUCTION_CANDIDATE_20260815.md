@@ -3,7 +3,31 @@
 Branch: `production/janani-main-candidate-20260815`
 Base: clean `main`
 
-This branch is the controlled production path. It must not merge the full `integration/merge-all-janani-20260814-235800` branch directly.
+This branch is the controlled Janani 1.0 production path. It must not merge the full `integration/merge-all-janani-20260814-235800` branch directly.
+
+## Release scope decision
+
+Janani 1.0 is a stable pregnancy-support release, not the full future AI/clinical/report/billing product.
+
+Included in this candidate:
+
+- Mother and partner authentication flow.
+- Email confirmation callback/deep-link handling.
+- Existing onboarding, pregnancy progress, reminders, journal, partner connection, notifications and widget scope already present on `main`.
+- Production public-config validation.
+- Strict production dependency audit gate.
+- Android config cleanup.
+- Signed-AAB workflow guardrails.
+
+Intentionally excluded from this candidate:
+
+- Full `integration/merge-all-janani-20260814-235800` merge.
+- Ask Janani AI production rollout.
+- Clinical rule engine production rollout.
+- Medical report extraction/provider rollout.
+- Billing/Care+ purchases.
+- Major redesign milestones beyond what already exists in clean `main`.
+- Any unsupported diagnostic, medicine-change, fetal-sex, ultrasound interpretation or emergency-triage claim.
 
 ## Rule
 
@@ -109,3 +133,54 @@ Validation still required:
 - Configure the GitHub production environment secrets/vars above.
 - Run `Janani Signed AAB` manually with an intended version name/code.
 - Record the workflow run, artifact name, release version and SHA before any merge to `main`.
+
+## Milestone 5 — Production readiness and merge checklist
+
+Status: checklist added, release evidence pending.
+
+This milestone is documentation-only by design. It prevents confusion by defining exactly what must be true before the production candidate can become `main`.
+
+### GitHub-only readiness checklist
+
+- [ ] Pull request opened from `production/janani-main-candidate-20260815` to `main`.
+- [ ] PR diff reviewed and confirmed to contain only Janani 1.0 production-safe files.
+- [ ] GitHub PR/quality checks pass, if repository actions run for PRs.
+- [ ] Signed-AAB workflow is manually run from this branch after required production secrets/vars exist.
+- [ ] The signed-AAB artifact name, workflow run, commit SHA, version name and version code are recorded.
+- [ ] No branch protection, check, or workflow failure is bypassed.
+
+### Required local or device evidence before final merge
+
+These cannot be honestly completed by repository edits alone:
+
+- [ ] Fresh install on physical Android device.
+- [ ] Existing install/update behavior from previous Janani build.
+- [ ] Sign-up and email confirmation callback.
+- [ ] Sign-in and sign-out.
+- [ ] Mother onboarding.
+- [ ] Partner invitation/linking flow.
+- [ ] Reminder create/edit/delete and notification behavior.
+- [ ] Journal create/edit/delete privacy behavior.
+- [ ] Widget render/deep-link/privacy behavior.
+- [ ] Account deletion/support/privacy links open correctly.
+- [ ] App relaunch after sign-out/account switch does not expose previous user cache.
+
+### Merge rule
+
+Do not merge to `main` until either:
+
+1. every checklist item above has evidence, or
+2. the release owner explicitly accepts the remaining items as blocked and keeps the release out of Play production.
+
+### Main merge command after evidence
+
+```bash
+git checkout main
+git pull --ff-only origin main
+git merge --no-ff production/janani-main-candidate-20260815
+git push origin main
+```
+
+### Post-merge rule
+
+After merge to `main`, build from `main` only. Do not submit an AAB built from an unmerged, unknown, or locally dirty source tree.
