@@ -72,3 +72,40 @@ Validation still required:
 - Run `npm run validate:production-config` with real values loaded.
 - Run `npm run audit:production` after `npm ci` from a clean checkout.
 - Do not weaken the audit gate just to make the branch merge faster.
+
+## Milestone 4 — Signed AAB release workflow gate
+
+Status: release workflow strengthened, GitHub production-environment validation pending.
+
+Included changes:
+
+- `.github/workflows/release-aab.yml` now runs `npm run audit:production` after deterministic install and before production config validation, version mutation, prebuild and Gradle bundling.
+- The workflow still requires manual `workflow_dispatch` inputs for `version_name` and `version_code` and validates them before mutating `app.json` for the release artifact.
+- The workflow still materializes the Android keystore from GitHub production secrets and uploads only the generated signed AAB artifact.
+- Care+ purchases remain forced off in the signed-AAB workflow until billing is intentionally integrated.
+
+GitHub production environment requirements before running the workflow:
+
+Secrets:
+
+- `EXPO_PUBLIC_SUPABASE_URL`
+- `EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+- `JANANI_ANDROID_KEYSTORE_BASE64`
+- `JANANI_ANDROID_KEYSTORE_PASSWORD`
+- `JANANI_ANDROID_KEY_ALIAS`
+- `JANANI_ANDROID_KEY_PASSWORD`
+
+Variables:
+
+- `EXPO_PUBLIC_SUPPORT_EMAIL`
+- `EXPO_PUBLIC_PRIVACY_URL`
+- `EXPO_PUBLIC_ACCOUNT_DELETION_URL`
+- `EXPO_PUBLIC_CARE_PLUS_VISIBLE=false`
+- `EXPO_PUBLIC_CARE_PLUS_AI_ENABLED=false`
+
+Validation still required:
+
+- Pull this branch locally and run the full local gate set before starting a signed build.
+- Configure the GitHub production environment secrets/vars above.
+- Run `Janani Signed AAB` manually with an intended version name/code.
+- Record the workflow run, artifact name, release version and SHA before any merge to `main`.
