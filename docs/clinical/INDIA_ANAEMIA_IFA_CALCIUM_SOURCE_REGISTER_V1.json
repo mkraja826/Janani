@@ -1,0 +1,87 @@
+{
+  "schema_version": "1.0",
+  "package_id": "IN-ANAEMIA-IFA-CALCIUM-M6-2-V1",
+  "jurisdiction": "IN",
+  "last_evidence_pass": "2026-08-12",
+  "production_use": false,
+  "status": "clinical_review_pending",
+  "sources": [
+    {
+      "id": "IN-NHM-AMB-PROGRAMME-2026",
+      "authority": "National Health Mission, Ministry of Health & Family Welfare, Government of India",
+      "title": "Anaemia Mukt Bharat — current programme page",
+      "version_or_date": "current page, verified 2026-08-12",
+      "official_url": "https://nhm.gov.in/images/pdf/programmes/maternalhealth/guidelines/index1.php?lang=1&level=3&lid=797&sublinkid=1448",
+      "evidence_tier": 2,
+      "status": "source_verified",
+      "topics": ["anaemia", "iron_folic_acid", "pregnancy", "lactation", "preconception"],
+      "verified_claims": [
+        "Preconception and first-trimester folic acid programme advice is 400 mcg daily.",
+        "Pregnant women and lactating mothers are listed for daily IFA from the fourth month/second trimester, minimum 180 days in pregnancy and 180 days postpartum.",
+        "The listed pregnancy/lactation IFA tablet contains 60 mg elemental iron and 500 mcg folic acid.",
+        "Testing and treatment of anaemia are delegated to the AMB operational guidelines rather than fully specified on the programme page."
+      ],
+      "limitations": "This programme page is sufficient for current prophylactic programme facts but not for detailed treatment thresholds or IV-iron protocols."
+    },
+    {
+      "id": "IN-NHM-AMB-OG-2026",
+      "authority": "National Health Mission, Ministry of Health & Family Welfare, Government of India",
+      "title": "Anemia MuktBharat Abhiyaan Operational Guidelines 2026",
+      "version_or_date": "2026; listed on current NHM AMB guideline index",
+      "official_url": "https://nhm.gov.in/index1.php/nhm_live/index1.php?lang=1&level=4&lid=804&sublinkid=1455",
+      "evidence_tier": 2,
+      "status": "source_verified_index_only",
+      "topics": ["anaemia", "iron_folic_acid", "testing", "treatment", "pregnancy", "lactation"],
+      "limitations": "The current NHM index confirms the 2026 document exists. Full item-level PDF extraction remains pending because the document endpoint timed out in the evidence pass. No treatment rule may rely on this record alone."
+    },
+    {
+      "id": "IN-ICMR-ANC-2025",
+      "authority": "Indian Council of Medical Research / Department of Health Research, Ministry of Health & Family Welfare, Government of India",
+      "title": "Standard Treatment Workflow for Ante-Natal Management of Normal Pregnancy",
+      "version_or_date": "December 2025",
+      "official_url": "https://www.icmr.gov.in/icmrobject/uploads/STWs/1771568619_ante-natalmanagementofnormalpregnancy-7.pdf",
+      "evidence_tier": 2,
+      "status": "source_verified",
+      "topics": ["antenatal_care", "haemoglobin", "iron_folic_acid", "calcium", "referral", "high_risk_pregnancy"],
+      "verified_claims": [
+        "First visit includes haemoglobin testing and daily folic acid.",
+        "Second trimester workflow lists IFA once daily if Hb >11 g% and twice daily if Hb <11 g%.",
+        "It lists calcium carbonate 500 mg with vitamin D 250 units twice daily with meals.",
+        "It states calcium carbonate and IFA should not be given together.",
+        "It states referral if there is no rise in Hb after four weeks of oral tablets.",
+        "Later-visit text includes parenteral iron/referral language for lower Hb values; these are clinician-facing treatment actions and are not eligible for autonomous Janani treatment advice."
+      ],
+      "limitations": "The STW is advisory and clinician-facing. Treatment statements must not be translated into autonomous consumer prescribing."
+    },
+    {
+      "id": "IN-MOHFW-CALCIUM-2014",
+      "authority": "Maternal Health Division, Ministry of Health & Family Welfare, Government of India",
+      "title": "National Guidelines for Calcium Supplementation During Pregnancy and Lactation",
+      "version_or_date": "December 2014; still listed on the current NHM Maternal Health guideline index in 2026",
+      "official_url": "https://nhsrcindia.org/sites/default/files/2021-03/Guidelines%20for%20Calcium%20Supplementation%20during%20Pregnancy%20and%20Lactation.pdf",
+      "evidence_tier": 2,
+      "status": "source_verified_currently_listed_older_guideline",
+      "topics": ["calcium", "vitamin_d", "pregnancy", "lactation", "ifa_timing"],
+      "verified_claims": [
+        "The guideline targets all pregnant women and recommends calcium-rich-food counselling.",
+        "It specifies 1 g elemental calcium per day as two 500 mg doses from 14 weeks of pregnancy through six months postpartum.",
+        "Each tablet is specified as 500 mg elemental calcium with 250 IU vitamin D3, taken with meals twice daily.",
+        "It advises against taking both calcium doses together and against taking calcium and IFA together."
+      ],
+      "limitations": "The document is from 2014. It remains on the current NHM guideline index, but postpartum duration, exact timing and formulation still require clinician/current-programme reconciliation before Janani uses them as consumer rules."
+    },
+    {
+      "id": "IN-NHM-MH-INDEX-2026",
+      "authority": "National Health Mission, Ministry of Health & Family Welfare, Government of India",
+      "title": "Maternal Health Guidelines — current official index",
+      "version_or_date": "current index, verified 2026-08-12",
+      "official_url": "https://www.nhm.gov.in/index1.php?lang=1&level=3&lid=377&sublinkid=839",
+      "evidence_tier": 2,
+      "status": "source_verified_index_only",
+      "topics": ["source_discovery", "maternal_health", "calcium", "gestational_diabetes", "thyroid", "deworming"],
+      "verified_claims": [
+        "The national calcium guideline remains listed on the current Maternal Health guideline index."
+      ]
+    }
+  ]
+}

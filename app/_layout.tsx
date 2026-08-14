@@ -11,6 +11,7 @@ import { ReminderScheduleSync } from '@/features/reminders/ReminderScheduleSync'
 import { WidgetSync } from '@/features/widget/WidgetSync';
 import { AuthGate } from '@/providers/AuthGate';
 import { AuthProvider } from '@/providers/AuthProvider';
+import { LanguageProvider } from '@/providers/LanguageProvider';
 import { colors } from '@/theme/tokens';
 
 Notifications.setNotificationHandler({
@@ -51,15 +52,17 @@ export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <AuthProvider>
-        <AuthGate>
-          <NotificationNavigation />
-          <OfflineQueueSync />
-          <ReminderScheduleSync />
-          <WidgetSync />
-          <StatusBar style="dark" />
-          <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background }, animation: 'fade' }} />
-        </AuthGate>
-        <SyncStatus />
+        <LanguageProvider>
+          <AuthGate>
+            <NotificationNavigation />
+            <OfflineQueueSync />
+            <ReminderScheduleSync />
+            <WidgetSync />
+            <StatusBar style="dark" />
+            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background }, animation: 'fade' }} />
+          </AuthGate>
+          <SyncStatus />
+        </LanguageProvider>
       </AuthProvider>
     </SafeAreaProvider>
   );

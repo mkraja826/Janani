@@ -1,0 +1,106 @@
+{
+  "schema_version": "2.0",
+  "jurisdiction": "IN",
+  "scope": "M6_ANC_AND_RED_FLAGS",
+  "evidence_pass": "2026-08-12",
+  "production_use": false,
+  "status_note": "Evidence register only. No source record or extracted rule is production-eligible without qualified clinical review and safety testing.",
+  "sources": [
+    {
+      "id": "IN-ICMR-DHR-ANC-STW-2025-12",
+      "authority": "Indian Council of Medical Research (ICMR) / Department of Health Research, Ministry of Health & Family Welfare, Government of India",
+      "title": "Standard Treatment Workflow (STW) for Ante-Natal Management of Normal Pregnancy",
+      "publication_date": "2025-12",
+      "official_url": "https://www.icmr.gov.in/icmrobject/uploads/STWs/1771568619_ante-natalmanagementofnormalpregnancy-7.pdf",
+      "official_index_url": "https://www.icmr.gov.in/standard-treatment-workflows-stws",
+      "evidence_tier": 2,
+      "topics": [
+        "antenatal_care",
+        "danger_signals",
+        "high_risk_pregnancy",
+        "birth_preparedness",
+        "referral"
+      ],
+      "status": "source_verified",
+      "retrieved_on": "2026-08-12",
+      "verification": {
+        "text_layer_checked": true,
+        "visual_pdf_checked": true,
+        "important_extraction_issue": "The PDF visual contains 'Generalized swelling of the body / puffiness of the face' under danger signals, while the parsed text layer used during this evidence pass omitted that bullet. Visual verification is therefore mandatory for this source."
+      },
+      "license_status": "verify_before_ingestion",
+      "clinical_reviewer": null,
+      "clinical_approval_date": null,
+      "next_review_date": null,
+      "notes": "Primary current India clinical baseline for the first ANC/red-flag extraction package. The STW states that broad guidance is advisory and individual management remains with the treating physician."
+    },
+    {
+      "id": "IN-NHM-MATERNAL-HEALTH-2026",
+      "authority": "National Health Mission, Ministry of Health & Family Welfare, Government of India",
+      "title": "Maternal Health — official programme page",
+      "publication_date": "2026",
+      "official_url": "https://nhm.gov.in/index1.php?lang=1&level=2&lid=218&sublinkid=822",
+      "evidence_tier": 2,
+      "topics": [
+        "antenatal_care",
+        "high_risk_pregnancy",
+        "PMSMA",
+        "MCP_card",
+        "referral_programmes"
+      ],
+      "status": "source_verified",
+      "retrieved_on": "2026-08-12",
+      "license_status": "index_and_programme_context_only",
+      "clinical_reviewer": null,
+      "clinical_approval_date": null,
+      "next_review_date": null,
+      "notes": "Current NHM programme page confirms comprehensive ANC, early high-risk pregnancy detection, PMSMA/E-PMSMA follow-up, and MCP Card use. It is not used by itself to assign Janani symptom urgency."
+    },
+    {
+      "id": "IN-NHM-MATERNAL-GUIDELINES-INDEX-2026-08",
+      "authority": "National Health Mission, Ministry of Health & Family Welfare, Government of India",
+      "title": "Guidelines — Maternal Health official index",
+      "publication_date": "2026-08",
+      "official_url": "https://www.nhm.gov.in/index1.php?lang=1&level=3&lid=377&sublinkid=839",
+      "evidence_tier": 2,
+      "topics": [
+        "maternal_health_guidance",
+        "MCP_card",
+        "safe_motherhood",
+        "high_risk_pregnancy",
+        "GDM",
+        "hypothyroidism",
+        "calcium",
+        "deworming"
+      ],
+      "status": "source_verified",
+      "retrieved_on": "2026-08-12",
+      "page_updated_on": "2026-08-07",
+      "license_status": "index_only",
+      "clinical_reviewer": null,
+      "clinical_approval_date": null,
+      "next_review_date": null,
+      "notes": "Current index lists Maternal Health Guidance Booklet for CHOs, Extended PMSMA guidance, MCP Card, My Safe Motherhood Booklet and condition-specific national guidelines. Item-level red-flag reconciliation with those documents remains pending where direct document extraction is not yet complete."
+    },
+    {
+      "id": "IN-MOHFW-PMSMA-UPDATE-2024",
+      "authority": "Ministry of Health & Family Welfare, Government of India",
+      "title": "Update on Pradhan Mantri Surakshit Matritva Abhiyan (PMSMA)",
+      "publication_date": "2024-08-02",
+      "official_url": "https://www.mohfw.gov.in/?q=pressrelease-5",
+      "evidence_tier": 2,
+      "topics": [
+        "antenatal_care",
+        "high_risk_pregnancy",
+        "programme_referral"
+      ],
+      "status": "source_verified",
+      "retrieved_on": "2026-08-12",
+      "license_status": "programme_context_only",
+      "clinical_reviewer": null,
+      "clinical_approval_date": null,
+      "next_review_date": null,
+      "notes": "Supports India programme context: PMSMA provides comprehensive ANC in second/third trimesters and extended PMSMA expanded high-risk pregnancy categories/follow-up. Not used to create autonomous symptom thresholds."
+    }
+  ]
+}

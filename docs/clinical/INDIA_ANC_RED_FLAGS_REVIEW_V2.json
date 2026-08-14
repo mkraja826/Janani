@@ -1,0 +1,218 @@
+{
+  "schema_version": "2.0",
+  "package_id": "IN-ANC-RED-FLAGS-REVIEW-V2",
+  "jurisdiction": "IN",
+  "status": "clinical_review_pending",
+  "production_eligible": false,
+  "created_on": "2026-08-12",
+  "primary_source_id": "IN-ICMR-DHR-ANC-STW-2025-12",
+  "cross_check_source_ids": [
+    "IN-NHM-MATERNAL-HEALTH-2026",
+    "IN-NHM-MATERNAL-GUIDELINES-INDEX-2026-08",
+    "IN-MOHFW-PMSMA-UPDATE-2024"
+  ],
+  "source_section": "DANGER SIGNALS FOR PATIENT TO REPORT TO HEALTH FACILITY",
+  "source_fidelity": {
+    "text_layer_verified": true,
+    "visual_pdf_verified": true,
+    "visual_only_correction": "Added generalized body swelling / puffiness of the face because it is visibly present in the official ICMR PDF danger-signal panel but was absent from the parsed text layer used in the first draft."
+  },
+  "nhm_reconciliation_status": "programme_and_index_verified_item_level_document_reconciliation_pending",
+  "safety_note": "This is an atomic source-extraction review candidate only. It does not assign final consumer urgency, diagnose disease, prescribe treatment, change medicines, or provide reassurance. A qualified maternal-health clinician must approve each trigger/action before any runtime use.",
+  "rules": [
+    {
+      "id": "IN-ANC-RF-001",
+      "source_group": "fever",
+      "trigger_concept": "fever_during_pregnancy",
+      "source_trigger": "Fever",
+      "source_directed_action": "report_to_health_facility",
+      "gestational_age_constraint": null,
+      "final_urgency": null,
+      "diagnosis_allowed": false,
+      "status": "clinical_review_pending"
+    },
+    {
+      "id": "IN-ANC-RF-002",
+      "source_group": "persistent_vomiting",
+      "trigger_concept": "persistent_vomiting_during_pregnancy",
+      "source_trigger": "Persistent vomiting",
+      "source_directed_action": "report_to_health_facility",
+      "gestational_age_constraint": null,
+      "final_urgency": null,
+      "diagnosis_allowed": false,
+      "status": "clinical_review_pending"
+    },
+    {
+      "id": "IN-ANC-RF-003",
+      "source_group": "abnormal_vaginal_discharge",
+      "trigger_concept": "abnormal_vaginal_discharge_during_pregnancy",
+      "source_trigger": "Abnormal vaginal discharge",
+      "source_directed_action": "report_to_health_facility",
+      "gestational_age_constraint": null,
+      "final_urgency": null,
+      "diagnosis_allowed": false,
+      "status": "clinical_review_pending"
+    },
+    {
+      "id": "IN-ANC-RF-004A",
+      "source_group": "cardiorespiratory_symptoms",
+      "trigger_concept": "palpitations_during_pregnancy",
+      "source_trigger": "Palpitations",
+      "source_directed_action": "report_to_health_facility",
+      "gestational_age_constraint": null,
+      "final_urgency": null,
+      "diagnosis_allowed": false,
+      "status": "clinical_review_pending"
+    },
+    {
+      "id": "IN-ANC-RF-004B",
+      "source_group": "cardiorespiratory_symptoms",
+      "trigger_concept": "easy_fatigability_during_pregnancy",
+      "source_trigger": "Easy fatigability",
+      "source_directed_action": "report_to_health_facility",
+      "gestational_age_constraint": null,
+      "final_urgency": null,
+      "diagnosis_allowed": false,
+      "status": "clinical_review_pending"
+    },
+    {
+      "id": "IN-ANC-RF-004C",
+      "source_group": "cardiorespiratory_symptoms",
+      "trigger_concept": "breathlessness_at_rest_or_mild_exertion",
+      "source_trigger": "Breathlessness at rest and/or on mild exertion",
+      "source_directed_action": "report_to_health_facility",
+      "gestational_age_constraint": null,
+      "final_urgency": null,
+      "diagnosis_allowed": false,
+      "status": "clinical_review_pending",
+      "review_note": "Clinician should decide whether breathlessness at rest and breathlessness on mild exertion require separate consumer urgency levels."
+    },
+    {
+      "id": "IN-ANC-RF-005",
+      "source_group": "generalized_swelling",
+      "trigger_concept": "generalized_body_swelling_or_face_puffiness",
+      "source_trigger": "Generalized swelling of the body / puffiness of the face",
+      "source_directed_action": "report_to_health_facility",
+      "gestational_age_constraint": null,
+      "final_urgency": null,
+      "diagnosis_allowed": false,
+      "status": "clinical_review_pending",
+      "provenance_note": "Verified visually in the official December 2025 ICMR PDF; missed by the first text-layer extraction."
+    },
+    {
+      "id": "IN-ANC-RF-006",
+      "source_group": "vaginal_bleeding",
+      "trigger_concept": "vaginal_bleeding_during_pregnancy",
+      "source_trigger": "Vaginal bleeding",
+      "source_directed_action": "report_to_health_facility",
+      "additional_source_context": "The first-visit section of the same ICMR STW states that cases presenting with bleeding per vaginum should be assessed for amount/local causes and referred to CHC or higher centre.",
+      "gestational_age_constraint": null,
+      "final_urgency": null,
+      "diagnosis_allowed": false,
+      "status": "clinical_review_pending"
+    },
+    {
+      "id": "IN-ANC-RF-007",
+      "source_group": "fetal_movement",
+      "trigger_concept": "decreased_or_absent_fetal_movement",
+      "source_trigger": "Decreased or absent fetal movements at > 28 weeks gestation",
+      "source_directed_action": "report_to_health_facility",
+      "gestational_age_constraint": ">28 weeks",
+      "final_urgency": null,
+      "diagnosis_allowed": false,
+      "status": "clinical_review_pending",
+      "review_note": "Clinician must confirm consumer wording, exact gestational boundary handling, and whether decreased vs absent movement need different urgency."
+    },
+    {
+      "id": "IN-ANC-RF-008",
+      "source_group": "watery_fluid_leakage",
+      "trigger_concept": "watery_fluid_leakage_per_vaginum",
+      "source_trigger": "Leaking of watery fluid per vaginum",
+      "source_directed_action": "report_to_health_facility",
+      "gestational_age_constraint": null,
+      "final_urgency": null,
+      "diagnosis_allowed": false,
+      "status": "clinical_review_pending"
+    },
+    {
+      "id": "IN-ANC-RF-009A",
+      "source_group": "neurologic_hypertensive_warning_symptoms",
+      "trigger_concept": "severe_headache_during_pregnancy",
+      "source_trigger": "Severe headache",
+      "source_directed_action": "report_to_health_facility",
+      "gestational_age_constraint": null,
+      "final_urgency": null,
+      "diagnosis_allowed": false,
+      "status": "clinical_review_pending"
+    },
+    {
+      "id": "IN-ANC-RF-009B",
+      "source_group": "neurologic_hypertensive_warning_symptoms",
+      "trigger_concept": "blurred_vision_during_pregnancy",
+      "source_trigger": "Blurring of vision",
+      "source_directed_action": "report_to_health_facility",
+      "gestational_age_constraint": null,
+      "final_urgency": null,
+      "diagnosis_allowed": false,
+      "status": "clinical_review_pending"
+    },
+    {
+      "id": "IN-ANC-RF-009C",
+      "source_group": "neurologic_hypertensive_warning_symptoms",
+      "trigger_concept": "convulsion_during_pregnancy",
+      "source_trigger": "Convulsion",
+      "source_directed_action": "report_to_health_facility",
+      "gestational_age_constraint": null,
+      "final_urgency": null,
+      "diagnosis_allowed": false,
+      "status": "clinical_review_pending",
+      "review_note": "This symptom is expected to require emergency-level handling, but Janani does not assign that level until clinician review records it explicitly."
+    },
+    {
+      "id": "IN-ANC-RF-010A",
+      "source_group": "urinary_symptoms",
+      "trigger_concept": "reduced_urine_output_during_pregnancy",
+      "source_trigger": "Passing lesser amounts of urine",
+      "source_directed_action": "report_to_health_facility",
+      "gestational_age_constraint": null,
+      "final_urgency": null,
+      "diagnosis_allowed": false,
+      "status": "clinical_review_pending"
+    },
+    {
+      "id": "IN-ANC-RF-010B",
+      "source_group": "urinary_symptoms",
+      "trigger_concept": "burning_micturition_during_pregnancy",
+      "source_trigger": "Burning sensation during micturition",
+      "source_directed_action": "report_to_health_facility",
+      "gestational_age_constraint": null,
+      "final_urgency": null,
+      "diagnosis_allowed": false,
+      "status": "clinical_review_pending"
+    },
+    {
+      "id": "IN-ANC-RF-011",
+      "source_group": "generalized_itching",
+      "trigger_concept": "generalized_itching_during_pregnancy",
+      "source_trigger": "Itching all over the body",
+      "source_directed_action": "report_to_health_facility",
+      "gestational_age_constraint": null,
+      "final_urgency": null,
+      "diagnosis_allowed": false,
+      "status": "clinical_review_pending"
+    }
+  ],
+  "required_before_clinician_approval": [
+    "Complete item-level reconciliation against the relevant current NHM/MoHFW maternal-health patient/provider documents where available",
+    "Assign consumer-safe urgency and referral level to every atomic trigger",
+    "Confirm whether source-group components require separate urgency",
+    "Define combinations that increase urgency",
+    "Confirm gestational-age boundary logic for fetal movement",
+    "Define false-positive protections without creating false reassurance",
+    "Create deterministic rule tests and fail-closed behavior",
+    "Create emergency false-reassurance tests",
+    "Record clinician name, credentials, decision, date and exact reviewed package hash",
+    "Approve English consumer wording",
+    "Approve Telugu/Hindi and later languages independently from the clinical rule"
+  ]
+}
