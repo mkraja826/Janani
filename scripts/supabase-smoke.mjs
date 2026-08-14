@@ -65,7 +65,10 @@ async function signUp(role) {
 
 async function deleteDisposableAccount(account, role) {
   const { data, error } = await account.client.functions.invoke('delete-account', {
-    body: { confirmation: 'DELETE' },
+    body: {
+      confirmation: 'DELETE',
+      current_password: password,
+    },
   });
   if (error || data?.ok !== true) {
     throw error ?? new Error(`Could not delete disposable ${role} account.`);

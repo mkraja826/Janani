@@ -6,15 +6,16 @@ Use one physical Android device as **Mother** and a second as **Partner**. Use d
 
 ## Preconditions
 
-- [x] Final TypeScript, lint, Expo Doctor, dependency, Edge Function, Expo config, diff, and legal-site checks pass.
-- [x] A clean Android prebuild and native x86_64 compilation pass from the final application/native source.
+- [ ] Final TypeScript, lint, Expo Doctor, dependency, Edge Function, Expo config, icon-integrity, diff, and legal-site checks pass after the approved-icon and external-deletion changes.
+- [x] A clean Android prebuild and native x86_64 compilation pass from the final branded application/native source.
+- [x] The exact approved 1254 x 1254 general PNG is restored and hash-identified; separate 1254 x 1254 adaptive-foreground and monochrome variants are wired in source.
 - [ ] Both devices install the same signed or internally distributed build.
 - [ ] Notification permission is available on both devices.
 - [ ] The test accounts and family are uniquely identified as disposable.
 - [ ] The unknown pre-existing live Auth/profile account is not used, changed, or deleted.
 - [ ] Testers know that Janani is not a medical device and critical reminders need an independent backup.
 
-Local build evidence: debug APK size 46,080,516 bytes; SHA-256 `16d05f331d5392a8745b44131a6c510ae0c6ddf326277259f330efcb2721c088`. This checksum is not a substitute for a signed distribution build.
+Current engineering build evidence: debug APK size 46,689,876 bytes; SHA-256 `e0bd1ac7cf4091bfe90dc0825238fb2c6a58568add0ce4d29ce316ac0a8253b4`. The branded x86_64 build passed package-metadata, alignment, v2 signature, and generated launcher/adaptive/monochrome-resource inspection. It remains debug-signed, debuggable, and x86_64-only, so it is not a substitute for a production-signed distribution AAB or physical-device acceptance.
 
 ## Installation and authentication
 
@@ -22,6 +23,8 @@ Local build evidence: debug APK size 46,080,516 bytes; SHA-256 `16d05f331d5392a8
 - [ ] Register separate accounts with passwords that meet the eight-character letters-and-digits policy.
 - [ ] Complete email confirmation when enabled and verify the deep-link or return-to-sign-in behavior.
 - [ ] Verify an unconfirmed account cannot silently enter protected screens.
+- [ ] Request password recovery, receive it through the production custom SMTP sender, open only an approved redirect/deep link, establish the recovery session, set a new compliant password, and sign in with the new password.
+- [ ] Confirm expired, already-used, malformed, and wrong-account recovery links fail safely without exposing tokens.
 - [ ] Sign out and sign in again; confirm each device restores only its own role, family, caches, queues, reminder registry, push state, and widget state.
 - [ ] Switch from one test account to another on a device and confirm no previous user's data flashes or remains.
 
@@ -108,12 +111,23 @@ Local build evidence: debug APK size 46,080,516 bytes; SHA-256 `16d05f331d5392a8
 - [ ] After every deletion, confirm local caches, queues, push registration, reminder schedules, and widget state are cleared.
 - [ ] Confirm deleted accounts cannot sign back in and that only the exact disposable test records were removed.
 
+## External web deletion
+
+- [x] Deploy the canonical static form at `https://janani-account-deletion.pages.dev/` and verify source integrity, `frame-ancestors 'none'`, `X-Frame-Options: DENY`, no-store caching, and the other source-controlled response headers.
+- [x] Confirm `https://mkraja826.github.io/Janani/account-deletion/` remains information/link-only with no credential fields, Auth scripts, tokens, or deletion request logic. The former Supabase page URL is a no-body `302` compatibility redirect to the canonical form.
+- [x] Run the static behavior harness and confirm invalid/local failures do not claim deletion, sensitive fields are cleared, browser storage/cookies/logging are not used, back-forward restoration is cleared, and timeout/network outcomes remain explicitly unknown.
+- [x] Confirm live non-destructive CORS preflights allow only the exact Cloudflare form origin for browser Auth/deletion requests. Cloudflare serves static files and does not receive the form submission; credentials and tokens go directly from the browser to Supabase and are not submitted to GitHub Pages, Issues, analytics, or unrelated origins.
+- [ ] Use an exactly identified disposable account, current password, exact `DELETE`, and the permanent-action acknowledgement; confirm the form reports success only after the protected Edge Function succeeds.
+- [ ] After success, confirm the account cannot sign in, role-specific data effects match the deletion policy, and the exact disposable records are absent.
+
 ## Privacy, safety, and resilience
 
 - [ ] Verify journals are private by default.
 - [ ] Confirm push tokens, access tokens, internal IDs, and service errors are never shown to users.
 - [ ] Confirm medicine text does not imply prescription, diagnosis, monitoring, or emergency response.
 - [ ] Confirm safety, privacy, terms, support, and account-deletion links are reachable in the tested release environment.
+- [ ] Confirm the privacy policy explains the Cloudflare-hosted static form, direct browser-to-Supabase Auth/deletion requests, transient credential processing, and information-only GitHub Pages route.
+- [ ] Confirm a working private support/privacy/security contact channel is available and public GitHub Issues clearly forbid sensitive details; do not treat the currently restricted Issues page as sufficient support.
 - [ ] Deny notification permission and verify the app remains usable with a clear explanation.
 - [ ] Interrupt connectivity during onboarding, deletion, nudge send, and export; verify failures are recoverable and do not expose secrets.
 - [ ] Confirm sign-out and membership revocation remove access to every protected screen.
@@ -131,5 +145,7 @@ Do not promote a build beyond controlled internal testing until:
 - [ ] family isolation, mother-private fields, and private journal behavior are proven;
 - [ ] reminder, push, offline replay, reconnect, deletion, and widget tests pass on both devices;
 - [ ] production signing and a release AAB are verified;
-- [ ] leaked-password protection is enabled and verified in the live Supabase Auth settings; if the current plan cannot provide it, release remains blocked until that risk is resolved; and
+- [ ] leaked-password protection is enabled and verified in the live Supabase Auth settings; if the current plan cannot provide it, release remains blocked until that risk is resolved;
+- [ ] production custom SMTP, signup confirmation, and password recovery are verified end to end;
+- [ ] a private support/privacy/security contact path is published; and
 - [ ] the public privacy-policy and account-deletion URLs are live, accurate, and entered into the relevant Play Console fields.

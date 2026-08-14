@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex, nofollow, noarchive, nosnippet, noimageindex">
+  <meta name="color-scheme" content="light">
+  <title>Delete your Janani account</title>
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./config.js" defer></script>
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <main aria-labelledby="page-title">
+    <p class="eyebrow">Janani account controls</p>
+    <h1 id="page-title">Delete your account</h1>
+
+    <p class="origin-check">
+      Before entering your password, confirm that the address bar shows
+      <strong>https://janani-account-deletion.pages.dev/</strong> exactly.
+    </p>
+
+    <p class="lede">
+      Use the email address and current password for your Janani account. Your
+      browser sends them directly to Janani's Supabase project. Supabase Auth
+      first verifies the email and password. The protected Janani
+      <span class="code-text">delete-account</span> function then receives the
+      current password with the resulting access token so it can perform fresh
+      verification before deletion. This page does not submit the form to
+      Cloudflare, retain credentials, or store a session.
+    </p>
+
+    <div class="warning" role="note" aria-label="Permanent action warning">
+      <strong>This action is permanent.</strong>
+      Your account and associated Janani data will be deleted. Deleting a mother
+      account also deletes its family space and dependent shared records.
+      Deleting a partner account removes that partner's access while preserving
+      the mother's family space. This action cannot be undone.
+    </div>
+
+    <form id="deletion-form" novalidate>
+      <label for="email">
+        Account email
+        <input
+          id="email"
+          name="email"
+          type="email"
+          autocomplete="username"
+          inputmode="email"
+          maxlength="320"
+          required
+        >
+      </label>
+
+      <label for="password">
+        Current password
+        <input
+          id="password"
+          name="password"
+          type="password"
+          autocomplete="current-password"
+          minlength="1"
+          maxlength="256"
+          required
+        >
+      </label>
+
+      <label for="confirmation">
+        Type DELETE to confirm
+        <span class="hint">Use uppercase letters exactly as shown.</span>
+        <input
+          id="confirmation"
+          name="confirmation"
+          type="text"
+          autocomplete="off"
+          autocapitalize="characters"
+          spellcheck="false"
+          maxlength="6"
+          required
+        >
+      </label>
+
+      <label class="acknowledgement" for="acknowledgement">
+        <input
+          id="acknowledgement"
+          name="acknowledgement"
+          type="checkbox"
+          required
+        >
+        <span>I understand that deleting my Janani account and its data is permanent.</span>
+      </label>
+
+      <button id="submit-button" type="submit">Permanently delete account</button>
+      <p
+        id="status"
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        tabindex="-1"
+      ></p>
+    </form>
+
+    <footer>
+      This web flow requires your current password. If you are already signed in
+      to Janani, you can instead use the in-app account-deletion control.
+    </footer>
+  </main>
+</body>
+</html>
