@@ -8,6 +8,7 @@ function fail(message) {
 const app = JSON.parse(fs.readFileSync('app.json', 'utf8')).expo;
 const eas = JSON.parse(fs.readFileSync('eas.json', 'utf8'));
 const firebase = JSON.parse(fs.readFileSync('google-services.json', 'utf8'));
+const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
 
 const expectedPackage = 'com.mkraja826.janani';
 
@@ -72,13 +73,23 @@ const plugins = app.plugins ?? [];
 const pluginNames = plugins.map((plugin) => Array.isArray(plugin) ? plugin[0] : plugin);
 for (const plugin of [
   '@react-native-firebase/app',
-  '@react-native-firebase/analytics',
   '@react-native-firebase/crashlytics',
   '@react-native-firebase/perf',
   'expo-notifications',
   './plugins/withJananiWidget',
 ]) {
   if (!pluginNames.includes(plugin)) fail(`missing required Expo plugin ${plugin}`);
+}
+
+for (const dependency of [
+  '@react-native-firebase/app',
+  '@react-native-firebase/analytics',
+  '@react-native-firebase/crashlytics',
+  '@react-native-firebase/perf',
+]) {
+  if (!packageJson.dependencies?.[dependency]) {
+    fail(`missing required Firebase dependency ${dependency}`);
+  }
 }
 
 if (app.android?.allowBackup !== false) {
