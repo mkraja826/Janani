@@ -195,6 +195,26 @@ Result:
 - The older branch version used a broader `aiEnabled` client flag and did not include the same explicit server-side boundary note, so copying it would be a downgrade.
 - App config, launcher asset and package churn from the old branch remain intentionally unmerged.
 
+### Layer 9 — release-readiness validation review
+
+Source inspected:
+
+- `feature/release-readiness-validation`
+
+Status: reviewed selectively; future-stack readiness order preserved, future product code not merged.
+
+Files added/changed:
+
+- `docs/release/FUTURE_FEATURE_STACK_READINESS_20260815.md`
+- `docs/release/LAYER_MERGE_LOG_20260815.md`
+
+Result:
+
+- The source branch contains a useful future merge order and internal testing checklist, but it also includes broad future code for Care+, billing, AI, health tracker, care timeline, nutrition personalization, condition rule packs, billing Edge Functions and Supabase migrations.
+- The candidate's existing `Janani Quality` workflow is already stronger than the old `Janani Build Validation` workflow because it includes production audit, legal-site validation, public config validation, widget generation checks and Android debug compile.
+- No app screens, billing modules, AI functions, clinical documents, health migrations or Supabase future schemas were copied from this branch.
+- The useful future sequence was preserved in `FUTURE_FEATURE_STACK_READINESS_20260815.md` so those updates can be merged later in the correct bottom-up order after staging/backend/clinical/billing validation.
+
 Validation required after this batch:
 
 ```bash
@@ -211,8 +231,7 @@ node .github/scripts/validate-legal-site.mjs
 
 ## Next branch inspection order
 
-1. `feature/release-readiness-validation`
-2. `release/play-production-package`
-3. Stable backend/privacy branches only if their changes are still missing from this candidate.
+1. `release/play-production-package`
+2. Stable backend/privacy branches only if their changes are still missing from this candidate.
 
 Do not inspect product-redesign, AI, reports, billing or clinical branches for Janani 1.0 unless a production blocker specifically requires a small isolated change from them.
