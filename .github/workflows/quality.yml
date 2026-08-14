@@ -40,6 +40,8 @@ jobs:
         run: deno check supabase/functions/janani-ai/index.ts
       - run: npx expo-doctor
       - run: node .github/scripts/validate-legal-site.mjs
+      - name: Validate Android release configuration
+        run: node scripts/validate-android-release.mjs
       - run: npx expo config --type public
       - name: Bundle production Android JavaScript
         env:
