@@ -1,0 +1,61 @@
+name: Janani Build Validation
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Expo Doctor
+        run: npx expo-doctor
+
+      - name: Android prebuild
+        run: npx expo prebuild --platform android --clean --non-interactive
+
+      - name: Verify Gradle wrapper
+        run: test -f android/gradlew && chmod +x android/gradlew
+
+      - name: Compile debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --stacktrace
+
+      - name: Verify APK exists
+        run: find android/app/build/outputs/apk -type f -name '*.apk' -print -quit | grep -q .
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: janani-build-validation-apk
+          path: android/app/build/outputs/apk/**/*.apk
+          if-no-files-found: error
+          retention-days: 7
