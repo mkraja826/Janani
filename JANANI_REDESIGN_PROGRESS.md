@@ -32,7 +32,7 @@ AI is an explanation/personalization layer only. Mother-confirmed data and clini
 | 3 | Structured Health / mother profile | Engineering complete / device review pending | 8 |
 | 4 | Private Reports upload + extraction + confirmation | Engineering complete / provider + device validation pending | 10 |
 | 5 | Mother Context Engine | Engineering complete | 10 |
-| 6 | Clinical Safety Engine integration | ANC/red-flag V2 evidence extracted / clinician review + symptom runtime predicate pending | 0 |
+| 6 | Clinical Safety Engine integration | ANC/red flags + anaemia/IFA/calcium evidence extracted / clinician review + runtime schema gaps pending | 0 |
 | 7 | Context-aware Ask Janani | Engineering complete / device/provider interaction review pending | 10 |
 | 8 | Background personalization/event engine | Engineering complete / device event review pending | 8 |
 | 9 | Journey consolidation | Engineering complete / device review pending | 6 |
@@ -118,12 +118,17 @@ M11–M14 also remain uncounted until their acceptance evidence is complete. M11
 - [ ] Complete item-level NHM/MoHFW document reconciliation for the ANC/red-flag package.
 - [ ] Add a closed normalized symptom-concept predicate to the deterministic engine after clinical/schema review.
 - [ ] Qualified clinician review/approval recorded.
-- [ ] Remaining India clinical domains extracted and reviewed (anaemia, GDM, hypertension, thyroid, nutrition, food safety, vaccination, postpartum/breastfeeding, medication boundaries).
+- [x] Anaemia / IFA / calcium review candidate extracted from current NHM programme material, ICMR ANC 2025 and the currently listed national calcium guideline.
+- [ ] Complete full 2026 AMB treatment-protocol extraction and reconcile Hb-dependent treatment statements.
+- [ ] Add a typed, provenance-aware haemoglobin/laboratory predicate before any Hb rule can run.
+- [ ] Remaining India clinical domains extracted and reviewed (GDM, hypertension, thyroid, nutrition, food safety, vaccination, postpartum/breastfeeding, medication boundaries).
 - [ ] At least one production-eligible approved pack activated and safety-tested.
 
 Current live clinical state remains intentionally **0 registered production versions / 0 active clinical rule packs**.
 
 ANC/red-flag V2 is a **clinical-review candidate only**. It contains 16 atomic source concepts and is deliberately not registered because final urgency is unapproved and the current engine cannot safely match symptom identity.
+
+Anaemia/IFA/calcium V1 is also **clinical-review only**. No supplement dose or Hb threshold is registered. Current programme prophylaxis is separated from clinician-facing treatment statements; Hb-driven logic remains blocked until full AMB 2026 reconciliation, clinician approval and a typed lab-observation predicate exist.
 
 ### M7 — context-aware Ask Janani
 - [x] Real in-session chat with General vs Personalized mode.
