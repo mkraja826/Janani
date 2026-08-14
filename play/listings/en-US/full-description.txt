@@ -1,0 +1,16 @@
+Janani is a pregnancy companion designed to support everyday routines throughout pregnancy.
+
+Use Janani to keep track of pregnancy progress, create medicine and care reminders, save journal memories, and stay connected with your partner through a shared family space.
+
+Key features include:
+• Pregnancy week and due-date progress
+• Medicine and care reminders
+• Pregnancy journal
+• Partner connection and “Thinking of You” messages
+• Home-screen care widget
+• Safety and privacy information
+• Data export and account deletion controls
+
+Janani provides supportive reminders and educational information. It does not diagnose, prescribe, or replace professional medical care. For urgent symptoms or medical concerns, contact your doctor, maternity team, or local emergency services.
+
+Some advanced health, nutrition, subscription, and AI-assisted features may be introduced gradually and will only appear when enabled for the released version.
