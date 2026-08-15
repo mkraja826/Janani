@@ -13,6 +13,7 @@ import { useAuth } from '@/providers/AuthProvider';
 import { colors, radius, spacing } from '@/theme/tokens';
 
 type ConditionMap = Partial<Record<HealthConditionCode, ConditionStatus>>;
+type BodyBaseline = { height_cm: number | null; pre_pregnancy_weight_kg: number | null };
 
 export default function HealthProfileScreen() {
   const { session } = useAuth();
@@ -20,6 +21,7 @@ export default function HealthProfileScreen() {
   const [pregnancyId, setPregnancyId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [bodyBaseline, setBodyBaseline] = useState<BodyBaseline>({ height_cm: null, pre_pregnancy_weight_kg: null });
   const [weight, setWeight] = useState('');
   const [pregnancyType, setPregnancyType] = useState<PregnancyType>('singleton');
   const [diet, setDiet] = useState<DietaryPattern>('no_preference');
@@ -44,11 +46,22 @@ export default function HealthProfileScreen() {
         if (!id) throw new Error('No active pregnancy was found.');
         const profile = await loadHealthProfile(id);
         if (!mounted) return;
-        setPregnancyId(id); setWeight(profile.current_weight_kg?.toString() ?? ''); setPregnancyType(profile.pregnancy_type); setDiet(profile.dietary_pattern); setActivity(profile.activity_level);
-        setCuisines(joinList(profile.cuisine_preferences)); setAllergies(joinList(profile.allergies)); setFoodsAvoided(joinList(profile.foods_avoided)); setInstructions(profile.clinician_dietary_instructions ?? '');
+        setPregnancyId(id);
+        setBodyBaseline({ height_cm: profile.height_cm ?? null, pre_pregnancy_weight_kg: profile.pre_pregnancy_weight_kg ?? null });
+        setWeight(profile.current_weight_kg?.toString() ?? '');
+        setPregnancyType(profile.pregnancy_type);
+        setDiet(profile.dietary_pattern);
+        setActivity(profile.activity_level);
+        setCuisines(joinList(profile.cuisine_preferences));
+        setAllergies(joinList(profile.allergies));
+        setFoodsAvoided(joinList(profile.foods_avoided));
+        setInstructions(profile.clinician_dietary_instructions ?? '');
         setConditions(Object.fromEntries(profile.conditions.map((item) => [item.condition_code, item.status])) as ConditionMap);
-      } catch (error) { Alert.alert('Health profile unavailable', error instanceof Error ? error.message : 'Please try again.'); }
-      finally { if (mounted) setLoading(false); }
+      } catch (error) {
+        Alert.alert('Health profile unavailable', error instanceof Error ? error.message : 'Please try again.');
+      } finally {
+        if (mounted) setLoading(false);
+      }
     })();
     return () => { mounted = false; };
   }, [session?.user.id]);
@@ -73,7 +86,21 @@ export default function HealthProfileScreen() {
     if (currentWeight !== null && (!Number.isFinite(currentWeight) || currentWeight < 25 || currentWeight > 300)) { Alert.alert('Check current weight', 'Enter a weight between 25 and 300 kg, or leave it blank.'); return; }
     setSaving(true);
     try {
-      await saveHealthProfile(pregnancyId, { current_weight_kg: currentWeight, pregnancy_type: pregnancyType, dietary_pattern: diet, activity_level: activity, cuisine_preferences: parseList(cuisines), allergies: parseList(allergies), foods_avoided: parseList(foodsAvoided), clinician_dietary_instructions: instructions.trim() || null, conditions: Object.entries(conditions).filter((entry): entry is [HealthConditionCode, ConditionStatus] => Boolean(entry[1])).map(([condition_code, status]) => ({ condition_code, status })) });
+      await saveHealthProfile(pregnancyId, {
+        height_cm: bodyBaseline.height_cm,
+        pre_pregnancy_weight_kg: bodyBaseline.pre_pregnancy_weight_kg,
+        current_weight_kg: currentWeight,
+        pregnancy_type: pregnancyType,
+        dietary_pattern: diet,
+        activity_level: activity,
+        cuisine_preferences: parseList(cuisines),
+        allergies: parseList(allergies),
+        foods_avoided: parseList(foodsAvoided),
+        clinician_dietary_instructions: instructions.trim() || null,
+        conditions: Object.entries(conditions)
+          .filter((entry): entry is [HealthConditionCode, ConditionStatus] => Boolean(entry[1]))
+          .map(([condition_code, status]) => ({ condition_code, status })),
+      });
       Alert.alert('Health profile saved', 'These details remain private to the mother unless Janani explicitly says otherwise.');
     } catch (error) { Alert.alert('Could not save health profile', error instanceof Error ? error.message : 'Please try again.'); }
     finally { setSaving(false); }
