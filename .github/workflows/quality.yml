@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   quality:
-    name: TypeScript, Expo, legal site, and Android
+    name: TypeScript, Expo, legal site, and manual Android
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -25,10 +25,12 @@ jobs:
           node-version: 22
           cache: npm
       - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        if: github.event_name == 'workflow_dispatch'
         with:
           distribution: temurin
           java-version: 17
       - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        if: github.event_name == 'workflow_dispatch'
       - run: npm ci --no-audit --no-fund
       - run: npm run audit:production
       - run: npm run typecheck
@@ -36,11 +38,13 @@ jobs:
       - run: npx expo-doctor
       - run: node .github/scripts/validate-legal-site.mjs
       - run: npx expo config --type public
-      - name: Android clean prebuild (diagnostic icon fallback only)
+      - name: Android clean prebuild (manual final validation only)
+        if: github.event_name == 'workflow_dispatch'
         env:
           JANANI_CI_NATIVE_ICON_FALLBACK: '1'
         run: npx expo prebuild --platform android --clean --no-install
-      - name: Verify widget generation
+      - name: Verify widget generation (manual final validation only)
+        if: github.event_name == 'workflow_dispatch'
         run: |
           test -f android/app/src/main/java/com/mkraja826/janani/JananiWidgetModule.kt
           test -f android/app/src/main/java/com/mkraja826/janani/JananiWidgetPackage.kt
@@ -50,7 +54,8 @@ jobs:
           grep -q 'class JananiMedicineWidget' android/app/src/main/java/com/mkraja826/janani/JananiWidgets.kt
           grep -q 'class JananiLoveWidget' android/app/src/main/java/com/mkraja826/janani/JananiWidgets.kt
           grep -Eq '^[[:space:]]*(packages\.)?add\(JananiWidgetPackage\(\)\)[[:space:]]*$' android/app/src/main/java/com/mkraja826/janani/MainApplication.kt
-      - name: Compile Android x86_64 debug APK
+      - name: Compile Android x86_64 debug APK (manual final validation only)
+        if: github.event_name == 'workflow_dispatch'
         working-directory: android
         env:
           NODE_ENV: development

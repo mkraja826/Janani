@@ -62,7 +62,7 @@
   },
   "overrides": {
     "image-size": "$image-size",
-    "nanoid": "3.3.17",
+    "nanoid": "3.3.18",
     "postcss": "8.5.25"
   }
 }
