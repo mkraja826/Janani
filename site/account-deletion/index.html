@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Instructions for permanently deleting a Janani account in the app, plus a public support path for users who cannot sign in.">
+  <meta name="description" content="Instructions for permanently deleting a Janani account in the app or through Janani's secure external deletion page.">
   <meta name="theme-color" content="#fff7f2">
-  <meta name="referrer" content="strict-origin-when-cross-origin">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'self'; script-src 'none'; connect-src 'none'; img-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; upgrade-insecure-requests">
   <link rel="canonical" href="https://mkraja826.github.io/Janani/account-deletion/">
   <link rel="stylesheet" href="../assets/styles.css">
   <title>Account Deletion — Janani</title>
@@ -38,7 +38,7 @@
         <li>Enter the account's current password and type <code>DELETE</code> exactly in the confirmation field.</li>
         <li>Select <strong>Delete account permanently</strong>, read the final warning, and confirm.</li>
       </ol>
-      <p>The app submits the request only from an authenticated session. If it reports an error, the account has not been confirmed as deleted; check connectivity and try again.</p>
+      <p>The app submits the request only from an authenticated session. If it reports an ordinary error, the account has not been confirmed as deleted. If a request times out, its final result may be unknown because the deletion service can still finish after the device stops waiting; pause, then check whether the account can still sign in before submitting another request.</p>
 
       <h2>What deletion removes</h2>
       <ul>
@@ -48,11 +48,14 @@
       </ul>
       <p>Infrastructure providers may retain limited backups or security logs for periods governed by their operational or legal requirements. Read the <a href="../privacy/">Privacy Policy</a> for more detail.</p>
 
-      <h2>Cannot sign in?</h2>
-      <p>You can open a public GitHub Issue to request help reaching the deletion flow. Opening an issue does not itself delete an account and cannot verify account ownership; it asks the maintainer for the next available support step.</p>
-      <p class="notice"><strong>GitHub Issues are public.</strong> Do not include your email address, password, family invite code, pregnancy or health details, journal text, medication information, device token, or any other personal data.</p>
-      <p><a class="button-link" href="https://github.com/mkraja826/Janani/issues/new?title=Account%20deletion%20help&amp;body=I%20need%20help%20accessing%20the%20in-app%20account%20deletion%20flow.%20I%20have%20not%20included%20personal%20or%20health%20information.">Request account-deletion help on GitHub</a></p>
-      <p>If you do not want to make a public request, do not post account information. There is currently no published support email; use the signed-in deletion control when possible.</p>
+      <section aria-labelledby="web-deletion-heading">
+        <h2 id="web-deletion-heading">Delete without reinstalling Janani</h2>
+        <p>This GitHub Pages site is information-only. It never asks for or processes your account credentials. If you no longer have access to the app, continue to Janani's separate static deletion page on its dedicated Cloudflare Pages origin.</p>
+        <p class="notice"><strong>Permanent action:</strong> account deletion cannot be undone. A mother's deletion also removes her family pregnancy space and dependent shared data. A partner's deletion preserves the mother's family space.</p>
+        <p><a class="button-link" href="https://janani-account-deletion.pages.dev/" rel="noreferrer">Open the secure account-deletion page</a></p>
+        <p>The secure page will ask for your Janani account email, current password, and the exact confirmation <code>DELETE</code>. Cloudflare serves the static page files, but the browser sends those credentials only to Supabase Auth and the protected account-deletion function; the form is not submitted to Cloudflare Pages, GitHub Pages, GitHub Issues, or analytics. Check that the address is exactly <code>https://janani-account-deletion.pages.dev/</code> before entering them, close the page when finished, and avoid using an untrusted or shared device.</p>
+        <p>A successful response may report that protected file cleanup was recorded and may continue asynchronously after the account itself is deleted.</p>
+      </section>
     </article>
   </main>
   <footer class="site-footer">
@@ -65,7 +68,7 @@
           <li><a href="../support/">Support</a></li>
         </ul>
       </nav>
-      <p>Last updated: August 3, 2026.</p>
+      <p>Last updated: August 10, 2026.</p>
     </div>
   </footer>
 </body>
