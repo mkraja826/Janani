@@ -37,7 +37,6 @@
       "package": "com.mkraja826.janani",
       "versionCode": 1,
       "allowBackup": false,
-      "edgeToEdgeEnabled": true,
       "googleServicesFile": "./google-services.json",
       "permissions": [
         "android.permission.POST_NOTIFICATIONS",
