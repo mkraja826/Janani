@@ -1,0 +1,8 @@
+{
+  "name": "Janani",
+  "description": "A calm, privacy-first pregnancy support and care companion for mothers and partners with week tracking, daily reminders, private journaling, health monitoring, and partner connection.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
