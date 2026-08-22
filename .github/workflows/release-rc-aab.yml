@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - release/janani-1.0.0-rc1-20260822
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: read
@@ -16,6 +19,7 @@ env:
 
 jobs:
   bundle:
+    if: github.event_name == 'push' || github.head_ref == 'release/janani-1.0.0-rc1-20260822'
     runs-on: ubuntu-latest
     environment: production
     timeout-minutes: 45
