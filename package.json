@@ -60,6 +60,15 @@
     "expo-doctor": "1.20.1",
     "typescript": "~5.9.2"
   },
+  "expo": {
+    "install": {
+      "exclude": [
+        "expo",
+        "expo-constants",
+        "expo-file-system"
+      ]
+    }
+  },
   "overrides": {
     "image-size": "$image-size",
     "nanoid": "3.3.18",
