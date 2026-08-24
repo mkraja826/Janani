@@ -13,6 +13,12 @@ const secureStoreOptions: SecureStore.SecureStoreOptions = {
 
 let masterKeyPromise: Promise<Uint8Array> | null = null;
 
+function hexToUint8Array(value: string): Uint8Array {
+  // aes-js 3.x returns number[] from hex.toBytes(). Normalize the boundary so
+  // cryptographic consumers such as @noble/hashes always receive Uint8Array.
+  return Uint8Array.from(aesjs.utils.hex.toBytes(value));
+}
+
 function concatenate(...parts: Uint8Array[]): Uint8Array {
   const result = new Uint8Array(parts.reduce((length, part) => length + part.length, 0));
   let offset = 0;
@@ -37,7 +43,7 @@ async function getMasterKey(): Promise<Uint8Array> {
     masterKeyPromise = (async () => {
       const existing = await SecureStore.getItemAsync(MASTER_KEY_NAME, secureStoreOptions);
       if (existing) {
-        const decoded = aesjs.utils.hex.toBytes(existing);
+        const decoded = hexToUint8Array(existing);
         if (decoded.length === 64) return decoded;
       }
       const generated = globalThis.crypto.getRandomValues(new Uint8Array(64));
@@ -90,9 +96,9 @@ async function decrypt(storageKey: string, envelope: string): Promise<string> {
   const masterKey = await getMasterKey();
   const encryptionKey = masterKey.slice(0, 32);
   const authenticationKey = masterKey.slice(32);
-  const nonce = aesjs.utils.hex.toBytes(nonceHex);
-  const ciphertext = aesjs.utils.hex.toBytes(ciphertextHex);
-  const signature = aesjs.utils.hex.toBytes(signatureHex);
+  const nonce = hexToUint8Array(nonceHex);
+  const ciphertext = hexToUint8Array(ciphertextHex);
+  const signature = hexToUint8Array(signatureHex);
   if (nonce.length !== 16 || signature.length !== 32) {
     throw new Error('Encrypted storage envelope is invalid.');
   }
