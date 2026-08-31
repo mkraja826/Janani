@@ -54,19 +54,19 @@ jobs:
           grep -q 'class JananiMedicineWidget' android/app/src/main/java/com/mkraja826/janani/JananiWidgets.kt
           grep -q 'class JananiLoveWidget' android/app/src/main/java/com/mkraja826/janani/JananiWidgets.kt
           grep -Eq '^[[:space:]]*(packages\.)?add\(JananiWidgetPackage\(\)\)[[:space:]]*$' android/app/src/main/java/com/mkraja826/janani/MainApplication.kt
-      - name: Compile Android x86_64 debug APK (manual final validation only)
+      - name: Compile Android ARM64 debug APK for device validation
         if: github.event_name == 'workflow_dispatch' || github.event_name == 'pull_request'
         working-directory: android
         env:
           NODE_ENV: development
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug -PreactNativeArchitectures=x86_64 --stacktrace --no-daemon --max-workers=2 --console=plain
+          ./gradlew assembleDebug -PreactNativeArchitectures=arm64-v8a --stacktrace --no-daemon --max-workers=2 --console=plain
       - name: Upload validation debug APK
         if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4
         with:
-          name: janani-native-validation-debug-x86_64
+          name: janani-native-validation-debug-arm64
           path: android/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 3
