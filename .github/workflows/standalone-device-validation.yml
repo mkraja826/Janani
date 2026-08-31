@@ -1,0 +1,105 @@
+name: Janani Standalone Device Validation
+
+on:
+  pull_request:
+    paths:
+      - '.github/workflows/standalone-device-validation.yml'
+      - 'app/**'
+      - 'src/**'
+      - 'features/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'app.json'
+      - 'app.config.js'
+      - 'plugins/**'
+      - 'assets/**'
+      - 'google-services.json'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: standalone-device-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  standalone:
+    name: Standalone ARM64 APK with embedded JS
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: production
+    env:
+      EXPO_PUBLIC_SUPABASE_URL: ${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY }}
+      EXPO_PUBLIC_CARE_PLUS_VISIBLE: 'false'
+      EXPO_PUBLIC_CARE_PLUS_PURCHASES_ENABLED: 'false'
+      EXPO_PUBLIC_CARE_PLUS_AI_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb
+
+      - name: Verify public backend configuration exists
+        shell: bash
+        run: |
+          test -n "$EXPO_PUBLIC_SUPABASE_URL" || { echo 'Missing EXPO_PUBLIC_SUPABASE_URL in GitHub production environment'; exit 1; }
+          test -n "$EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY" || { echo 'Missing EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY in GitHub production environment'; exit 1; }
+          echo 'Public backend configuration is present.'
+
+      - run: npm ci --no-audit --no-fund
+      - run: npm run audit:production
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npx expo-doctor
+
+      - name: Clean Android prebuild
+        env:
+          JANANI_CI_NATIVE_ICON_FALLBACK: '1'
+        run: npx expo prebuild --platform android --clean --no-install
+
+      - name: Verify temporary validation signing only
+        run: |
+          grep -q 'signingConfig signingConfigs.debug' android/app/build.gradle || {
+            echo 'Generated release build is not configured for temporary debug signing; refusing to use production signing in validation.'
+            exit 1
+          }
+
+      - name: Build standalone ARM64 release-mode APK
+        working-directory: android
+        env:
+          NODE_ENV: production
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a --stacktrace --no-daemon --max-workers=2 --console=plain
+
+      - name: Verify embedded JS bundle and APK signature
+        shell: bash
+        run: |
+          APK='android/app/build/outputs/apk/release/app-release.apk'
+          test -s "$APK"
+          unzip -l "$APK" | grep -q 'assets/index.android.bundle' || {
+            echo 'Embedded index.android.bundle is missing from APK.'
+            exit 1
+          }
+          APKSIGNER="$(find "$ANDROID_HOME/build-tools" -type f -name apksigner | sort -V | tail -n 1)"
+          test -x "$APKSIGNER"
+          "$APKSIGNER" verify --verbose "$APK"
+          sha256sum "$APK" > janani-standalone-validation.sha256
+          echo 'Standalone APK contains embedded JS and has a valid installable signature.'
+
+      - name: Upload standalone validation APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: janani-standalone-arm64-validation
+          path: |
+            android/app/build/outputs/apk/release/app-release.apk
+            janani-standalone-validation.sha256
+          if-no-files-found: error
+          retention-days: 3
