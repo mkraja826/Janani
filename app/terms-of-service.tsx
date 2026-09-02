@@ -12,7 +12,7 @@ export default function TermsOfServiceScreen() {
     <SafeAreaView style={styles.page}>
       <ScrollView contentContainerStyle={styles.content}>
         <Header />
-        <Text style={styles.effective}>Effective date: August 3, 2026</Text>
+        <Text style={styles.effective}>Effective date: September 2, 2026</Text>
         <View style={styles.notice}><Ionicons name="medical-outline" size={23} color={colors.rose} /><Text style={styles.noticeText}><Text style={styles.noticeStrong}>Janani is not a medical device. </Text>It does not diagnose, prescribe, monitor a medical condition, or replace a doctor, hospital, emergency service, or individualized medical advice.</Text></View>
 
         <LegalSection title="1. Acceptance" body="By using Janani, you agree to these Terms of Use and the Privacy Policy. Do not use the service if you do not agree." />
