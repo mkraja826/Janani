@@ -3,7 +3,7 @@ import { GLOBAL_UI_PACKS } from '@/i18n/globalUiPacks';
 import { INTERNATIONAL_UI_PACKS } from '@/i18n/internationalUiPacks';
 import { normalizeLocaleCode, uiTranslationLanguageFor } from '@/i18n/localeRegistry';
 
-function brandizeUiCopy(value: string): string {
+export function brandizeUiCopy(value: string): string {
   return value
     .replace(/JANANI/g, 'PREGALOVE')
     .replace(/Janani/g, 'PregaLove')
@@ -18,8 +18,7 @@ function brandizeUiCopy(value: string): string {
     .replace(/ਜਨਨੀ/g, 'PregaLove')
     .replace(/ଜନନୀ/g, 'PregaLove')
     .replace(/جاناني/g, 'PregaLove')
-    .replace(/جانانی/g, 'PregaLove')
-    .replace(/جاناني/g, 'PregaLove');
+    .replace(/جانانی/g, 'PregaLove');
 }
 
 export function tg(localeCode: string, key: MessageKey): string {
