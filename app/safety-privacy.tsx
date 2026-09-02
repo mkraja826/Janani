@@ -1,12 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, radius, spacing } from '@/theme/tokens';
-
-const PRIVACY_URL = 'https://mkraja826.github.io/Janani/privacy/';
-const TERMS_URL = 'https://mkraja826.github.io/Janani/terms/';
 
 export default function SafetyPrivacyScreen() {
   return (
@@ -30,15 +27,20 @@ export default function SafetyPrivacyScreen() {
         <InfoCard icon="trash-outline" title="Account deletion" body="Account deletion is available in Settings. A mother account deletion removes the linked family pregnancy space; partner account deletion preserves the mother's pregnancy space." />
 
         <View style={styles.linkCard}>
-          <Pressable onPress={() => Linking.openURL(PRIVACY_URL)} style={styles.linkButton}>
+          <Pressable onPress={() => router.push('/privacy-policy')} style={styles.linkButton}>
             <Ionicons name="document-text-outline" size={20} color={colors.rose} />
-            <Text style={styles.linkText}>Open Privacy Policy</Text>
-            <Ionicons name="open-outline" size={17} color={colors.muted} />
+            <Text style={styles.linkText}>Privacy Policy</Text>
+            <Ionicons name="chevron-forward" size={17} color={colors.muted} />
           </Pressable>
-          <Pressable onPress={() => Linking.openURL(TERMS_URL)} style={styles.linkButton}>
+          <Pressable onPress={() => router.push('/terms-of-service')} style={styles.linkButton}>
             <Ionicons name="shield-outline" size={20} color={colors.rose} />
-            <Text style={styles.linkText}>Open Terms & Medical Disclaimer</Text>
-            <Ionicons name="open-outline" size={17} color={colors.muted} />
+            <Text style={styles.linkText}>Terms of Service</Text>
+            <Ionicons name="chevron-forward" size={17} color={colors.muted} />
+          </Pressable>
+          <Pressable onPress={() => router.push('/billing')} style={styles.linkButton}>
+            <Ionicons name="card-outline" size={20} color={colors.rose} />
+            <Text style={styles.linkText}>Billing & subscription</Text>
+            <Ionicons name="chevron-forward" size={17} color={colors.muted} />
           </Pressable>
         </View>
 
@@ -50,7 +52,7 @@ export default function SafetyPrivacyScreen() {
           </View>
         </View>
 
-        <Text style={styles.footer}>Legal pages last updated August 1, 2026.</Text>
+        <Text style={styles.footer}>Legal pages last updated August 3, 2026.</Text>
       </ScrollView>
     </SafeAreaView>
   );
