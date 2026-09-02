@@ -116,7 +116,7 @@ export default function CareContextScreen() {
         <View style={styles.flex}><Text style={[styles.languageName, rtl.startText]}>{selectedLocale.nativeName}</Text><Text style={[styles.languageMeta, rtl.startText]}>{selectedLocale.englishName} · {selectedLocale.code} · {selectedLocale.direction.toUpperCase()}</Text></View>
         <Ionicons name={showLanguages ? 'chevron-up' : 'chevron-down'} size={20} color={colors.roseDark} />
       </Pressable>
-      {selectedLocale.uiStatus === 'fallback' ? <View style={[styles.localeNotice, rtl.row]}><Ionicons name="language-outline" size={18} color={colors.roseDark} /><Text style={[styles.localeNoticeText, rtl.startText]}>Janani will save {selectedLocale.englishName} as your preferred Care+ language. Until a reviewed native UI pack is available, app controls fall back to English.</Text></View> : null}
+      {selectedLocale.uiStatus === 'fallback' ? <View style={[styles.localeNotice, rtl.row]}><Ionicons name="language-outline" size={18} color={colors.roseDark} /><Text style={[styles.localeNoticeText, rtl.startText]}>PregaLove will save {selectedLocale.englishName} as your preferred Care+ language. Until a reviewed native UI pack is available, app controls fall back to English.</Text></View> : null}
       {showLanguages ? <View style={styles.languagePanel}>
         <TextInput value={languageQuery} onChangeText={setLanguageQuery} placeholder="Search any language" placeholderTextColor={colors.muted} style={[styles.languageSearch, rtl.text]} autoCapitalize="none" />
         <View style={styles.languageList}>{localeResults.map((item) => <Pressable key={item.code} onPress={() => void changeLanguage(item.code)} style={[styles.languageOption, rtl.row, item.code === language && styles.languageOptionSelected]}>
