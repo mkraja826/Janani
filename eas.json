@@ -17,6 +17,18 @@
         "buildType": "apk"
       }
     },
+    "deviceValidation": {
+      "distribution": "internal",
+      "environment": "production",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_CARE_PLUS_VISIBLE": "true",
+        "EXPO_PUBLIC_CARE_PLUS_PURCHASES_ENABLED": "true",
+        "EXPO_PUBLIC_CARE_PLUS_AI_ENABLED": "true"
+      }
+    },
     "production": {
       "autoIncrement": true,
       "android": {
