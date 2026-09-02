@@ -95,6 +95,12 @@ Giving audit events are append-only. Organisation and donation changes are recor
 
 The website must never estimate or fabricate donation totals. If the public ledger is unavailable, the website should display an unavailable/empty state rather than cached or inferred financial values.
 
+## CI safety gate
+
+PR #68 includes `.github/scripts/validate-giving-migration.mjs`, run by the normal Janani Quality workflow whenever the Giving migration exists. It fails closed if the private Giving schema is exposed to `anon` or `authenticated`, if public website roles receive write access, if reconciliation/NGO-verification publication gates are weakened, if publish/unpublish functions become client-callable, or if private accounting/NGO/user/pregnancy/health identifiers are added to the public ledger.
+
+Janani Quality run #527 passed this Giving-specific guard together with dependency audit, TypeScript, lint, Expo Doctor, legal-site validation, and Expo public-config validation on commit `f02d9e9edf0a9ae5de9da68b2c6a7e688436b3ac`.
+
 ## Production application gate
 
 **Do not apply `20260902043000_janani_giving_foundation.sql` to the live Janani project yet.**
