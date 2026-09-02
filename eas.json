@@ -18,6 +18,7 @@
       }
     },
     "deviceValidation": {
+      "developmentClient": false,
       "distribution": "internal",
       "environment": "production",
       "android": {
