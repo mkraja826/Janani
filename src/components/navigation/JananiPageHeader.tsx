@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 
 import { JananiOverflowMenu } from '@/components/navigation/JananiOverflowMenu';
-import { colors, spacing } from '@/theme/tokens';
+import { colors, radius, spacing } from '@/theme/tokens';
 
 export function JananiPageHeader({ eyebrow, title, subtitle }: {
   eyebrow?: string;
@@ -11,7 +11,7 @@ export function JananiPageHeader({ eyebrow, title, subtitle }: {
   return (
     <View style={styles.row}>
       <View style={styles.copy}>
-        {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
+        {eyebrow ? <View style={styles.eyebrowPill}><Text style={styles.eyebrow}>{eyebrow}</Text></View> : null}
         <Text style={styles.title}>{title}</Text>
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
       </View>
@@ -27,23 +27,34 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: spacing.md,
   },
-  copy: { flex: 1 },
+  copy: { flex: 1, paddingTop: 2 },
+  eyebrowPill: {
+    alignSelf: 'flex-start',
+    marginBottom: spacing.sm,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    backgroundColor: colors.rosePale,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
   eyebrow: {
-    marginBottom: spacing.xs,
-    fontSize: 11,
-    letterSpacing: 1.7,
-    fontWeight: '800',
-    color: colors.rose,
+    fontSize: 10,
+    letterSpacing: 1.65,
+    fontWeight: '900',
+    color: colors.roseDark,
   },
   title: {
-    fontSize: 28,
-    lineHeight: 35,
+    maxWidth: 320,
+    fontSize: 30,
+    lineHeight: 37,
+    letterSpacing: -0.4,
     fontWeight: '900',
     color: colors.ink,
   },
   subtitle: {
     marginTop: spacing.sm,
-    maxWidth: 330,
+    maxWidth: 335,
     fontSize: 14,
     lineHeight: 21,
     color: colors.muted,
