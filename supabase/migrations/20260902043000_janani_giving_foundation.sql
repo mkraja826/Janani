@@ -1,8 +1,8 @@
 begin;
 
 -- Janani Giving is intentionally isolated from pregnancy, family, health,
--- Care+, and subscription data. Only the sanitized public ledger below is
--- readable by anonymous website visitors.
+-- Care+, authentication, and subscription data. Anonymous website visitors
+-- can read only the six-column public view defined at the end of this file.
 create schema if not exists janani_giving;
 
 revoke all on schema janani_giving from public, anon, authenticated;
@@ -32,6 +32,7 @@ create table if not exists janani_giving.organisations (
       bank_account_verified
       and child_safeguarding_verified
       and verified_at is not null
+      and verified_by is not null
     )
   )
 );
@@ -56,7 +57,26 @@ create table if not exists janani_giving.periods (
   updated_at timestamptz not null default now(),
   unique (period_start, period_end),
   check (period_start <= period_end),
-  check (donation_allocation_inr <= distributable_surplus_inr)
+  check (donation_allocation_inr <= distributable_surplus_inr),
+  check (
+    donation_rate is null
+    or donation_allocation_inr <= round(distributable_surplus_inr * donation_rate, 2)
+  ),
+  check (
+    distributable_surplus_inr <= greatest(
+      gross_revenue_inr
+      - platform_fees_inr
+      - refunds_inr
+      - taxes_inr
+      - operating_costs_inr
+      - reserve_allocation_inr,
+      0
+    )
+  ),
+  check (
+    status = 'draft'
+    or (reviewed_at is not null and reviewed_by is not null and donation_rate is not null)
+  )
 );
 
 create table if not exists janani_giving.donations (
@@ -86,8 +106,25 @@ create table if not exists janani_giving.donations (
   published_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  check (status in ('draft', 'approved', 'void') or transferred_at is not null),
-  check (status not in ('reconciled', 'published') or reconciled_at is not null),
+  check (
+    status in ('draft', 'void')
+    or (approved_at is not null and approved_by is not null)
+  ),
+  check (
+    status not in ('transferred', 'reconciled', 'published')
+    or (
+      transferred_at is not null
+      and nullif(btrim(internal_transfer_reference), '') is not null
+    )
+  ),
+  check (
+    status not in ('reconciled', 'published')
+    or (
+      reconciled_at is not null
+      and reconciled_by is not null
+      and nullif(btrim(receipt_storage_path), '') is not null
+    )
+  ),
   check (status <> 'published' or published_at is not null)
 );
 
@@ -97,6 +134,24 @@ create index if not exists janani_giving_donations_organisation_idx
   on janani_giving.donations(organisation_id, created_at desc);
 create index if not exists janani_giving_donations_status_idx
   on janani_giving.donations(status, transferred_at desc);
+
+create table if not exists janani_giving.publications (
+  donation_id uuid primary key references janani_giving.donations(id) on delete cascade,
+  organisation_name text not null check (char_length(btrim(organisation_name)) between 2 and 160),
+  cause text not null check (
+    cause in (
+      'Nutrition',
+      'Healthcare',
+      'Education',
+      'Basic needs',
+      'Maternal & infant welfare'
+    )
+  ),
+  amount_inr numeric(14,2) not null check (amount_inr > 0),
+  transferred_at timestamptz not null,
+  public_reference text not null unique check (char_length(public_reference) between 8 and 80),
+  published_at timestamptz not null default now()
+);
 
 create table if not exists janani_giving.audit_events (
   id bigint generated always as identity primary key,
@@ -111,6 +166,7 @@ create table if not exists janani_giving.audit_events (
 alter table janani_giving.organisations enable row level security;
 alter table janani_giving.periods enable row level security;
 alter table janani_giving.donations enable row level security;
+alter table janani_giving.publications enable row level security;
 alter table janani_giving.audit_events enable row level security;
 
 revoke all on all tables in schema janani_giving from public, anon, authenticated;
@@ -118,6 +174,7 @@ revoke all on all sequences in schema janani_giving from public, anon, authentic
 grant select, insert, update, delete on janani_giving.organisations to service_role;
 grant select, insert, update, delete on janani_giving.periods to service_role;
 grant select, insert, update, delete on janani_giving.donations to service_role;
+grant select, insert, update, delete on janani_giving.publications to service_role;
 grant select, insert on janani_giving.audit_events to service_role;
 grant usage, select on all sequences in schema janani_giving to service_role;
 
@@ -144,17 +201,191 @@ begin
 end;
 $$;
 
+create or replace function janani_giving.enforce_period_controls()
+returns trigger
+language plpgsql
+security definer
+set search_path = janani_giving, pg_temp
+as $$
+declare
+  v_committed numeric(16,2);
+begin
+  if tg_op = 'INSERT' and new.status <> 'draft' then
+    raise exception 'New Giving periods must start as draft';
+  end if;
+
+  if tg_op = 'UPDATE' then
+    if old.status = 'closed' then
+      raise exception 'Closed Giving periods are immutable';
+    end if;
+
+    if old.status = 'draft' and new.status not in ('draft', 'reviewed') then
+      raise exception 'Giving period must be reviewed before it can be closed';
+    end if;
+
+    if old.status = 'reviewed' and new.status not in ('draft', 'reviewed', 'closed') then
+      raise exception 'Invalid Giving period state transition';
+    end if;
+  end if;
+
+  if new.status <> 'draft'
+     and (new.reviewed_at is null or new.reviewed_by is null or new.donation_rate is null) then
+    raise exception 'Reviewed Giving periods require reviewer, review time, and donation rate';
+  end if;
+
+  if new.distributable_surplus_inr > greatest(
+    new.gross_revenue_inr
+    - new.platform_fees_inr
+    - new.refunds_inr
+    - new.taxes_inr
+    - new.operating_costs_inr
+    - new.reserve_allocation_inr,
+    0
+  ) then
+    raise exception 'Distributable surplus cannot exceed revenue less approved costs and reserve';
+  end if;
+
+  if new.donation_allocation_inr > new.distributable_surplus_inr then
+    raise exception 'Giving allocation cannot exceed distributable surplus';
+  end if;
+
+  if new.donation_rate is not null
+     and new.donation_allocation_inr > round(new.distributable_surplus_inr * new.donation_rate, 2) then
+    raise exception 'Giving allocation cannot exceed the approved donation rate';
+  end if;
+
+  if tg_op = 'UPDATE' then
+    select coalesce(sum(d.amount_inr), 0)
+      into v_committed
+    from janani_giving.donations d
+    where d.period_id = new.id
+      and d.status <> 'void';
+
+    if new.donation_allocation_inr < v_committed then
+      raise exception 'Giving allocation cannot be reduced below committed donations';
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
+create or replace function janani_giving.enforce_donation_controls()
+returns trigger
+language plpgsql
+security definer
+set search_path = janani_giving, pg_temp
+as $$
+declare
+  v_period janani_giving.periods%rowtype;
+  v_committed numeric(16,2);
+begin
+  if tg_op = 'INSERT' and new.status <> 'draft' then
+    raise exception 'New donations must start as draft';
+  end if;
+
+  if tg_op = 'UPDATE' then
+    if old.status = 'draft' and new.status not in ('draft', 'approved', 'void') then
+      raise exception 'Draft donation must be approved before transfer';
+    elsif old.status = 'approved' and new.status not in ('approved', 'transferred', 'void') then
+      raise exception 'Approved donation must be transferred before reconciliation';
+    elsif old.status = 'transferred' and new.status not in ('transferred', 'reconciled', 'void') then
+      raise exception 'Transferred donation must be reconciled before publication';
+    elsif old.status = 'reconciled' and new.status not in ('reconciled', 'published', 'void') then
+      raise exception 'Invalid reconciled donation state transition';
+    elsif old.status = 'published' and new.status not in ('published', 'reconciled') then
+      raise exception 'Published donation may only remain published or be unpublished to reconciled';
+    elsif old.status = 'void' and new.status <> 'void' then
+      raise exception 'Voided donations are immutable';
+    end if;
+
+    if old.status not in ('draft', 'approved')
+       and (
+         new.period_id is distinct from old.period_id
+         or new.organisation_id is distinct from old.organisation_id
+         or new.amount_inr is distinct from old.amount_inr
+         or new.cause is distinct from old.cause
+       ) then
+      raise exception 'Transferred donation identity and amount are immutable';
+    end if;
+  end if;
+
+  select * into v_period
+  from janani_giving.periods
+  where id = new.period_id
+  for update;
+
+  if not found then
+    raise exception 'Giving period not found';
+  end if;
+
+  if new.status in ('approved', 'transferred', 'reconciled', 'published')
+     and v_period.status = 'draft' then
+    raise exception 'Donation cannot progress until its Giving period is reviewed';
+  end if;
+
+  if new.status = 'published' and v_period.status <> 'closed' then
+    raise exception 'Donation cannot publish until its Giving period is closed';
+  end if;
+
+  if new.status not in ('draft', 'void')
+     and (new.approved_at is null or new.approved_by is null) then
+    raise exception 'Donation approval metadata is required';
+  end if;
+
+  if new.status in ('transferred', 'reconciled', 'published')
+     and (
+       new.transferred_at is null
+       or nullif(btrim(new.internal_transfer_reference), '') is null
+     ) then
+    raise exception 'Transferred donation requires transfer timestamp and private transfer reference';
+  end if;
+
+  if new.status in ('reconciled', 'published')
+     and (
+       new.reconciled_at is null
+       or new.reconciled_by is null
+       or nullif(btrim(new.receipt_storage_path), '') is null
+     ) then
+    raise exception 'Reconciled donation requires reconciler and receipt evidence';
+  end if;
+
+  if new.status <> 'void' then
+    select coalesce(sum(d.amount_inr), 0)
+      into v_committed
+    from janani_giving.donations d
+    where d.period_id = new.period_id
+      and d.status <> 'void'
+      and d.id <> new.id;
+
+    if v_committed + new.amount_inr > v_period.donation_allocation_inr then
+      raise exception 'Committed donations cannot exceed the Giving period allocation';
+    end if;
+  end if;
+
+  return new;
+end;
+$$;
+
 create or replace function janani_giving.audit_donation_change()
 returns trigger
 language plpgsql
 security definer
 set search_path = janani_giving, pg_temp
 as $$
+declare
+  v_id uuid;
 begin
+  if tg_op = 'DELETE' then
+    v_id := old.id;
+  else
+    v_id := new.id;
+  end if;
+
   insert into janani_giving.audit_events(entity_type, entity_id, event_type, event_data)
   values (
     'donation',
-    coalesce(new.id, old.id),
+    v_id,
     lower(tg_op),
     case
       when tg_op = 'INSERT' then jsonb_build_object('status', new.status, 'amount_inr', new.amount_inr, 'cause', new.cause)
@@ -162,7 +393,11 @@ begin
       else jsonb_build_object('old_status', old.status)
     end
   );
-  return coalesce(new, old);
+
+  if tg_op = 'DELETE' then
+    return old;
+  end if;
+  return new;
 end;
 $$;
 
@@ -172,11 +407,19 @@ language plpgsql
 security definer
 set search_path = janani_giving, pg_temp
 as $$
+declare
+  v_id uuid;
 begin
+  if tg_op = 'DELETE' then
+    v_id := old.id;
+  else
+    v_id := new.id;
+  end if;
+
   insert into janani_giving.audit_events(entity_type, entity_id, event_type, event_data)
   values (
     'organisation',
-    coalesce(new.id, old.id),
+    v_id,
     lower(tg_op),
     case
       when tg_op = 'INSERT' then jsonb_build_object('due_diligence_status', new.due_diligence_status)
@@ -189,7 +432,49 @@ begin
       else jsonb_build_object('old_due_diligence_status', old.due_diligence_status)
     end
   );
-  return coalesce(new, old);
+
+  if tg_op = 'DELETE' then
+    return old;
+  end if;
+  return new;
+end;
+$$;
+
+create or replace function janani_giving.audit_period_change()
+returns trigger
+language plpgsql
+security definer
+set search_path = janani_giving, pg_temp
+as $$
+declare
+  v_id uuid;
+begin
+  if tg_op = 'DELETE' then
+    v_id := old.id;
+  else
+    v_id := new.id;
+  end if;
+
+  insert into janani_giving.audit_events(entity_type, entity_id, event_type, event_data)
+  values (
+    'period',
+    v_id,
+    lower(tg_op),
+    case
+      when tg_op = 'INSERT' then jsonb_build_object('status', new.status, 'donation_allocation_inr', new.donation_allocation_inr)
+      when tg_op = 'UPDATE' then jsonb_build_object(
+        'old_status', old.status,
+        'new_status', new.status,
+        'donation_allocation_inr', new.donation_allocation_inr
+      )
+      else jsonb_build_object('old_status', old.status)
+    end
+  );
+
+  if tg_op = 'DELETE' then
+    return old;
+  end if;
+  return new;
 end;
 $$;
 
@@ -198,10 +483,20 @@ create trigger janani_giving_organisations_touch_updated_at
 before update on janani_giving.organisations
 for each row execute function janani_giving.touch_updated_at();
 
+drop trigger if exists janani_giving_periods_controls on janani_giving.periods;
+create trigger janani_giving_periods_controls
+before insert or update on janani_giving.periods
+for each row execute function janani_giving.enforce_period_controls();
+
 drop trigger if exists janani_giving_periods_touch_updated_at on janani_giving.periods;
 create trigger janani_giving_periods_touch_updated_at
 before update on janani_giving.periods
 for each row execute function janani_giving.touch_updated_at();
+
+drop trigger if exists janani_giving_donations_controls on janani_giving.donations;
+create trigger janani_giving_donations_controls
+before insert or update on janani_giving.donations
+for each row execute function janani_giving.enforce_donation_controls();
 
 drop trigger if exists janani_giving_donations_touch_updated_at on janani_giving.donations;
 create trigger janani_giving_donations_touch_updated_at
@@ -223,38 +518,29 @@ create trigger janani_giving_organisations_audit
 after insert or update or delete on janani_giving.organisations
 for each row execute function janani_giving.audit_organisation_change();
 
--- This is the only Giving relation intended for anonymous website reads.
--- It contains no bank reference, receipt storage path, registration number,
--- user identifier, subscriber information, or pregnancy/health data.
-create table if not exists public.public_giving_ledger (
-  donation_id uuid primary key,
-  organisation_name text not null check (char_length(btrim(organisation_name)) between 2 and 160),
-  cause text not null check (
-    cause in (
-      'Nutrition',
-      'Healthcare',
-      'Education',
-      'Basic needs',
-      'Maternal & infant welfare'
-    )
-  ),
-  amount_inr numeric(14,2) not null check (amount_inr > 0),
-  transferred_at timestamptz not null,
-  verification_status text not null default 'verified' check (verification_status = 'verified'),
-  public_reference text not null unique check (char_length(public_reference) between 8 and 80),
-  published_at timestamptz not null default now()
-);
+drop trigger if exists janani_giving_periods_audit on janani_giving.periods;
+create trigger janani_giving_periods_audit
+after insert or update or delete on janani_giving.periods
+for each row execute function janani_giving.audit_period_change();
 
-alter table public.public_giving_ledger enable row level security;
+-- Public callers receive a view containing exactly six approved fields.
+-- donation_id, published_at, bank references, receipt paths, NGO registration
+-- data, accounting data, and all Janani user/health data remain private.
+drop view if exists public.public_giving_ledger;
+create view public.public_giving_ledger
+with (security_barrier = true)
+as
+select
+  p.organisation_name,
+  p.cause,
+  p.amount_inr,
+  p.transferred_at,
+  'verified'::text as verification_status,
+  p.public_reference
+from janani_giving.publications p;
+
 revoke all on public.public_giving_ledger from public, anon, authenticated, service_role;
 grant select on public.public_giving_ledger to anon, authenticated;
-
-drop policy if exists public_giving_ledger_read_verified on public.public_giving_ledger;
-create policy public_giving_ledger_read_verified
-on public.public_giving_ledger
-for select
-to anon, authenticated
-using (verification_status = 'verified');
 
 create or replace function janani_giving.publish_donation(p_donation_id uuid)
 returns uuid
@@ -265,6 +551,7 @@ as $$
 declare
   v_donation janani_giving.donations%rowtype;
   v_organisation janani_giving.organisations%rowtype;
+  v_period janani_giving.periods%rowtype;
   v_public_reference text;
 begin
   select * into v_donation
@@ -280,8 +567,23 @@ begin
     raise exception 'Only reconciled donations can be published';
   end if;
 
-  if v_donation.transferred_at is null or v_donation.reconciled_at is null then
-    raise exception 'Donation transfer and reconciliation must be complete before publication';
+  if v_donation.transferred_at is null
+     or v_donation.reconciled_at is null
+     or v_donation.approved_at is null
+     or v_donation.approved_by is null
+     or v_donation.reconciled_by is null
+     or nullif(btrim(v_donation.internal_transfer_reference), '') is null
+     or nullif(btrim(v_donation.receipt_storage_path), '') is null then
+    raise exception 'Donation approval, transfer, receipt evidence, and reconciliation must be complete before publication';
+  end if;
+
+  select * into v_period
+  from janani_giving.periods
+  where id = v_donation.period_id
+  for share;
+
+  if not found or v_period.status <> 'closed' then
+    raise exception 'Giving period must be reviewed and closed before publication';
   end if;
 
   select * into v_organisation
@@ -295,7 +597,8 @@ begin
   if v_organisation.due_diligence_status <> 'verified'
      or not v_organisation.bank_account_verified
      or not v_organisation.child_safeguarding_verified
-     or v_organisation.verified_at is null then
+     or v_organisation.verified_at is null
+     or v_organisation.verified_by is null then
     raise exception 'Organisation verification is incomplete';
   end if;
 
@@ -304,13 +607,12 @@ begin
     to_char(v_donation.transferred_at at time zone 'UTC', 'YYYYMM') || '-' ||
     upper(substr(replace(v_donation.id::text, '-', ''), 1, 8));
 
-  insert into public.public_giving_ledger(
+  insert into janani_giving.publications(
     donation_id,
     organisation_name,
     cause,
     amount_inr,
     transferred_at,
-    verification_status,
     public_reference,
     published_at
   ) values (
@@ -319,7 +621,6 @@ begin
     v_donation.cause,
     v_donation.amount_inr,
     v_donation.transferred_at,
-    'verified',
     v_public_reference,
     now()
   )
@@ -328,7 +629,6 @@ begin
     cause = excluded.cause,
     amount_inr = excluded.amount_inr,
     transferred_at = excluded.transferred_at,
-    verification_status = 'verified',
     public_reference = excluded.public_reference,
     published_at = now();
 
@@ -355,7 +655,7 @@ security definer
 set search_path = janani_giving, public, pg_temp
 as $$
 begin
-  delete from public.public_giving_ledger where donation_id = p_donation_id;
+  delete from janani_giving.publications where donation_id = p_donation_id;
 
   update janani_giving.donations
   set status = case when status = 'published' then 'reconciled' else status end,
@@ -375,8 +675,11 @@ $$;
 
 revoke all on function janani_giving.touch_updated_at() from public, anon, authenticated;
 revoke all on function janani_giving.prevent_audit_mutation() from public, anon, authenticated;
+revoke all on function janani_giving.enforce_period_controls() from public, anon, authenticated;
+revoke all on function janani_giving.enforce_donation_controls() from public, anon, authenticated;
 revoke all on function janani_giving.audit_donation_change() from public, anon, authenticated;
 revoke all on function janani_giving.audit_organisation_change() from public, anon, authenticated;
+revoke all on function janani_giving.audit_period_change() from public, anon, authenticated;
 revoke all on function janani_giving.publish_donation(uuid) from public, anon, authenticated;
 revoke all on function janani_giving.unpublish_donation(uuid) from public, anon, authenticated;
 
