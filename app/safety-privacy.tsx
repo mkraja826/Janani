@@ -14,16 +14,16 @@ export default function SafetyPrivacyScreen() {
         </Pressable>
         <View style={styles.flex}>
           <Text style={styles.eyebrow}>TRUST & SAFETY</Text>
-          <Text style={styles.title}>How Janani protects your journey</Text>
+          <Text style={styles.title}>How PregaLove protects your journey</Text>
         </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        <InfoCard icon="medical-outline" title="Support, not medical care" body="Janani provides supportive reminders and educational information. It does not diagnose, prescribe, monitor a medical condition, or replace a doctor or emergency service." />
+        <InfoCard icon="medical-outline" title="Support, not medical care" body="PregaLove provides supportive reminders and educational information. It does not diagnose, prescribe, monitor a medical condition, or replace a doctor or emergency service." />
         <InfoCard icon="sparkles-outline" title="Care+ safety" body="Care+ uses only relevant context for a request and is designed to refuse diagnosis, prescribing, medicine changes and unsupported condition-specific guidance." />
         <InfoCard icon="lock-closed-outline" title="Journal privacy" body="Journal entries are private by default. Your linked partner can read an entry only after you explicitly choose to share it." />
         <InfoCard icon="people-outline" title="Private family linking" body="A partner joins through a family invitation. Mothers may disconnect a linked partner, and partners may leave the family independently." />
-        <InfoCard icon="server-outline" title="Data Janani uses" body="Janani may store account details, pregnancy dates, reminders, journal entries, partner messages, Care+ context and usage information, completion history, and device notification tokens needed to provide the service." />
+        <InfoCard icon="server-outline" title="Data PregaLove uses" body="PregaLove may store account details, pregnancy dates, reminders, journal entries, partner messages, Care+ context and usage information, completion history, and device notification tokens needed to provide the service." />
         <InfoCard icon="notifications-outline" title="Device permissions" body="Notification permission is used for reminders and partner alerts. You can change this permission at any time in Android settings." />
         <InfoCard icon="trash-outline" title="Account deletion" body="Account deletion is available in Settings. A mother account deletion removes the linked family pregnancy space; partner account deletion preserves the mother's pregnancy space." />
 
