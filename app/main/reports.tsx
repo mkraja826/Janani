@@ -22,7 +22,7 @@ export default function ReportsScreen() {
           </View>
           <Text style={styles.heroTitle}>Your care information stays organized</Text>
           <Text style={styles.heroText}>
-            The current production app does not yet expose report upload in this tab. Janani will keep this area fail-closed until the private upload and confirmation flow is fully release-validated.
+            The current production app does not yet expose report upload in this tab. PregaLove will keep this area fail-closed until the private upload and confirmation flow is fully release-validated.
           </Text>
         </View>
 
@@ -35,7 +35,7 @@ export default function ReportsScreen() {
           </View>
           <View style={styles.flex}>
             <Text style={styles.actionTitle}>Care Context</Text>
-            <Text style={styles.actionText}>Review the information you have chosen to keep in Janani.</Text>
+            <Text style={styles.actionText}>Review the information you have chosen to keep in PregaLove.</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={colors.muted} />
         </Pressable>
