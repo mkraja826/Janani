@@ -23,7 +23,7 @@ export default function JourneyScreen() {
           <View style={styles.flex}>
             <Text style={styles.cardEyebrow}>PREGNANCY</Text>
             <Text style={styles.cardTitle}>Week-by-week guide</Text>
-            <Text style={styles.cardText}>See your pregnancy progress and trimester guidance already available in Janani.</Text>
+            <Text style={styles.cardText}>See your pregnancy progress and trimester guidance already available in PregaLove.</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={colors.muted} />
         </Pressable>
@@ -34,7 +34,7 @@ export default function JourneyScreen() {
           </View>
           <View style={styles.flex}>
             <Text style={styles.cardTitle}>Pregnancy journal</Text>
-            <Text style={styles.cardText}>Keep notes, feelings and memories in your private Janani space.</Text>
+            <Text style={styles.cardText}>Keep notes, feelings and memories in your private PregaLove space.</Text>
           </View>
           <Ionicons name="chevron-forward" size={20} color={colors.muted} />
         </Pressable>
