@@ -77,7 +77,7 @@ export default function HomeScreen() {
 
   const progress = useMemo(() => summary?.dueDate ? getPregnancyProgress(summary.dueDate) : null, [summary?.dueDate]);
   if (loading) return <View style={styles.center}><ActivityIndicator color={colors.rose}/></View>;
-  if (loadError && !summary) return <View style={styles.center}><Text style={styles.errorTitle}>Janani could not load your family</Text><Text style={styles.errorText}>Check your connection. Your saved information has not been removed.</Text><Pressable onPress={() => { setLoading(true); void load(); }} style={styles.retryButton}><Text style={styles.retryText}>Try again</Text></Pressable></View>;
+  if (loadError && !summary) return <View style={styles.center}><Text style={styles.errorTitle}>PregaLove could not load your family</Text><Text style={styles.errorText}>Check your connection. Your saved information has not been removed.</Text><Pressable onPress={() => { setLoading(true); void load(); }} style={styles.retryButton}><Text style={styles.retryText}>Try again</Text></Pressable></View>;
 
   const isMother = summary?.role === 'mother';
   const showCarePlus = isMother && productionConfig.carePlusVisible;
@@ -99,7 +99,7 @@ export default function HomeScreen() {
       <Feature rtl={rtl.isRtl} icon="settings-outline" title={tr('settings')} caption={tr('settingsCaption')} onPress={() => router.push('/settings')} />
     </View>
     <View style={styles.backgroundFeatures}><Text style={[styles.backgroundTitle, rtl.startText]}>{tr('backgroundTitle')}</Text><BackgroundFeature rtl={rtl.isRtl} icon="notifications-outline" text={tr('backgroundNotifications')} /><BackgroundFeature rtl={rtl.isRtl} icon="cloud-offline-outline" text={tr('backgroundOffline')} /><BackgroundFeature rtl={rtl.isRtl} icon="phone-portrait-outline" text={tr('backgroundWidget')} /><BackgroundFeature rtl={rtl.isRtl} icon="people-outline" text={tr('backgroundFamily')} /></View>
-    <Text style={styles.disclaimer}>Janani supports daily care and does not replace advice from your doctor.</Text>
+    <Text style={styles.disclaimer}>PregaLove supports daily care and does not replace advice from your doctor.</Text>
   </ScrollView></SafeAreaView>;
 }
 
