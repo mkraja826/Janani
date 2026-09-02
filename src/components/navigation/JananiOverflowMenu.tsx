@@ -26,7 +26,7 @@ export function JananiOverflowMenu() {
   return (
     <>
       <Pressable
-        accessibilityLabel="More Janani options"
+        accessibilityLabel="More PregaLove options"
         accessibilityRole="button"
         hitSlop={8}
         onPress={() => setVisible(true)}
@@ -53,7 +53,7 @@ export function JananiOverflowMenu() {
                 <Ionicons name="flower-outline" size={20} color={colors.roseDark} />
               </View>
               <View style={styles.flex}>
-                <Text style={styles.menuTitle}>Janani</Text>
+                <Text style={styles.menuTitle}>PregaLove</Text>
                 <Text style={styles.menuCaption}>More options</Text>
               </View>
               <Pressable
@@ -87,7 +87,7 @@ export function JananiOverflowMenu() {
               onNavigate={navigate}
             />
             <MenuItem
-              caption="Understand Janani's safety and privacy choices"
+              caption="Understand PregaLove's safety and privacy choices"
               destination="/safety-privacy"
               icon="shield-checkmark-outline"
               label="Safety & privacy"
