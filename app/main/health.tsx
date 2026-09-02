@@ -23,7 +23,7 @@ export default function HealthScreen() {
           <View style={styles.flex}>
             <Text style={styles.introTitle}>One place for your health</Text>
             <Text style={styles.introText}>
-              Your saved profile and tracker entries are self-reported information for support and organization. Janani does not use them as a diagnosis.
+              Your saved profile and tracker entries are self-reported information for support and organization. PregaLove does not use them as a diagnosis.
             </Text>
           </View>
         </View>
@@ -43,7 +43,7 @@ export default function HealthScreen() {
             title="Health tracker"
           />
           <ActionCard
-            caption="Maternal-care information already available in Janani"
+            caption="Maternal-care information already available in PregaLove"
             icon="medical-outline"
             onPress={() => router.push('/health-guide')}
             title="Health guide"
@@ -55,7 +55,7 @@ export default function HealthScreen() {
             title="Reminders"
           />
           <ActionCard
-            caption="Pregnancy nutrition guidance already in Janani"
+            caption="Pregnancy nutrition guidance already in PregaLove"
             icon="nutrition-outline"
             onPress={() => router.push('/food-guide')}
             title="Food guide"
