@@ -12,8 +12,8 @@ const normalized = sql.replace(/\s+/g, ' ').toLowerCase();
 const requireText = (needle, message) => {
   if (!normalized.includes(needle.toLowerCase())) throw new Error(message);
 };
-const forbid = (pattern, message) => {
-  if (pattern.test(sql)) throw new Error(message);
+const forbid = (pattern, message, source = sql) => {
+  if (pattern.test(source)) throw new Error(message);
 };
 
 requireText('create schema if not exists janani_giving', 'Giving data must remain isolated in the janani_giving schema.');
@@ -27,14 +27,20 @@ requireText('create table if not exists janani_giving.publications', 'Published 
 requireText('create view public.public_giving_ledger', 'The public ledger must be a restricted view, not a public storage table.');
 requireText('grant select on public.public_giving_ledger to anon, authenticated', 'Website access must remain SELECT-only on the sanitized public ledger.');
 requireText("'verified'::text as verification_status", 'Public ledger must expose only verified publication status.');
-requireText('p.organisation_name', 'Public ledger must expose organisation name.');
-requireText('p.cause', 'Public ledger must expose cause.');
-requireText('p.amount_inr', 'Public ledger must expose amount.');
-requireText('p.transferred_at', 'Public ledger must expose transfer date.');
-requireText('p.public_reference', 'Public ledger must expose Janani public reference.');
 forbid(/create\s+table\s+(?:if\s+not\s+exists\s+)?public\.public_giving_ledger/i, 'Public ledger must not be a table because callers could request internal columns.');
-forbid(/create\s+(?:or\s+replace\s+)?view\s+public\.public_giving_ledger[\s\S]*?select[\s\S]*?\bdonation_id\b[\s\S]*?from\s+janani_giving\.publications/i, 'Public ledger view must never expose the internal donation ID.');
-forbid(/create\s+(?:or\s+replace\s+)?view\s+public\.public_giving_ledger[\s\S]*?select[\s\S]*?\bpublished_at\b[\s\S]*?from\s+janani_giving\.publications/i, 'Public ledger view must expose only the approved six fields.');
+
+const viewMatch = sql.match(/create\s+view\s+public\.public_giving_ledger\s+with\s*\([^)]*\)\s+as\s+select([\s\S]*?)from\s+janani_giving\.publications\s+p\s*;/i);
+if (!viewMatch) throw new Error('Could not parse the public Giving view projection.');
+const viewProjection = viewMatch[1];
+
+for (const field of ['p.organisation_name', 'p.cause', 'p.amount_inr', 'p.transferred_at', "'verified'::text as verification_status", 'p.public_reference']) {
+  if (!viewProjection.toLowerCase().includes(field.toLowerCase())) {
+    throw new Error(`Public Giving view is missing approved field: ${field}`);
+  }
+}
+forbid(/\bdonation_id\b/i, 'Public ledger view must never expose the internal donation ID.', viewProjection);
+forbid(/\bpublished_at\b/i, 'Public ledger view must expose only the approved six fields.', viewProjection);
+forbid(/internal_transfer_reference|receipt_storage_path|registration_number|tax_registration_number|private_notes|mother_id|pregnancy_id|user_id|email/i, 'Public ledger view must not expose private financial, NGO, account, pregnancy, or health identifiers.', viewProjection);
 
 requireText("if v_donation.status <> 'reconciled'", 'Publishing must require a reconciled donation.');
 requireText("v_period.status <> 'closed'", 'Publishing must require a closed accounting period.');
@@ -57,6 +63,5 @@ requireText('grant execute on function janani_giving.unpublish_donation(uuid) to
 
 forbid(/grant\s+(insert|update|delete|all)[^;]*public_giving_ledger[^;]*\b(anon|authenticated)\b/i, 'Public website/app roles must never receive write access to public_giving_ledger.');
 forbid(/grant\s+(select|insert|update|delete|all)[^;]*janani_giving\.[^;]*\b(anon|authenticated)\b/i, 'Private janani_giving relations must never be exposed to anon/authenticated roles.');
-forbid(/create\s+(?:or\s+replace\s+)?view\s+public\.public_giving_ledger[\s\S]*?(internal_transfer_reference|receipt_storage_path|registration_number|tax_registration_number|private_notes|mother_id|pregnancy_id|user_id|email)[\s\S]*?from\s+janani_giving\.publications/i, 'Public ledger view must not include private financial, NGO, account, pregnancy, or health identifiers.');
 
 console.log('Validated Janani Giving isolation, accounting controls, lifecycle gates, and six-field public view.');
