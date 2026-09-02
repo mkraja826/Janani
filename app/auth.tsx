@@ -69,13 +69,13 @@ export default function AuthScreen() {
 
       if (error) { Alert.alert('Could not continue', error.message); return; }
       if (mode === 'sign-up' && !data.session) {
-        Alert.alert('Check your email', 'Open the confirmation email. Janani will finish signing you in after you confirm your address.');
+        Alert.alert('Check your email', 'Open the confirmation email. PregaLove will finish signing you in after you confirm your address.');
         setMode('sign-in');
         return;
       }
 
       const user = data.user;
-      if (!user) { Alert.alert('Could not continue', 'Janani could not verify this account. Please sign in again.'); return; }
+      if (!user) { Alert.alert('Could not continue', 'PregaLove could not verify this account. Please sign in again.'); return; }
       const { data: membership, error: membershipError } = await withTimeout(
         supabase
           .from('family_members')
@@ -94,7 +94,7 @@ export default function AuthScreen() {
       router.replace({ pathname: '/onboarding', params: { role } });
     } catch (error) {
       if (error instanceof Error && error.message === 'AUTH_REQUEST_TIMEOUT') {
-        Alert.alert('Connection timed out', 'Janani could not reach the sign-in service. Check your internet connection and try again.');
+        Alert.alert('Connection timed out', 'PregaLove could not reach the sign-in service. Check your internet connection and try again.');
         return;
       }
       Alert.alert('Could not continue', error instanceof Error ? error.message : 'Something went wrong while signing in. Please try again.');
