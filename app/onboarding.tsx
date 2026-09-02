@@ -52,13 +52,13 @@ export default function OnboardingScreen() {
     const heightCm = height.trim() ? Number(height) : null;
     const weightKg = weight.trim() ? Number(weight) : null;
 
-    if (name.length < 2 || name.length > 80) return Alert.alert('Tell Janani your name', 'Enter a name between 2 and 80 characters.');
+    if (name.length < 2 || name.length > 80) return Alert.alert('Tell PregaLove your name', 'Enter a name between 2 and 80 characters.');
     if (role === 'mother' && !dueDate) return Alert.alert('Due date needed', 'Choose the expected due date.');
     if (role === 'mother' && normalizedFamilyName.length > 80) return Alert.alert('Family name is too long', 'Keep the family name within 80 characters.');
     if (role === 'mother' && lmp && dueDate && lmp > dueDate) return Alert.alert('Check the dates', 'The last menstrual period must be before the expected due date.');
     if (role === 'mother' && heightCm !== null && (!Number.isFinite(heightCm) || heightCm < 80 || heightCm > 250)) return Alert.alert('Check height', 'Enter a height between 80 and 250 cm, or leave it blank.');
     if (role === 'mother' && weightKg !== null && (!Number.isFinite(weightKg) || weightKg < 25 || weightKg > 300)) return Alert.alert('Check weight', 'Enter a weight between 25 and 300 kg, or leave it blank.');
-    if (role === 'partner' && !/^[A-F0-9]{20}$/.test(normalizedInviteCode)) return Alert.alert('Invite code needed', 'Enter the 20-character code shared from the mother’s Janani app.');
+    if (role === 'partner' && !/^[A-F0-9]{20}$/.test(normalizedInviteCode)) return Alert.alert('Invite code needed', 'Enter the 20-character code shared from the mother’s PregaLove app.');
 
     setBusy(true);
     try {
@@ -96,7 +96,7 @@ export default function OnboardingScreen() {
 
   function confirmAccountDeletion() {
     if (deleteText !== 'DELETE' || !currentPassword) { Alert.alert('Confirmation needed', 'Type DELETE exactly and enter your current password.'); return; }
-    Alert.alert('Permanently delete account?', 'This permanently deletes your Janani account. This cannot be undone.', [
+    Alert.alert('Permanently delete account?', 'This permanently deletes your PregaLove account. This cannot be undone.', [
       { text: 'Cancel', style: 'cancel' },
       { text: 'Delete permanently', style: 'destructive', onPress: () => void deleteAccount() },
     ]);
