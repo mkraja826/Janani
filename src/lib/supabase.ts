@@ -3,7 +3,7 @@ import 'react-native-url-polyfill/auto';
 import { createClient } from '@supabase/supabase-js';
 
 import { encryptedAuthStorage } from '@/lib/secureAuthStorage';
-import type { Database } from '@/types/database';
+import type { Database } from '@/types/databaseExtended';
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL;
 const supabasePublishableKey = process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
