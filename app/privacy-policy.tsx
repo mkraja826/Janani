@@ -33,7 +33,7 @@ export default function PrivacyPolicyScreen() {
           <Pressable onPress={() => void Linking.openURL(PUBLISHED_PRIVACY_URL)} style={styles.action}><Ionicons name="open-outline" size={20} color={colors.rose} /><Text style={styles.actionText}>Open published web copy</Text><Ionicons name="open-outline" size={17} color={colors.muted} /></Pressable>
         </View>
 
-        <Text style={styles.footer}>The published web copy remains Janani's public legal reference for store listings and users who are not signed in.</Text>
+        <Text style={styles.footer}>The published web copy remains the public Janani legal reference for store listings and users who are not signed in.</Text>
       </ScrollView>
     </SafeAreaView>
   );
