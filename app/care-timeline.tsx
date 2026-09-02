@@ -74,7 +74,7 @@ export default function CareTimelineScreen() {
   return <SafeAreaView style={styles.page}>
     <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
       <View style={styles.header}><Pressable onPress={()=>router.back()} style={styles.back}><Ionicons name="arrow-back" size={22} color={colors.ink}/></Pressable><View style={{flex:1}}><Text style={styles.eyebrow}>{tr('careEyebrow')}</Text><Text style={styles.title}>{tr('careTitle')}</Text></View></View>
-      <View style={styles.notice}><Text style={styles.noticeText}>Janani organizes what you enter. It does not decide which tests, scans or appointments you need.</Text></View>
+      <View style={styles.notice}><Text style={styles.noticeText}>PregaLove organizes what you enter. It does not decide which tests, scans or appointments you need.</Text></View>
       <View style={styles.card}>
         <Text style={styles.cardTitle}>{editingId?tr('editCareEntry'):tr('addCareEntry')}</Text>
         <Text style={styles.label}>{tr('type')}</Text><View style={styles.row}>{APPOINTMENT_TYPES.map((x)=><Pressable key={x.value} onPress={()=>setType(x.value)} style={[styles.pill,type===x.value&&styles.selected]}><Text style={styles.pillText}>{x.label}</Text></Pressable>)}</View>
