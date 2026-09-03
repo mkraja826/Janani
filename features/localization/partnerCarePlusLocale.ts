@@ -27,18 +27,38 @@ const copy = {
   ne: { connectionTitle:'तपाईंको सम्झना आइरहेको छ', thinking:'तपाईंको सम्झना आइरहेको छ', notAlone:'तपाईं एक्लै हुनुहुन्न', rest:'कृपया केही आराम गर्नुहोस्', proud:'म तपाईंमा गर्व गर्छु', carePlusTitle:'तपाईंले सुरक्षित गर्नुभएको जानकारीबाट व्यक्तिगत सहयोग', today:'आज', appointment:'अपोइन्टमेन्ट', trends:'मेरा ट्रेन्डहरू', mealIdeas:'खानाका विचारहरू', askCarePlus:'जननी केयर+ लाई सोध्नुहोस्', ask:'केयर+ लाई सोध्नुहोस्', preparing:'तयार गर्दै…' },
 } as const;
 
-export type PartnerCarePlusCopy = (typeof copy)['en'];
+type EnglishCopy = (typeof copy)['en'];
+export type PartnerCarePlusCopy = { [K in keyof EnglishCopy]: string };
 type CopyKey = keyof PartnerCarePlusCopy;
+
+function brandize(value: string): string {
+  return value
+    .replace(/JANANI/g, 'PREGALOVE')
+    .replace(/Janani/g, 'PregaLove')
+    .replace(/janani/g, 'PregaLove')
+    .replace(/జనని/g, 'PregaLove')
+    .replace(/जननी/g, 'PregaLove')
+    .replace(/ஜனனி/g, 'PregaLove')
+    .replace(/ಜನನಿ/g, 'PregaLove')
+    .replace(/ജനനി/g, 'PregaLove')
+    .replace(/জননী/g, 'PregaLove')
+    .replace(/જનની/g, 'PregaLove')
+    .replace(/ਜਨਨੀ/g, 'PregaLove')
+    .replace(/ଜନନୀ/g, 'PregaLove')
+    .replace(/جاناني|جانانی|جننی/g, 'PregaLove');
+}
 
 export async function loadPartnerCarePlusCopy(): Promise<PartnerCarePlusCopy> {
   const locale = await readGlobalUiLocale();
   const base = locale.split('-')[0].toLowerCase() as keyof typeof copy;
   const selected = copy[base] as Partial<PartnerCarePlusCopy> | undefined;
-  if (!selected) return copy.en;
-  const merged = { ...copy.en } as Record<CopyKey, string>;
-  for (const key of Object.keys(selected) as CopyKey[]) {
-    const value = selected[key];
-    if (value) merged[key] = value;
+  const merged: Record<CopyKey, string> = { ...copy.en };
+  if (selected) {
+    for (const key of Object.keys(selected) as CopyKey[]) {
+      const value = selected[key];
+      if (value) merged[key] = value;
+    }
   }
+  for (const key of Object.keys(merged) as CopyKey[]) merged[key] = brandize(merged[key]);
   return merged as PartnerCarePlusCopy;
 }

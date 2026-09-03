@@ -70,7 +70,7 @@ export default function AuthCallbackScreen() {
         router.replace({ pathname: '/onboarding', params: { role } });
       } catch (error) {
         if (!active) return;
-        setMessage(error instanceof Error ? error.message : 'Janani could not finish email confirmation.');
+        setMessage(error instanceof Error ? error.message : 'PregaLove could not finish email confirmation.');
         setFailed(true);
       }
     }

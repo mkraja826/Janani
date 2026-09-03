@@ -25,10 +25,10 @@ export default function PregnancyGuideScreen() {
   ];
   return <SafeAreaView style={styles.page}><ScrollView contentContainerStyle={styles.content}>
     <View style={styles.header}><Pressable accessibilityLabel="Go back" onPress={() => router.back()} style={styles.backButton}><Ionicons name="arrow-back" size={22} color={colors.ink} /></Pressable><View style={styles.headerCopy}><Text style={styles.eyebrow}>{tr('pregnancyEyebrow')}</Text><Text style={styles.title}>{tr('pregnancyTitle')}</Text></View></View>
-    <View style={styles.hero}><Ionicons name="heart-circle" size={42} color={colors.rose} /><Text style={styles.heroTitle}>Use Janani beside your maternity care, not instead of it.</Text><Text style={styles.body}>Your home screen already calculates your current pregnancy week and trimester from the due date saved during onboarding. This guide gives simple supportive reminders for each stage.</Text></View>
+    <View style={styles.hero}><Ionicons name="heart-circle" size={42} color={colors.rose} /><Text style={styles.heroTitle}>Use PregaLove beside your maternity care, not instead of it.</Text><Text style={styles.body}>Your home screen already calculates your current pregnancy week and trimester from the due date saved during onboarding. This guide gives simple supportive reminders for each stage.</Text></View>
     {trimesters.map((item) => <View key={item.title} style={styles.card}><View style={styles.cardTop}><View style={styles.iconWrap}><Ionicons name={item.icon} size={24} color={colors.rose} /></View><View style={styles.flex}><Text style={styles.cardTitle}>{item.title}</Text><Text style={styles.weeks}>{item.weeks}</Text></View></View>{item.points.map((point) => <View key={point} style={styles.pointRow}><Ionicons name="checkmark-circle-outline" size={18} color={colors.sage} /><Text style={styles.pointText}>{point}</Text></View>)}</View>)}
     <Pressable onPress={() => router.push('/reminders')} style={styles.primaryButton}><Ionicons name="alarm-outline" size={19} color={colors.surface} /><Text style={styles.primaryButtonText}>{tr('openReminders')}</Text></Pressable>
-    <Text style={styles.disclaimer}>Janani provides supportive educational information and does not diagnose, prescribe, or replace professional medical care.</Text>
+    <Text style={styles.disclaimer}>PregaLove provides supportive educational information and does not diagnose, prescribe, or replace professional medical care.</Text>
   </ScrollView></SafeAreaView>;
 }
 

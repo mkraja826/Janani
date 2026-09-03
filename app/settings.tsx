@@ -37,7 +37,7 @@ export default function SettingsScreen() {
     if (!userId) { setLoading(false); return; }
     setLoading(true); setLoadError(null);
     const { data, error } = await supabase.from('family_members').select('role,family_id,families(name,family_members(role))').eq('user_id', userId).maybeSingle();
-    if (error) { setLoadError('Janani could not load your account settings. Check your connection and try again.'); setLoading(false); return; }
+    if (error) { setLoadError('PregaLove could not load your account settings. Check your connection and try again.'); setLoading(false); return; }
     if (!data) { await markMembership(false); setLoading(false); router.replace('/onboarding'); return; }
     const family = Array.isArray(data.families) ? data.families[0] : data.families;
     const members = family?.family_members; const list = Array.isArray(members) ? members : members ? [members] : [];
@@ -63,16 +63,16 @@ export default function SettingsScreen() {
       const firstError = [profile, membership, pregnancies, reminders, reminderLogs, journal, nudges, privatePregnancy].find((item) => item.error)?.error; if (firstError) throw firstError;
       const payload = JSON.stringify({ exported_at: new Date().toISOString(), account_email: session.user.email ?? null, profile: profile.data, membership: membership.data, pregnancies: pregnancies.data ?? [], pregnancy_private_details: privatePregnancy.data ?? [], reminders: reminders.data ?? [], reminder_logs: reminderLogs.data ?? [], journal_entries: journal.data ?? [], partner_nudges: nudges.data ?? [] }, null, 2);
       if (!(await Sharing.isAvailableAsync())) throw new Error('File sharing is not available on this device.');
-      exportFile = new File(Paths.cache, `janani-data-export-${Date.now()}.json`); exportFile.write(payload);
-      await Sharing.shareAsync(exportFile.uri, { dialogTitle: 'Share Janani data export', mimeType: 'application/json', UTI: 'public.json' });
+      exportFile = new File(Paths.cache, `pregalove-data-export-${Date.now()}.json`); exportFile.write(payload);
+      await Sharing.shareAsync(exportFile.uri, { dialogTitle: 'Share PregaLove data export', mimeType: 'application/json', UTI: 'public.json' });
     } catch (error) { Alert.alert('Could not export data', error instanceof Error ? error.message : 'Please try again while connected.'); }
     finally { try { if (exportFile?.exists) exportFile.delete(); } catch {} setBusy(null); }
   }
 
-  function confirmExport() { Alert.alert('Export sensitive Janani data?', 'The JSON file can contain pregnancy dates, reminders, journal entries, and partner messages. Share it only with a destination you trust.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Continue', onPress: () => void exportData() }]); }
+  function confirmExport() { Alert.alert('Export sensitive PregaLove data?', 'The JSON file can contain pregnancy dates, reminders, journal entries, and partner messages. Share it only with a destination you trust.', [{ text: 'Cancel', style: 'cancel' }, { text: 'Continue', onPress: () => void exportData() }]); }
   function leaveOrDisconnect() {
     if (!summary) return; const mother = summary.role === 'mother';
-    Alert.alert(mother ? 'Disconnect partner?' : 'Leave this family?', mother ? 'Your pregnancy, reminders and journal stay in Janani. The current partner loses access and the invite code is replaced.' : 'You will lose access to this pregnancy family. The mother’s pregnancy data remains safe.', [{ text: 'Cancel', style: 'cancel' }, { text: mother ? 'Disconnect' : 'Leave family', style: 'destructive', onPress: async () => { setBusy('membership'); const { error } = await supabase.rpc(mother ? 'disconnect_partner' : 'leave_family'); setBusy(null); if (error) return Alert.alert('Could not update family', error.message); if (mother) { setSummary((current) => current ? { ...current, hasPartner: false } : current); Alert.alert('Partner disconnected', 'A new invite code has been created.'); } else { await markMembership(false); router.replace('/onboarding?role=partner'); } } }]);
+    Alert.alert(mother ? 'Disconnect partner?' : 'Leave this family?', mother ? 'Your pregnancy, reminders and journal stay in PregaLove. The current partner loses access and the invite code is replaced.' : 'You will lose access to this pregnancy family. The mother’s pregnancy data remains safe.', [{ text: 'Cancel', style: 'cancel' }, { text: mother ? 'Disconnect' : 'Leave family', style: 'destructive', onPress: async () => { setBusy('membership'); const { error } = await supabase.rpc(mother ? 'disconnect_partner' : 'leave_family'); setBusy(null); if (error) return Alert.alert('Could not update family', error.message); if (mother) { setSummary((current) => current ? { ...current, hasPartner: false } : current); Alert.alert('Partner disconnected', 'A new invite code has been created.'); } else { await markMembership(false); router.replace('/onboarding?role=partner'); } } }]);
   }
   function confirmDelete() {
     if (!summary || deleteText !== 'DELETE' || !currentPassword) { Alert.alert('Confirmation needed', 'Type DELETE exactly and enter your current password.'); return; }
@@ -91,17 +91,17 @@ export default function SettingsScreen() {
     </Section>
 
     <Section title="App settings" rtl={rtl.isRtl}>
-      <Action rtl={rtl.isRtl} icon="notifications-outline" title="Notification settings" description="Manage Janani notification permission and Android notification controls." onPress={() => void Linking.openSettings()} />
-      <Action rtl={rtl.isRtl} icon="shield-checkmark-outline" title={copy.safetyPrivacy} description="Read Janani's health-safety, sharing and permission summary." onPress={() => router.push('/safety-privacy')} />
+      <Action rtl={rtl.isRtl} icon="notifications-outline" title="Notification settings" description="Manage PregaLove notification permission and Android notification controls." onPress={() => void Linking.openSettings()} />
+      <Action rtl={rtl.isRtl} icon="shield-checkmark-outline" title={copy.safetyPrivacy} description="Read PregaLove's health-safety, sharing and permission summary." onPress={() => router.push('/safety-privacy')} />
     </Section>
 
     <Section title="Privacy & legal" rtl={rtl.isRtl}>
-      <Action rtl={rtl.isRtl} icon="lock-closed-outline" title="Privacy Policy" description="Read the full Janani Privacy Policy inside the app." onPress={() => router.push('/privacy-policy')} />
-      <Action rtl={rtl.isRtl} icon="document-text-outline" title="Terms of Service" description="Read Janani's Terms of Use, medical disclaimer and subscription terms." onPress={() => router.push('/terms-of-service')} />
+      <Action rtl={rtl.isRtl} icon="lock-closed-outline" title="Privacy Policy" description="Read the full PregaLove Privacy Policy inside the app." onPress={() => router.push('/privacy-policy')} />
+      <Action rtl={rtl.isRtl} icon="document-text-outline" title="Terms of Service" description="Read PregaLove's Terms of Use, medical disclaimer and subscription terms." onPress={() => router.push('/terms-of-service')} />
     </Section>
 
     <Section title={copy.yourData} rtl={rtl.isRtl}>
-      <Action rtl={rtl.isRtl} icon="download-outline" title="Export my Janani data" description="Share a JSON file containing your pregnancy profile, reminders, journal and partner messages." disabled={busy !== null} loading={busy === 'export'} onPress={confirmExport} />
+      <Action rtl={rtl.isRtl} icon="download-outline" title="Export my PregaLove data" description="Share a JSON file containing your pregnancy profile, reminders, journal and partner messages." disabled={busy !== null} loading={busy === 'export'} onPress={confirmExport} />
     </Section>
 
     <Section title={copy.familyConnection} rtl={rtl.isRtl}><View style={styles.familyCard}><Text style={[styles.familyName, rtl.startText]}>{summary?.familyName ?? copy.noFamilyLinked}</Text><Text style={[styles.roleText, rtl.startText]}>{summary?.role === 'mother' ? copy.motherAccount : copy.partnerAccount}</Text></View>{summary?.role === 'mother' ? <Action rtl={rtl.isRtl} icon="person-remove-outline" title="Disconnect partner" description={summary.hasPartner ? 'Remove the linked partner and rotate the invite code.' : 'No partner is currently linked.'} danger disabled={!summary.hasPartner || busy !== null} loading={busy === 'membership'} onPress={leaveOrDisconnect} /> : <Action rtl={rtl.isRtl} icon="exit-outline" title="Leave family" description="Remove your access without deleting the mother’s pregnancy data." danger disabled={busy !== null} loading={busy === 'membership'} onPress={leaveOrDisconnect} />}</Section>

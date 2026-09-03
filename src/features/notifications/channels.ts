@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
+import { brandizeUiCopy } from '@/i18n/globalUi';
 import { normalizeLocaleCode } from '@/i18n/localeRegistry';
 import { readGlobalUiLocale } from '@/i18n/uiLocale';
 
@@ -30,7 +31,7 @@ const channelCopy:Record<string,Partial<ChannelCopy>>={
 };
 
 function resolveChannelCopy(localeCode:string):ChannelCopy{
-  const normalized=normalizeLocaleCode(localeCode); const base=normalized.split('-')[0].toLowerCase(); const selected=channelCopy[normalized]??channelCopy[base]??{}; return {...en,...selected};
+  const normalized=normalizeLocaleCode(localeCode); const base=normalized.split('-')[0].toLowerCase(); const selected=channelCopy[normalized]??channelCopy[base]??{}; const merged={...en,...selected}; return Object.fromEntries(Object.entries(merged).map(([key,value])=>[key,brandizeUiCopy(value)])) as ChannelCopy;
 }
 
 export async function prepareJananiNotificationChannels(): Promise<void> {

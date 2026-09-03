@@ -30,7 +30,7 @@ export default function BillingScreen() {
     setLoadError(null);
     const { data, error } = await supabase.rpc('get_own_care_plus_status');
     if (error) {
-      setLoadError('Janani could not verify your Care+ status right now. Your existing Janani data is unaffected.');
+      setLoadError('PregaLove could not verify your Care+ status right now. Your existing PregaLove data is unaffected.');
       setLoading(false);
       return;
     }
@@ -53,7 +53,7 @@ export default function BillingScreen() {
             <Ionicons name="arrow-back" size={22} color={colors.ink} />
           </Pressable>
           <View style={styles.flex}>
-            <Text style={styles.eyebrow}>JANANI CARE+</Text>
+            <Text style={styles.eyebrow}>PREGALOVE CARE+</Text>
             <Text style={styles.title}>Plan & billing</Text>
             <Text style={styles.subtitle}>Your subscription, Care+ access and monthly AI allowance in one place.</Text>
           </View>
@@ -62,7 +62,7 @@ export default function BillingScreen() {
         <View style={styles.planCard}>
           <View style={styles.planTopRow}>
             <View>
-              <Text style={styles.planName}>Janani Care+</Text>
+              <Text style={styles.planName}>PregaLove Care+</Text>
               <Text style={styles.price}>₹699 <Text style={styles.priceSuffix}>/ month</Text></Text>
             </View>
             <View style={[styles.statusBadge, status?.active ? styles.statusActive : styles.statusInactive]}>
@@ -71,9 +71,9 @@ export default function BillingScreen() {
               </Text>
             </View>
           </View>
-          <Benefit icon="sparkles-outline" text="Personalised Janani Care+ support using the pregnancy context you choose to save." />
+          <Benefit icon="sparkles-outline" text="Personalised PregaLove Care+ support using the pregnancy context you choose to save." />
           <Benefit icon="calendar-outline" text="Appointment preparation, daily summaries and health-trend explanations." />
-          <Benefit icon="nutrition-outline" text="Pregnancy-aware meal ideas subject to Janani safety and clinical rules." />
+          <Benefit icon="nutrition-outline" text="Pregnancy-aware meal ideas subject to PregaLove safety and clinical rules." />
           <Benefit icon="shield-checkmark-outline" text="AI remains support-only: no diagnosis, prescribing or medicine changes." />
         </View>
 
@@ -105,7 +105,7 @@ export default function BillingScreen() {
               <Ionicons name="construct-outline" size={23} color={colors.rose} />
               <View style={styles.flex}>
                 <Text style={styles.pendingTitle}>Checkout is not connected yet</Text>
-                <Text style={styles.pendingText}>This screen is production-safe: it will never simulate a charge. Google Play Billing still needs to be connected and purchase verification tested before Janani can accept subscription payments.</Text>
+                <Text style={styles.pendingText}>This screen is production-safe: it will never simulate a charge. Google Play Billing still needs to be connected and purchase verification tested before PregaLove can accept subscription payments.</Text>
               </View>
             </View>
           )}

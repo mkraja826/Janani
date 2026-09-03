@@ -27,9 +27,31 @@ const COPY: Record<string, PushCopy> = {
   ru: { title: 'Кто-то думает о вас', body: 'Откройте Janani, чтобы увидеть личное сообщение от партнёра.' },
 };
 
+function brandize(value: string): string {
+  return value
+    .replace(/JANANI/g, 'PREGALOVE')
+    .replace(/Janani/g, 'PregaLove')
+    .replace(/janani/g, 'PregaLove')
+    .replace(/జనని/g, 'PregaLove')
+    .replace(/जननी/g, 'PregaLove')
+    .replace(/ஜனனி/g, 'PregaLove')
+    .replace(/ಜನನಿ/g, 'PregaLove')
+    .replace(/ജനനി/g, 'PregaLove')
+    .replace(/জননী/g, 'PregaLove')
+    .replace(/જનની/g, 'PregaLove')
+    .replace(/ਜਨਨੀ/g, 'PregaLove')
+    .replace(/ଜନନୀ/g, 'PregaLove')
+    .replace(/جاناني/g, 'PregaLove')
+    .replace(/جانانی/g, 'PregaLove');
+}
+
+function branded(copy: PushCopy): PushCopy {
+  return { title: brandize(copy.title), body: brandize(copy.body) };
+}
+
 export function partnerPushCopy(localeCode: string | null | undefined): PushCopy {
   const normalized = (localeCode ?? 'en').trim().toLowerCase();
-  if (COPY[normalized]) return COPY[normalized];
+  if (COPY[normalized]) return branded(COPY[normalized]);
   const base = normalized.split('-')[0];
-  return COPY[base] ?? COPY.en;
+  return branded(COPY[base] ?? COPY.en);
 }

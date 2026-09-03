@@ -25,7 +25,7 @@ export default function WelcomeScreen() {
         </View>
 
         <View style={styles.copy}>
-          <Text style={styles.eyebrow}>JANANI</Text>
+          <Text style={styles.eyebrow}>PREGALOVE</Text>
           <Text style={styles.title}>You are not walking this journey alone.</Text>
           <Text style={styles.subtitle}>
             Gentle reminders, caring guidance, shared moments, and a little warmth for every day of pregnancy.
@@ -35,7 +35,7 @@ export default function WelcomeScreen() {
         <View style={styles.card}>
           <Ionicons name="sparkles-outline" size={22} color={colors.gold} />
           <View style={styles.cardCopy}>
-            <Text style={styles.cardTitle}>A note from Janani</Text>
+            <Text style={styles.cardTitle}>A note from PregaLove</Text>
             <Text style={styles.cardText}>
               One day at a time, child. Rest when your body asks, drink some water, and let us remember the little things together.
             </Text>
@@ -45,7 +45,7 @@ export default function WelcomeScreen() {
         <View style={styles.actions}>
           {session ? (
             <Pressable accessibilityRole="button" disabled={loading} onPress={() => router.push('/home')} style={styles.primaryButton}>
-              <Text style={styles.primaryButtonText}>Open my Janani</Text>
+              <Text style={styles.primaryButtonText}>Open my PregaLove</Text>
               <Ionicons name="arrow-forward" size={20} color={colors.surface} />
             </Pressable>
           ) : (
@@ -62,7 +62,7 @@ export default function WelcomeScreen() {
         </View>
 
         <Text style={styles.disclaimer}>
-          Janani supports your care journey and does not replace advice from your doctor.
+          PregaLove supports your care journey and does not replace advice from your doctor.
         </Text>
       </View>
     </SafeAreaView>

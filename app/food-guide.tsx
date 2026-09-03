@@ -49,8 +49,8 @@ export default function FoodGuideScreen() {
         });
         if (!active) return;
         setTopics(result.topics.length ? result.topics : fallbackGroups);
-        if (result.blockedConditionCodes.length) setNotice('Condition-specific food personalisation is not enabled until the relevant Janani clinical rule pack is approved. Follow your maternity team or dietitian plan first.');
-        else if (context.nutrition.clinicianInstructions) setNotice('Your saved clinician instructions take priority over all general Janani food guidance.');
+        if (result.blockedConditionCodes.length) setNotice('Condition-specific food personalisation is not enabled until the relevant PregaLove clinical rule pack is approved. Follow your maternity team or dietitian plan first.');
+        else if (context.nutrition.clinicianInstructions) setNotice('Your saved clinician instructions take priority over all general PregaLove food guidance.');
       } catch {
         // General reviewed guidance remains available if private context is unavailable.
       } finally { if (active) setLoading(false); }
@@ -67,11 +67,11 @@ export default function FoodGuideScreen() {
 
   return <SafeAreaView style={styles.page}><ScrollView contentContainerStyle={styles.content}>
     <View style={styles.header}><Pressable accessibilityLabel="Go back" onPress={()=>router.back()} style={styles.backButton}><Ionicons name="arrow-back" size={22} color={colors.ink}/></Pressable><View style={styles.headerCopy}><Text style={styles.eyebrow}>{tr('foodEyebrow')}</Text><Text style={styles.title}>{tr('foodTitle')}</Text></View></View>
-    <View style={styles.hero}><Ionicons name="nutrition" size={38} color={colors.rose}/><Text style={styles.heroTitle}>Food guidance, not a prescription</Text><Text style={styles.body}>Janani filters reviewed general guidance using the pregnancy details and preferences you choose to save. It does not create medical diet rules.</Text>{loading?<ActivityIndicator color={colors.rose}/>:null}</View>
+    <View style={styles.hero}><Ionicons name="nutrition" size={38} color={colors.rose}/><Text style={styles.heroTitle}>Food guidance, not a prescription</Text><Text style={styles.body}>PregaLove filters reviewed general guidance using the pregnancy details and preferences you choose to save. It does not create medical diet rules.</Text>{loading?<ActivityIndicator color={colors.rose}/>:null}</View>
     {notice?<View style={styles.notice}><Ionicons name="shield-checkmark-outline" size={22} color={colors.roseDark}/><Text style={styles.noticeText}>{notice}</Text></View>:null}
     {topics.map((item)=><View key={item.id} style={styles.card}><View style={styles.iconWrap}><Ionicons name="leaf-outline" size={24} color={colors.rose}/></View><View style={styles.cardCopy}><Text style={styles.cardTitle}>{titleFor(item)}</Text><Text style={styles.body}>{item.summary}</Text></View></View>)}
-    <View style={styles.askCard}><View style={styles.askIcon}><Ionicons name="sparkles-outline" size={24} color={colors.gold}/></View><View style={styles.cardCopy}><Text style={styles.cardTitle}>{tr('carePlusMealTitle')}</Text><Text style={styles.body}>Janani Care+ can use only the relevant approved context for meal ideas. Condition-specific personalisation remains blocked until its clinical rule pack is approved.</Text><Pressable onPress={()=>router.push('/ai-companion')} style={styles.askButton}><Text style={styles.askButtonText}>{tr('openCarePlus')}</Text><Ionicons name="arrow-forward" size={18} color={colors.surface}/></Pressable></View></View>
-    <Text style={styles.disclaimer}>Janani provides supportive educational information and does not diagnose, prescribe, or replace professional medical care.</Text>
+    <View style={styles.askCard}><View style={styles.askIcon}><Ionicons name="sparkles-outline" size={24} color={colors.gold}/></View><View style={styles.cardCopy}><Text style={styles.cardTitle}>{tr('carePlusMealTitle')}</Text><Text style={styles.body}>PregaLove Care+ can use only the relevant approved context for meal ideas. Condition-specific personalisation remains blocked until its clinical rule pack is approved.</Text><Pressable onPress={()=>router.push('/ai-companion')} style={styles.askButton}><Text style={styles.askButtonText}>{tr('openCarePlus')}</Text><Ionicons name="arrow-forward" size={18} color={colors.surface}/></Pressable></View></View>
+    <Text style={styles.disclaimer}>PregaLove provides supportive educational information and does not diagnose, prescribe, or replace professional medical care.</Text>
   </ScrollView></SafeAreaView>;
 }
 

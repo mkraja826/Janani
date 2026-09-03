@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Janani",
+    "name": "PregaLove",
     "slug": "janani",
     "version": "0.1.0",
     "orientation": "portrait",
@@ -61,7 +61,7 @@
       "typedRoutes": true
     },
     "extra": {
-      "medicalDisclaimer": "Janani provides supportive reminders and educational information. It does not diagnose, prescribe, or replace professional medical care.",
+      "medicalDisclaimer": "PregaLove provides supportive reminders and educational information. It does not diagnose, prescribe, or replace professional medical care.",
       "router": {},
       "eas": {
         "projectId": "2897dd94-47bf-4b4c-a7a9-82e40aaa65a1"
