@@ -13,6 +13,8 @@ on:
 env:
   NODE_VERSION: '22'
   JAVA_VERSION: '21'
+  EXPO_PUBLIC_RELEASE_COMMIT: ${{ github.sha }}
+  EXPO_PUBLIC_RELEASE_CANDIDATE: 'true'
 
 jobs:
   bundle:
@@ -175,6 +177,7 @@ jobs:
             echo "commit=$GITHUB_SHA"
             echo "version_name=$VERSION_NAME"
             echo "version_code=$VERSION_CODE"
+            echo "release_candidate=true"
             echo "care_plus_visible=true"
             echo "care_plus_ai=true"
             echo "care_plus_purchases=false"
