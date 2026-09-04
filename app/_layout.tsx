@@ -39,6 +39,12 @@ function RuntimeBreadcrumbs() {
   return null;
 }
 
+function ReleaseCandidateBadge() {
+  const enabled = process.env.EXPO_PUBLIC_RELEASE_CANDIDATE?.trim().toLowerCase() === 'true';
+  if (!enabled) return null;
+  return <Pressable accessibilityRole="button" accessibilityLabel="Open release diagnostics" onPress={() => router.push('/release-diagnostics')} style={styles.rcBadge}><Text style={styles.rcBadgeText}>RC</Text></Pressable>;
+}
+
 function NotificationNavigation() {
   useEffect(() => {
     void prepareJananiNotificationChannels()
@@ -109,6 +115,7 @@ export default function RootLayout() {
             <WidgetSync />
             <StatusBar style="dark" />
             <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background }, animation: 'fade' }} />
+            <ReleaseCandidateBadge />
           </AuthGate>
           <SyncStatus />
         </AuthProvider>
@@ -123,4 +130,6 @@ const styles = StyleSheet.create({
   failureText:{maxWidth:360,fontSize:14,lineHeight:21,textAlign:'center',color:colors.muted},
   retryButton:{minWidth:140,minHeight:50,alignItems:'center',justifyContent:'center',borderRadius:radius.pill,backgroundColor:colors.rose},
   retryText:{fontWeight:'800',color:colors.surface},
+  rcBadge:{position:'absolute',right:8,top:48,minWidth:34,height:26,paddingHorizontal:8,alignItems:'center',justifyContent:'center',borderRadius:radius.pill,backgroundColor:colors.ink,opacity:0.82},
+  rcBadgeText:{fontSize:11,fontWeight:'900',letterSpacing:0.5,color:colors.surface},
 });
