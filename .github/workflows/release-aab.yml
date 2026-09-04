@@ -22,6 +22,19 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+
+      - name: Require current main release head
+        run: |
+          git fetch origin main --depth=1
+          current_sha="$(git rev-parse HEAD)"
+          main_sha="$(git rev-parse origin/main)"
+          echo "Release checkout: $current_sha"
+          echo "Current main:     $main_sha"
+          if [ "$current_sha" != "$main_sha" ]; then
+            echo "Refusing stale production build. Start a fresh workflow dispatch from current main instead of re-running an older release run."
+            exit 1
+          fi
+
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
@@ -151,10 +164,21 @@ jobs:
         run: ./gradlew bundleRelease --no-daemon --stacktrace
 
       - name: Verify signed AAB
+        env:
+          VERSION_NAME: ${{ inputs.version_name }}
+          VERSION_CODE: ${{ inputs.version_code }}
         run: |
           test -s android/app/build/outputs/bundle/release/app-release.aab
           jarsigner -verify android/app/build/outputs/bundle/release/app-release.aab
           sha256sum android/app/build/outputs/bundle/release/app-release.aab > janani-release.sha256
+          {
+            echo "commit=$GITHUB_SHA"
+            echo "version_name=$VERSION_NAME"
+            echo "version_code=$VERSION_CODE"
+            echo "care_plus_visible=true"
+            echo "care_plus_ai=true"
+            echo "care_plus_purchases=false"
+          } > janani-release-metadata.txt
 
       - name: Upload signed AAB
         uses: actions/upload-artifact@v4
@@ -163,5 +187,6 @@ jobs:
           path: |
             android/app/build/outputs/bundle/release/app-release.aab
             janani-release.sha256
+            janani-release-metadata.txt
           if-no-files-found: error
           retention-days: 7
