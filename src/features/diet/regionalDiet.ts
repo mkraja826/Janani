@@ -1,3 +1,5 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
 export type DietPreference = 'vegetarian' | 'non_vegetarian' | 'eggetarian' | 'vegan' | 'unknown';
 
 export type RegionalDietContext = {
@@ -8,6 +10,8 @@ export type RegionalDietContext = {
   dietPreference: DietPreference;
   cuisineTags: string[];
 };
+
+const STORAGE_KEY = 'pregalove:regional-diet-context:v1';
 
 const INDIA_REGION_TAGS: Record<string, string[]> = {
   'IN-TG': ['telangana', 'south-indian', 'millets', 'dal', 'rice', 'curd'],
@@ -26,6 +30,16 @@ export function normalizeRegion(countryCode: string, regionCode: string | null, 
   const rc = regionCode?.trim().toUpperCase() || null;
   const cuisineTags = cc === 'IN' && rc ? INDIA_REGION_TAGS[rc] ?? ['indian'] : [cc === 'IN' ? 'indian' : 'local'];
   return { countryCode: cc, regionCode: rc, regionLabel: regionLabel.trim() || 'My region', source, dietPreference, cuisineTags };
+}
+
+export async function readRegionalDietContext(): Promise<RegionalDietContext | null> {
+  const raw = await AsyncStorage.getItem(STORAGE_KEY);
+  if (!raw) return null;
+  try { return JSON.parse(raw) as RegionalDietContext; } catch { return null; }
+}
+
+export async function writeRegionalDietContext(context: RegionalDietContext): Promise<void> {
+  await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(context));
 }
 
 export const INDIA_REGION_OPTIONS = [
