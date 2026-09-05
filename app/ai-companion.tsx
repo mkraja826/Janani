@@ -7,6 +7,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { readRegionalDietContext } from '@/app/diet-region';
 import { requestCarePlusAi, type CarePlusAiCategory } from '@/features/ai/carePlusAi';
 import type { RegionalDietContext } from '@/features/diet/regionalDiet';
+import { readHealthConnectSummary } from '@/features/healthConnect/healthConnectGateway';
+import type { HealthConnectSummary } from '@/features/healthConnect/healthConnectTypes';
 import { loadPartnerCarePlusCopy, type PartnerCarePlusCopy } from '@/features/localization/partnerCarePlusLocale';
 import { resolveActivePregnancyId } from '@/features/pregnancy/activePregnancy';
 import { directionalIconName, rtlLayoutFor } from '@/i18n/rtl';
@@ -24,14 +26,16 @@ export default function AiCompanionScreen() {
   const [answer, setAnswer] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [regional, setRegional] = useState<RegionalDietContext | null>(null);
+  const [health, setHealth] = useState<HealthConnectSummary | null>(null);
   const rtl = rtlLayoutFor(locale);
 
   useEffect(() => {
-    void Promise.all([loadPartnerCarePlusCopy(), readGlobalUiLocale(), readRegionalDietContext()])
-      .then(([nextCopy, nextLocale, region]) => {
+    void Promise.all([loadPartnerCarePlusCopy(), readGlobalUiLocale(), readRegionalDietContext(), readHealthConnectSummary()])
+      .then(([nextCopy, nextLocale, region, nextHealth]) => {
         setCopy({ ...nextCopy, askCarePlus: nextCopy.askCarePlus.replace(/Janani|JANANI|జనని|जननी|ஜனனி|ಜನನಿ|ജനനി|জননী|જનની|ਜਨਨੀ|ଜନନୀ|جاناني|جانانی/g, 'PregaLove') });
         setLocale(nextLocale);
         setRegional(region);
+        setHealth(nextHealth);
       })
       .catch(() => undefined);
   }, []);
@@ -54,7 +58,15 @@ export default function AiCompanionScreen() {
       const pregnancyId = await resolveActivePregnancyId(userId);
       if (!pregnancyId) throw new Error('No active pregnancy was found.');
       const regionalHint = regional ? `\nRegional food context: ${regional.regionLabel}; diet=${regional.dietPreference}; cuisine=${regional.cuisineTags.join(',')}.` : '';
-      const userText = text ? `${text}${regionalHint}` : regionalHint || undefined;
+      const healthBits = health ? [
+        health.stepsToday != null ? `steps_today=${Math.round(health.stepsToday)}` : null,
+        health.sleepMinutesLastNight != null ? `sleep_minutes_last_night=${Math.round(health.sleepMinutesLastNight)}` : null,
+        health.latestHeartRateBpm != null ? `latest_heart_rate_bpm=${Math.round(health.latestHeartRateBpm)}` : null,
+        health.latestWeightKg != null ? `latest_weight_kg=${Math.round(health.latestWeightKg * 10) / 10}` : null,
+      ].filter(Boolean) : [];
+      const healthHint = healthBits.length ? `\nHealth Connect context (supportive trend data only; do not diagnose or set medical targets): ${healthBits.join('; ')}.` : '';
+      const contextHints = `${regionalHint}${healthHint}`;
+      const userText = text ? `${text}${contextHints}` : contextHints || undefined;
       const result = await requestCarePlusAi({ pregnancyId, category, userText });
       if (result.text) setAnswer(result.text);
       else if (result.error === 'care_plus_required') setAnswer('PregaLove Care+ requires an active subscription. Your free PregaLove features continue to work normally.');
@@ -67,9 +79,16 @@ export default function AiCompanionScreen() {
     } finally { setLoading(false); }
   }
 
+  const healthContextText = health ? [
+    health.stepsToday != null ? `${Math.round(health.stepsToday).toLocaleString()} steps` : null,
+    health.sleepMinutesLastNight != null ? `${Math.round(health.sleepMinutesLastNight / 60 * 10) / 10} h sleep` : null,
+    health.latestHeartRateBpm != null ? `${Math.round(health.latestHeartRateBpm)} bpm` : null,
+  ].filter(Boolean).join(' · ') : '';
+
   return <SafeAreaView style={styles.page}><KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}><ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
     <View style={[styles.header,rtl.row]}><Pressable accessibilityLabel="Go back" onPress={() => router.back()} style={({pressed}) => [styles.backButton, pressed&&styles.pressed]}><Ionicons name={directionalIconName(locale,'arrow-back','arrow-forward') as keyof typeof Ionicons.glyphMap} size={21} color={colors.ink} /></Pressable><View style={styles.headerCopy}><View style={styles.eyebrowPill}><Ionicons name="sparkles" size={13} color={colors.roseDark}/><Text style={styles.eyebrow}>PREGALOVE CARE+</Text></View><Text style={[styles.title,rtl.startText]}>{copy.carePlusTitle}</Text></View></View>
     {regional ? <Pressable onPress={() => router.push('/diet-region')} style={[styles.contextCard,rtl.row]}><Ionicons name="location-outline" size={19} color={colors.roseDark}/><View style={styles.flex}><Text style={styles.contextTitle}>Regional context</Text><Text style={styles.contextText}>{regional.regionLabel} · {regional.dietPreference.replace('_',' ')}</Text></View><Ionicons name={rtl.isRtl?'chevron-back':'chevron-forward'} size={16} color={colors.muted}/></Pressable> : null}
+    {healthContextText ? <Pressable onPress={() => router.push('/health-connect')} style={[styles.contextCard,rtl.row]}><Ionicons name="pulse-outline" size={19} color={colors.roseDark}/><View style={styles.flex}><Text style={styles.contextTitle}>Health Connect context</Text><Text style={styles.contextText}>{healthContextText}</Text></View><Ionicons name={rtl.isRtl?'chevron-back':'chevron-forward'} size={16} color={colors.muted}/></Pressable> : null}
     <View style={[styles.safetyCard,rtl.row]}><View style={styles.safetyIcon}><Ionicons name="shield-checkmark-outline" size={22} color={colors.roseDark} /></View><Text style={[styles.safetyText,rtl.startText]}>Care+ uses only relevant PregaLove context for each request. It cannot diagnose, prescribe, change medicines, set medical targets, or confirm that you or your baby are safe.</Text></View>
     <View style={styles.sectionHeader}><Text style={[styles.sectionTitle,rtl.startText]}>Quick help</Text><Text style={[styles.sectionCaption,rtl.startText]}>Choose a starting point, or ask in your own words.</Text></View>
     <View style={[styles.quickRow,rtl.row]}>{quickActions.map((item) => <Pressable key={item.category} disabled={loading} onPress={() => void submit(item.category)} style={({pressed}) => [styles.quickAction,rtl.row,pressed&&styles.cardPressed]}><View style={styles.quickIcon}><Ionicons name={item.icon} size={20} color={colors.roseDark} /></View><Text style={[styles.quickText,rtl.startText]}>{item.label}</Text><Ionicons name={rtl.isRtl?'chevron-back':'chevron-forward'} size={16} color={colors.muted}/></Pressable>)}</View>
