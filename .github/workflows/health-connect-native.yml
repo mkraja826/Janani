@@ -42,7 +42,7 @@ jobs:
         run: |
           test -f android/app/src/main/java/com/mkraja826/janani/JananiHealthConnectModule.kt
           test -f android/app/src/main/java/com/mkraja826/janani/JananiHealthConnectPackage.kt
-          grep -q 'androidx.health.connect:connect-client:1.2.0-alpha06' android/app/build.gradle
+          grep -q 'androidx.health.connect:connect-client:1.2.0-alpha05' android/app/build.gradle
           grep -q 'android.permission.health.READ_STEPS' android/app/src/main/AndroidManifest.xml
           grep -q 'JananiHealthConnectPackage' android/app/src/main/java/com/mkraja826/janani/MainApplication.kt
       - name: Compile Android Kotlin
