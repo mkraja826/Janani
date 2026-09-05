@@ -1,4 +1,4 @@
-const { AndroidConfig, withAndroidManifest, withAppBuildGradle, withDangerousMod, withMainApplication } = require('@expo/config-plugins');
+const { withAndroidManifest, withAppBuildGradle, withDangerousMod, withMainApplication } = require('@expo/config-plugins');
 const fs = require('fs');
 const path = require('path');
 
@@ -28,10 +28,16 @@ module.exports = function withJananiHealthConnect(config) {
   });
 
   config = withAppBuildGradle(config, (mod) => {
+    let contents = mod.modResults.contents;
     const dependency = 'implementation "androidx.health.connect:connect-client:1.1.0"';
-    if (!mod.modResults.contents.includes('androidx.health.connect:connect-client')) {
-      mod.modResults.contents = mod.modResults.contents.replace(/dependencies\s*\{/, (match) => `${match}\n    ${dependency}`);
+    if (!contents.includes('androidx.health.connect:connect-client')) {
+      contents = contents.replace(/dependencies\s*\{/, (match) => `${match}\n    ${dependency}`);
     }
+    contents = contents.replace(
+      /minSdkVersion\s+rootProject\.ext\.minSdkVersion/g,
+      'minSdkVersion 26'
+    );
+    mod.modResults.contents = contents;
     return mod;
   });
 
