@@ -5,6 +5,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { productionConfig } from '@/config/production';
+import { getCareCreditStatus, LOW_CREDIT_THRESHOLD, type CareCreditStatus } from '@/features/ai/careCredits';
 import { readHealthConnectSummary } from '@/features/healthConnect/healthConnectGateway';
 import type { HealthConnectSummary } from '@/features/healthConnect/healthConnectTypes';
 import { cacheActivePregnancyId } from '@/features/pregnancy/activePregnancy';
@@ -29,6 +30,7 @@ export default function HomeScreen() {
   const { markMembership } = useMembership();
   const [summary, setSummary] = useState<FamilySummary | null>(null);
   const [healthSummary, setHealthSummary] = useState<HealthConnectSummary | null>(null);
+  const [credits, setCredits] = useState<CareCreditStatus | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const userId = session?.user.id;
@@ -55,10 +57,11 @@ export default function HomeScreen() {
     }
 
     const isMother = membership.data.role === 'mother';
-    const [family, inviteCodeResult, health] = await Promise.all([
+    const [family, inviteCodeResult, health, creditStatus] = await Promise.all([
       supabase.from('families').select('name,pregnancies(id,due_date,status)').eq('id', membership.data.family_id).maybeSingle(),
       isMother ? supabase.rpc('get_mother_family_invite_code') : Promise.resolve({ data: null, error: null }),
       isMother ? readHealthConnectSummary() : Promise.resolve(null),
+      isMother && productionConfig.carePlusVisible ? getCareCreditStatus().catch(() => null) : Promise.resolve(null),
     ]);
 
     if (family.error || !family.data || inviteCodeResult.error) {
@@ -68,6 +71,7 @@ export default function HomeScreen() {
     }
 
     if (health) setHealthSummary(health);
+    if (creditStatus) setCredits(creditStatus);
 
     const familyData = family.data as unknown as {
       name: string;
@@ -114,6 +118,7 @@ export default function HomeScreen() {
 
   const isMother = summary?.role === 'mother';
   const carePlusAvailable = isMother && productionConfig.carePlusVisible;
+  const lowCredits = Boolean(credits && credits.balance <= LOW_CREDIT_THRESHOLD);
   const healthBits = isMother && healthSummary ? [
     healthSummary.stepsToday != null ? `${Math.round(healthSummary.stepsToday).toLocaleString()} steps` : null,
     healthSummary.sleepMinutesLastNight != null ? `${Math.round(healthSummary.sleepMinutesLastNight / 60 * 10) / 10} h sleep` : null,
@@ -151,10 +156,10 @@ export default function HomeScreen() {
       <Pressable onPress={() => router.push('/ai-companion')} disabled={!carePlusAvailable} style={[styles.askCard, !carePlusAvailable && styles.disabledCard]}>
         <View style={styles.askIcon}><Ionicons name="sparkles" size={24} color={colors.surface} /></View>
         <View style={styles.flex}>
-          <Text style={styles.askTitle}>Ask PregaLove</Text>
-          <Text style={styles.askText}>{carePlusAvailable ? 'Tell me what you need. I can help organize reminders, food, questions and your pregnancy day.' : 'AI assistance will appear here when Care+ is available for this account.'}</Text>
+          <View style={styles.askTitleRow}><Text style={styles.askTitle}>Ask PregaLove</Text>{credits ? <Text style={[styles.creditBadge, lowCredits && styles.creditBadgeLow]}>{credits.balance} credits</Text> : null}</View>
+          <Text style={styles.askText}>{carePlusAvailable ? (lowCredits ? 'Your Care Credits are running low. You can still use free PregaLove features.' : 'Tell me what you need. I can help organize reminders, food, questions and your pregnancy day.') : 'AI assistance will appear here when Care+ is available for this account.'}</Text>
         </View>
-        {carePlusAvailable ? <Ionicons name="mic-outline" size={22} color={colors.roseDark} /> : null}
+        {carePlusAvailable ? <Ionicons name="chevron-forward" size={20} color={colors.roseDark} /> : null}
       </Pressable>
 
       <View style={styles.sectionHeader}>
@@ -213,7 +218,10 @@ const styles = StyleSheet.create({
   askCard:{flexDirection:'row',alignItems:'center',gap:spacing.md,padding:spacing.lg,borderRadius:24,backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border},
   disabledCard:{opacity:.6},
   askIcon:{width:48,height:48,borderRadius:16,alignItems:'center',justifyContent:'center',backgroundColor:colors.rose},
+  askTitleRow:{flexDirection:'row',alignItems:'center',gap:8,flexWrap:'wrap'},
   askTitle:{fontSize:18,fontWeight:'900',color:colors.ink},
+  creditBadge:{fontSize:11,fontWeight:'900',color:colors.roseDark,backgroundColor:colors.roseSoft,paddingHorizontal:9,paddingVertical:4,borderRadius:radius.pill},
+  creditBadgeLow:{backgroundColor:colors.blush},
   askText:{marginTop:4,fontSize:13,lineHeight:19,color:colors.muted},
   sectionHeader:{gap:4},sectionTitle:{fontSize:21,fontWeight:'900',color:colors.ink},sectionCaption:{fontSize:13,color:colors.muted},
   todayGrid:{flexDirection:'row',flexWrap:'wrap',gap:spacing.md},
