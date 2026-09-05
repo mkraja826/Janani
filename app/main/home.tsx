@@ -5,6 +5,8 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { productionConfig } from '@/config/production';
+import { readHealthConnectSummary } from '@/features/healthConnect/healthConnectGateway';
+import type { HealthConnectSummary } from '@/features/healthConnect/healthConnectTypes';
 import { cacheActivePregnancyId } from '@/features/pregnancy/activePregnancy';
 import { getPregnancyProgress, trimesterLabel } from '@/features/pregnancy/progress';
 import { readCache, writeCache } from '@/lib/cache';
@@ -26,6 +28,7 @@ export default function HomeScreen() {
   const { session } = useAuth();
   const { markMembership } = useMembership();
   const [summary, setSummary] = useState<FamilySummary | null>(null);
+  const [healthSummary, setHealthSummary] = useState<HealthConnectSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const userId = session?.user.id;
@@ -52,9 +55,10 @@ export default function HomeScreen() {
     }
 
     const isMother = membership.data.role === 'mother';
-    const [family, inviteCodeResult] = await Promise.all([
+    const [family, inviteCodeResult, health] = await Promise.all([
       supabase.from('families').select('name,pregnancies(id,due_date,status)').eq('id', membership.data.family_id).maybeSingle(),
       isMother ? supabase.rpc('get_mother_family_invite_code') : Promise.resolve({ data: null, error: null }),
+      isMother ? readHealthConnectSummary() : Promise.resolve(null),
     ]);
 
     if (family.error || !family.data || inviteCodeResult.error) {
@@ -62,6 +66,8 @@ export default function HomeScreen() {
       setLoading(false);
       return;
     }
+
+    if (health) setHealthSummary(health);
 
     const familyData = family.data as unknown as {
       name: string;
@@ -108,6 +114,12 @@ export default function HomeScreen() {
 
   const isMother = summary?.role === 'mother';
   const carePlusAvailable = isMother && productionConfig.carePlusVisible;
+  const healthBits = isMother && healthSummary ? [
+    healthSummary.stepsToday != null ? `${Math.round(healthSummary.stepsToday).toLocaleString()} steps` : null,
+    healthSummary.sleepMinutesLastNight != null ? `${Math.round(healthSummary.sleepMinutesLastNight / 60 * 10) / 10} h sleep` : null,
+    healthSummary.latestHeartRateBpm != null ? `${Math.round(healthSummary.latestHeartRateBpm)} bpm` : null,
+  ].filter(Boolean) as string[] : [];
+  const healthCaption = healthBits.length ? healthBits.slice(0, 2).join(' · ') : 'Connect health data or review measurements';
 
   return <SafeAreaView style={styles.page}>
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -153,7 +165,7 @@ export default function HomeScreen() {
       <View style={styles.todayGrid}>
         <TodayCard icon="alarm-outline" title="Medicines & reminders" caption="See what is due today" onPress={() => router.push('/reminders')} />
         <TodayCard icon="nutrition-outline" title="Food for today" caption="Regional pregnancy-friendly choices" onPress={() => router.push('/food-guide')} />
-        {isMother ? <TodayCard icon="pulse-outline" title="Health" caption="Measurements and trends" onPress={() => router.push('/health-tracker')} /> : <TodayCard icon="heart-outline" title="Support her" caption="Send a thoughtful nudge" onPress={() => router.push('/thinking-of-you')} />}
+        {isMother ? <TodayCard icon="pulse-outline" title="Health" caption={healthCaption} onPress={() => router.push('/health-connect')} /> : <TodayCard icon="heart-outline" title="Support her" caption="Send a thoughtful nudge" onPress={() => router.push('/thinking-of-you')} />}
         <TodayCard icon="book-outline" title="Journal" caption="Save how today felt" onPress={() => router.push('/journal')} />
       </View>
 
