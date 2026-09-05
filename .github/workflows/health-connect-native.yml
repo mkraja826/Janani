@@ -1,0 +1,54 @@
+name: Janani Health Connect Native
+
+on:
+  pull_request:
+    paths:
+      - 'plugins/withJananiHealthConnect.js'
+      - 'app.json'
+      - 'app/health-connect.tsx'
+      - 'src/features/healthConnect/**'
+      - '.github/workflows/health-connect-native.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: health-connect-native-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android-native:
+    name: Prebuild and compile Health Connect bridge
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+      - run: npm ci --no-audit --no-fund
+      - name: Clean Android prebuild
+        env:
+          JANANI_CI_NATIVE_ICON_FALLBACK: '1'
+        run: npx expo prebuild --platform android --clean --no-install
+      - name: Verify Health Connect native generation
+        run: |
+          test -f android/app/src/main/java/com/mkraja826/janani/JananiHealthConnectModule.kt
+          test -f android/app/src/main/java/com/mkraja826/janani/JananiHealthConnectPackage.kt
+          grep -q 'androidx.health.connect:connect-client:1.2.0-alpha06' android/app/build.gradle
+          grep -q 'android.permission.health.READ_STEPS' android/app/src/main/AndroidManifest.xml
+          grep -q 'JananiHealthConnectPackage' android/app/src/main/java/com/mkraja826/janani/MainApplication.kt
+      - name: Compile Android Kotlin
+        working-directory: android
+        env:
+          NODE_ENV: development
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:compileDebugKotlin -PreactNativeArchitectures=x86_64 --stacktrace --no-daemon --max-workers=2 --console=plain
