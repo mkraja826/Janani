@@ -28,7 +28,7 @@ module.exports = function withJananiHealthConnect(config) {
   });
 
   config = withAppBuildGradle(config, (mod) => {
-    const dependency = 'implementation "androidx.health.connect:connect-client:1.2.0-alpha06"';
+    const dependency = 'implementation "androidx.health.connect:connect-client:1.2.0-alpha05"';
     if (!mod.modResults.contents.includes('androidx.health.connect:connect-client')) {
       mod.modResults.contents = mod.modResults.contents.replace(/dependencies\s*\{/, (match) => `${match}\n    ${dependency}`);
     }
