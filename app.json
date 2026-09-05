@@ -31,6 +31,7 @@
         }
       ],
       "./plugins/withJananiWidget",
+      "./plugins/withJananiHealthConnect",
       "./plugins/withJananiReleaseSigning"
     ],
     "android": {
