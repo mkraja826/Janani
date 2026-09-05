@@ -33,25 +33,26 @@ export default function HealthConnectScreen() {
     await refresh();
   }
 
-  const nativePending = capability?.reason === 'native_module_missing';
+  const nativeMissing = capability?.reason === 'native_module_missing';
+  const providerUpdate = capability?.reason === 'provider_update_required';
 
   return <SafeAreaView style={styles.page}><ScrollView contentContainerStyle={styles.content}>
-    <View style={styles.header}><Pressable accessibilityLabel="Go back" onPress={() => router.back()} style={styles.back}><Ionicons name="arrow-back" size={22} color={colors.ink}/></Pressable><View style={styles.flex}><Text style={styles.eyebrow}>HEALTH CONNECT</Text><Text style={styles.title}>Bring your health data into PregaLove.</Text><Text style={styles.subtitle}>Optional, read-only monitoring for steps, sleep, heart rate and weight. PregaLove uses trends for supportive summaries, not diagnosis.</Text></View></View>
+    <View style={styles.header}><Pressable accessibilityLabel="Go back" onPress={() => router.back()} style={styles.back}><Ionicons name="arrow-back" size={22} color={colors.ink}/></Pressable><View style={styles.flex}><Text style={styles.eyebrow}>HEALTH CONNECT</Text><Text style={styles.title}>Bring your health data into PregaLove.</Text><Text style={styles.subtitle}>Optional, read-only access to steps, sleep, heart rate and weight. PregaLove uses trends for supportive summaries, never diagnosis.</Text></View></View>
 
     {busy ? <ActivityIndicator color={colors.rose}/> : <>
-      <View style={styles.statusCard}><View style={styles.statusIcon}><Ionicons name={capability?.available ? 'checkmark-circle' : 'watch-outline'} size={26} color={colors.roseDark}/></View><View style={styles.flex}><Text style={styles.statusTitle}>{capability?.available ? 'Health Connect is available' : nativePending ? 'Health Connect foundation is ready' : 'Health Connect is not available on this device'}</Text><Text style={styles.statusText}>{nativePending ? 'The v14 app is prepared for permission-aware Health Connect reads. The native bridge is intentionally gated until Android compatibility is finalized.' : capability?.reason === 'android_version' ? 'This device version is below the current Health Connect integration requirement.' : 'You stay in control of every permission.'}</Text></View></View>
+      <View style={styles.statusCard}><View style={styles.statusIcon}><Ionicons name={capability?.available ? 'checkmark-circle' : 'watch-outline'} size={26} color={colors.roseDark}/></View><View style={styles.flex}><Text style={styles.statusTitle}>{capability?.available ? 'Health Connect is available' : providerUpdate ? 'Health Connect needs an update' : nativeMissing ? 'Health Connect bridge is unavailable in this build' : 'Health Connect is not available on this device'}</Text><Text style={styles.statusText}>{capability?.available ? 'Choose which supported health data PregaLove may read. You can revoke access later in Android settings.' : providerUpdate ? 'Update Health Connect on this device, then return here.' : capability?.reason === 'android_version' ? 'This Android version cannot provide Health Connect data, but the rest of PregaLove continues to work.' : 'The rest of PregaLove continues to work normally.'}</Text></View></View>
 
       <View style={styles.grid}>
-        <Metric icon="footsteps-outline" title="Steps" value={summary?.stepsToday == null ? 'Not connected' : `${summary.stepsToday}`} granted={permissions?.steps}/>
-        <Metric icon="moon-outline" title="Sleep" value={summary?.sleepMinutesLastNight == null ? 'Not connected' : `${Math.round(summary.sleepMinutesLastNight / 60)}h`} granted={permissions?.sleep}/>
-        <Metric icon="heart-outline" title="Heart rate" value={summary?.restingHeartRateBpm == null ? 'Not connected' : `${summary.restingHeartRateBpm} bpm`} granted={permissions?.heart_rate}/>
-        <Metric icon="scale-outline" title="Weight" value={summary?.latestWeightKg == null ? 'Not connected' : `${summary.latestWeightKg} kg`} granted={permissions?.weight}/>
+        <Metric icon="footsteps-outline" title="Steps" value={summary?.stepsToday == null ? 'Not connected' : `${Math.round(summary.stepsToday)}`} granted={permissions?.steps}/>
+        <Metric icon="moon-outline" title="Sleep" value={summary?.sleepMinutesLastNight == null ? 'Not connected' : `${Math.floor(summary.sleepMinutesLastNight / 60)}h ${Math.round(summary.sleepMinutesLastNight % 60)}m`} granted={permissions?.sleep}/>
+        <Metric icon="heart-outline" title="Latest heart rate" value={summary?.latestHeartRateBpm == null ? 'Not connected' : `${Math.round(summary.latestHeartRateBpm)} bpm`} granted={permissions?.heart_rate}/>
+        <Metric icon="scale-outline" title="Weight" value={summary?.latestWeightKg == null ? 'Not connected' : `${summary.latestWeightKg.toFixed(1)} kg`} granted={permissions?.weight}/>
       </View>
 
-      <Pressable disabled={!capability?.available} onPress={connect} style={[styles.primary, !capability?.available && styles.disabled]}><Ionicons name="link-outline" size={20} color={colors.surface}/><Text style={styles.primaryText}>{capability?.available ? 'Connect Health Connect' : 'Native connection pending'}</Text></Pressable>
+      <Pressable disabled={!capability?.available} onPress={connect} style={[styles.primary, !capability?.available && styles.disabled]}><Ionicons name="link-outline" size={20} color={colors.surface}/><Text style={styles.primaryText}>{capability?.available ? 'Choose Health Connect access' : 'Health Connect unavailable'}</Text></Pressable>
     </>}
 
-    <View style={styles.safety}><Ionicons name="shield-checkmark-outline" size={22} color={colors.roseDark}/><Text style={styles.safetyText}>Wearable and phone health data can be incomplete or inaccurate. PregaLove will not use it to diagnose pregnancy complications or tell you that you or your baby are safe.</Text></View>
+    <View style={styles.safety}><Ionicons name="shield-checkmark-outline" size={22} color={colors.roseDark}/><Text style={styles.safetyText}>Wearable and phone health data can be incomplete or inaccurate. PregaLove will not use it to diagnose pregnancy complications, prescribe treatment, or tell you that you or your baby are safe.</Text></View>
   </ScrollView></SafeAreaView>;
 }
 
