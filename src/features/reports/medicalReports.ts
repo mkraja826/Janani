@@ -12,6 +12,7 @@ const ALLOWED_REPORT_MIME_TYPES = new Set([
   'image/heic',
   'image/heif',
 ]);
+const RETRYABLE_EXTRACTION_STATUSES = new Set(['failed', 'not_available', 'not_started']);
 
 export type MedicalReportSummary = {
   id: string;
@@ -109,6 +110,13 @@ function inferMimeType(fileName: string, reportedType: string | null): string {
   return normalized ?? '';
 }
 
+async function invokeReportExtraction(reportId: string): Promise<void> {
+  const extraction = await supabase.functions.invoke('extract-medical-report', {
+    body: { report_id: reportId },
+  });
+  if (extraction.error) throw extraction.error;
+}
+
 export async function listOwnMedicalReports(pregnancyId: string): Promise<MedicalReportSummary[]> {
   const { data, error } = await reportRpc('list_own_medical_reports', { p_pregnancy_id: pregnancyId });
   if (error) throw error;
@@ -125,6 +133,34 @@ export async function reviewOwnMedicalReportFacts(reportId: string, reviews: Med
   const { data, error } = await reportRpc('review_own_medical_report_facts', { p_report_id: reportId, p_reviews: reviews });
   if (error) throw error;
   return unwrapRpc<MedicalReportDetail>(data);
+}
+
+export async function retryOwnMedicalReportExtraction(reportId: string): Promise<void> {
+  const report = await getOwnMedicalReport(reportId);
+  if (report.uploadState !== 'uploaded') {
+    throw new Error('This report has not finished uploading yet.');
+  }
+  if (!RETRYABLE_EXTRACTION_STATUSES.has(report.extractionStatus)) {
+    throw new Error('This report is not currently eligible for extraction retry.');
+  }
+
+  const queued = await reportRpc('queue_own_medical_report_extraction', { p_report_id: reportId });
+  if (queued.error) throw queued.error;
+  await invokeReportExtraction(reportId);
+}
+
+export async function deleteOwnMedicalReport(reportId: string): Promise<void> {
+  const report = await getOwnMedicalReport(reportId);
+
+  const removed = await supabase.storage
+    .from('medical-reports')
+    .remove([report.storagePath]);
+  if (removed.error) throw removed.error;
+
+  const deleted = await reportRpc('delete_own_medical_report_record', { p_report_id: reportId });
+  if (deleted.error) {
+    throw new Error('The private file was deleted, but its report record could not be removed. Please refresh and try again.');
+  }
 }
 
 export async function pickAndUploadWrittenMedicalReport(pregnancyId: string): Promise<string | null> {
@@ -188,12 +224,11 @@ export async function pickAndUploadWrittenMedicalReport(pregnancyId: string): Pr
   const queued = await reportRpc('queue_own_medical_report_extraction', { p_report_id: created.id });
   if (queued.error) throw queued.error;
 
-  const extraction = await supabase.functions.invoke('extract-medical-report', {
-    body: { report_id: created.id },
-  });
-  if (extraction.error) {
-    // The private upload is still valid and remains visible for retry/manual review.
-    console.warn('Medical report extraction did not start', extraction.error.message);
+  try {
+    await invokeReportExtraction(created.id);
+  } catch (error) {
+    // The private upload remains valid and visible so the mother can retry.
+    console.warn('Medical report extraction did not start', error instanceof Error ? error.message : 'unknown error');
   }
 
   return created.id;
