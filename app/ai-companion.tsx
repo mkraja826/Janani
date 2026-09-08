@@ -5,6 +5,7 @@ import { ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Pressable, Sc
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { readRegionalDietContext } from '@/app/diet-region';
+import { productionConfig } from '@/config/production';
 import { requestCarePlusAi, type CarePlusAiCategory } from '@/features/ai/carePlusAi';
 import { CARE_CREDIT_COSTS, getCareCreditStatus, LOW_CREDIT_THRESHOLD, type CareCreditStatus } from '@/features/ai/careCredits';
 import type { RegionalDietContext } from '@/features/diet/regionalDiet';
@@ -21,6 +22,7 @@ const fallbackCopy: PartnerCarePlusCopy = { connectionEyebrow:'A SMALL CONNECTIO
 
 export default function AiCompanionScreen() {
   const { session } = useAuth();
+  const aiAvailable = productionConfig.carePlusVisible && productionConfig.aiUiEnabled;
   const [copy, setCopy] = useState<PartnerCarePlusCopy>(fallbackCopy);
   const [locale, setLocale] = useState('en');
   const [message, setMessage] = useState('');
@@ -32,6 +34,7 @@ export default function AiCompanionScreen() {
   const rtl = rtlLayoutFor(locale);
 
   useEffect(() => {
+    if (!aiAvailable) return;
     void Promise.all([loadPartnerCarePlusCopy(), readGlobalUiLocale(), readRegionalDietContext(), readHealthConnectSummary(), getCareCreditStatus().catch(() => null)])
       .then(([nextCopy, nextLocale, region, nextHealth, nextCredits]) => {
         setCopy({ ...nextCopy, askCarePlus: nextCopy.askCarePlus.replace(/Janani|JANANI|జనని|जननी|ஜனனி|ಜನನಿ|ജനനി|জননী|જનની|ਜਨਨੀ|ଜନନୀ|جاناني|جانانی/g, 'PregaLove') });
@@ -41,7 +44,7 @@ export default function AiCompanionScreen() {
         if (nextCredits) setCredits(nextCredits);
       })
       .catch(() => undefined);
-  }, []);
+  }, [aiAvailable]);
 
   const quickActions: Array<{ category: CarePlusAiCategory; label: string; icon: keyof typeof Ionicons.glyphMap }> = [
     { category: 'daily_summary', label: copy.today, icon: 'sunny-outline' },
@@ -51,7 +54,7 @@ export default function AiCompanionScreen() {
   ];
 
   async function submit(category: CarePlusAiCategory, text?: string) {
-    if (loading) return;
+    if (!aiAvailable || loading) return;
     const userId = session?.user.id;
     if (!userId) return;
     if (category === 'explain_guidance' && !text?.trim()) return;
@@ -97,6 +100,19 @@ export default function AiCompanionScreen() {
   ].filter(Boolean).join(' · ') : '';
   const lowCredits = Boolean(credits && credits.balance <= LOW_CREDIT_THRESHOLD);
 
+  if (!aiAvailable) {
+    return <SafeAreaView style={styles.page}>
+      <View style={styles.disabledState}>
+        <Ionicons name="shield-checkmark-outline" size={32} color={colors.roseDark} />
+        <Text style={styles.disabledTitle}>Care+ AI is not available</Text>
+        <Text style={styles.disabledText}>PregaLove AI support is currently unavailable for this release. Your saved information and other PregaLove features are unaffected.</Text>
+        <Pressable accessibilityRole="button" onPress={() => router.back()} style={styles.disabledButton}>
+          <Text style={styles.disabledButtonText}>Go back</Text>
+        </Pressable>
+      </View>
+    </SafeAreaView>;
+  }
+
   return <SafeAreaView style={styles.page}><KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}><ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
     <View style={[styles.header,rtl.row]}><Pressable accessibilityLabel="Go back" onPress={() => router.back()} style={({pressed}) => [styles.backButton, pressed&&styles.pressed]}><Ionicons name={directionalIconName(locale,'arrow-back','arrow-forward') as keyof typeof Ionicons.glyphMap} size={21} color={colors.ink} /></Pressable><View style={styles.headerCopy}><View style={styles.eyebrowPill}><Ionicons name="sparkles" size={13} color={colors.roseDark}/><Text style={styles.eyebrow}>PREGALOVE CARE+</Text></View><Text style={[styles.title,rtl.startText]}>{copy.carePlusTitle}</Text></View></View>
     {credits ? <View style={[styles.creditCard, lowCredits && styles.creditCardLow]}><View style={styles.creditIcon}><Ionicons name="sparkles-outline" size={20} color={colors.roseDark}/></View><View style={styles.flex}><Text style={styles.creditTitle}>{credits.balance} Care Credits</Text><Text style={styles.creditText}>{lowCredits ? 'Running low. Expensive AI actions may need more credits.' : 'Credits are used only for premium AI actions. Core PregaLove features stay free.'}</Text></View><Pressable onPress={() => router.push('/billing')}><Text style={styles.creditLink}>Get more</Text></Pressable></View> : null}
@@ -113,6 +129,7 @@ export default function AiCompanionScreen() {
 
 const styles = StyleSheet.create({
   flex:{flex:1},page:{flex:1,backgroundColor:colors.background},content:{padding:spacing.lg,paddingBottom:spacing.xxl,gap:spacing.lg},
+  disabledState:{flex:1,alignItems:'center',justifyContent:'center',gap:spacing.md,padding:spacing.xl},disabledTitle:{fontSize:21,fontWeight:'900',color:colors.ink,textAlign:'center'},disabledText:{maxWidth:360,fontSize:14,lineHeight:21,color:colors.muted,textAlign:'center'},disabledButton:{minWidth:132,minHeight:48,alignItems:'center',justifyContent:'center',borderRadius:radius.pill,backgroundColor:colors.rose},disabledButtonText:{fontSize:14,fontWeight:'900',color:colors.surface},
   header:{flexDirection:'row',gap:spacing.md,alignItems:'flex-start'},headerCopy:{flex:1},backButton:{width:44,height:44,borderRadius:radius.pill,alignItems:'center',justifyContent:'center',backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border,shadowColor:colors.shadow,shadowOffset:{width:0,height:3},shadowOpacity:.05,shadowRadius:8,elevation:2},pressed:{opacity:.7,transform:[{scale:.98}]},cardPressed:{opacity:.82,transform:[{scale:.995}]},
   eyebrowPill:{alignSelf:'flex-start',flexDirection:'row',alignItems:'center',gap:5,paddingHorizontal:10,paddingVertical:6,borderRadius:radius.pill,backgroundColor:colors.lavenderSoft,borderWidth:1,borderColor:colors.border},eyebrow:{fontSize:10,letterSpacing:1.55,fontWeight:'900',color:colors.roseDark},title:{marginTop:spacing.sm,fontSize:29,lineHeight:36,letterSpacing:-.35,fontWeight:'900',color:colors.ink},
   creditCard:{flexDirection:'row',alignItems:'center',gap:spacing.sm,padding:spacing.md,borderRadius:20,backgroundColor:colors.sageSoft,borderWidth:1,borderColor:colors.border},creditCardLow:{backgroundColor:colors.blush},creditIcon:{width:40,height:40,borderRadius:14,alignItems:'center',justifyContent:'center',backgroundColor:colors.surface},creditTitle:{fontSize:15,fontWeight:'900',color:colors.ink},creditText:{marginTop:2,fontSize:11.5,lineHeight:17,color:colors.muted},creditLink:{fontSize:12,fontWeight:'900',color:colors.roseDark},

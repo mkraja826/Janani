@@ -61,7 +61,9 @@ export default function HomeScreen() {
       supabase.from('families').select('name,pregnancies(id,due_date,status)').eq('id', membership.data.family_id).maybeSingle(),
       isMother ? supabase.rpc('get_mother_family_invite_code') : Promise.resolve({ data: null, error: null }),
       isMother ? readHealthConnectSummary() : Promise.resolve(null),
-      isMother && productionConfig.carePlusVisible ? getCareCreditStatus().catch(() => null) : Promise.resolve(null),
+      isMother && productionConfig.carePlusVisible && productionConfig.aiUiEnabled
+        ? getCareCreditStatus().catch(() => null)
+        : Promise.resolve(null),
     ]);
 
     if (family.error || !family.data || inviteCodeResult.error) {
@@ -117,7 +119,9 @@ export default function HomeScreen() {
   }
 
   const isMother = summary?.role === 'mother';
-  const carePlusAvailable = isMother && productionConfig.carePlusVisible;
+  const carePlusAvailable = isMother
+    && productionConfig.carePlusVisible
+    && productionConfig.aiUiEnabled;
   const lowCredits = Boolean(credits && credits.balance <= LOW_CREDIT_THRESHOLD);
   const healthBits = isMother && healthSummary ? [
     healthSummary.stepsToday != null ? `${Math.round(healthSummary.stepsToday).toLocaleString()} steps` : null,
