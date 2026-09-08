@@ -32,6 +32,20 @@ function compactMedications(value: unknown) {
     clinicianInstructions: compactString(item?.clinician_instructions, 700),
   }));
 }
+function compactConfirmedReportFacts(value: unknown) {
+  if (!Array.isArray(value)) return [];
+  return value.slice(0, 50).map((item: any) => ({
+    factKind: compactString(item?.factKind, 40),
+    displayLabel: compactString(item?.displayLabel, 120),
+    value: compactString(item?.value, 500),
+    unit: compactString(item?.unit, 80),
+    referenceRange: compactString(item?.referenceRange, 160),
+    observedOn: compactString(item?.observedOn, 40),
+    reportKind: compactString(item?.reportKind, 40),
+    reportDate: compactString(item?.reportDate, 40),
+    providerName: compactString(item?.providerName, 160),
+  })).filter((item) => Boolean(item.displayLabel && item.value));
+}
 
 const SYSTEM_PROMPT = `You are Janani Care+, a calm maternal-support assistant. Use only the supplied Janani context and general supportive knowledge.
 Rules:
@@ -39,6 +53,8 @@ Rules:
 - Never claim that a mother or baby is safe, normal, or free of a condition.
 - Clinician instructions in the supplied context always take priority.
 - Do not invent missing readings, appointments, conditions, allergies, test results, medication details, pregnancy history, or clinician instructions.
+- Confirmed report facts are values the mother reviewed from written reports. You may summarize or explain their wording, but do not reinterpret them, decide whether they are normal/abnormal, infer a diagnosis, or infer maternal/fetal wellbeing from them.
+- If a confirmed report fact includes a printed reference range, attribute that range to the report rather than treating it as a Janani target or medical judgment.
 - Recorded medications and supplements are context only; never infer a dose change, interaction, indication, or adherence from them.
 - For health trends, summarize recorded data without deciding whether values are medically safe.
 - For appointments, help organize recorded information and questions; do not decide which tests or scans are required.
@@ -66,6 +82,7 @@ function selectContext(
       region: compactString(privateCare.region_preference, 120),
     },
     conditions: Array.isArray(profile.conditions) ? profile.conditions.slice(0, 20) : [],
+    confirmedReportFacts: compactConfirmedReportFacts(privateCare.confirmedReportFacts),
     approvedClinicalRulePacks: approvedRulePacks,
     clinicianInstructions: compactString(privateCare.broader_clinician_instructions, 1200),
   };
