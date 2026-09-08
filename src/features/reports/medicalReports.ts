@@ -79,6 +79,14 @@ type CreatedMedicalReport = {
   extractionStatus: string;
 };
 
+type PickedReportFile = {
+  uri: string;
+  type: string | null;
+  size: number | null;
+  name?: string;
+  bytes: () => Promise<Uint8Array>;
+};
+
 // The connected database type snapshot predates the reconciled medical-report
 // RPCs. Keep this compatibility shim local to the report feature until the
 // generated database types are refreshed from production.
@@ -124,7 +132,7 @@ export async function pickAndUploadWrittenMedicalReport(pregnancyId: string): Pr
     throw new Error('Report upload is currently release-validated on Android only.');
   }
 
-  let picked: File | File[];
+  let picked: unknown;
   try {
     picked = await File.pickFileAsync();
   } catch (error) {
@@ -133,13 +141,16 @@ export async function pickAndUploadWrittenMedicalReport(pregnancyId: string): Pr
     throw error;
   }
 
-  const file = Array.isArray(picked) ? picked[0] : picked;
-  if (!file) return null;
+  const candidate = Array.isArray(picked) ? picked[0] : picked;
+  if (!candidate || typeof candidate !== 'object') return null;
+  const file = candidate as PickedReportFile;
+  if (typeof file.uri !== 'string' || typeof file.bytes !== 'function') {
+    throw new Error('The selected report could not be read. Please choose it again.');
+  }
 
-  const fileInfo = file as File & { name?: string };
-  const originalFileName = (fileInfo.name?.trim() || file.uri.split('/').pop()?.trim() || 'medical-report').slice(0, 180);
-  const mimeType = inferMimeType(originalFileName, file.type);
-  const fileSizeBytes = file.size ?? 0;
+  const originalFileName = (file.name?.trim() || file.uri.split('/').pop()?.trim() || 'medical-report').slice(0, 180);
+  const mimeType = inferMimeType(originalFileName, typeof file.type === 'string' ? file.type : null);
+  const fileSizeBytes = typeof file.size === 'number' ? file.size : 0;
 
   if (!ALLOWED_REPORT_MIME_TYPES.has(mimeType)) {
     throw new Error('Choose a PDF or a clear JPG, PNG, WebP, HEIC or HEIF photo of a written medical report.');
