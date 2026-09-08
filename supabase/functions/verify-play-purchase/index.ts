@@ -101,11 +101,18 @@ Deno.serve(async (req) => {
         subscriptionState?: string;
         acknowledgementState?: string;
         latestOrderId?: string;
-        lineItems?: Array<{ productId?: string; expiryTime?: string }>;
+        lineItems?: Array<{
+          productId?: string;
+          expiryTime?: string;
+          latestSuccessfulOrderId?: string;
+        }>;
       };
       const line = purchase.lineItems?.find((item) => item.productId === productId);
       const activeStates = new Set(['SUBSCRIPTION_STATE_ACTIVE', 'SUBSCRIPTION_STATE_IN_GRACE_PERIOD']);
       if (!line || !activeStates.has(purchase.subscriptionState ?? '')) return json({ verified: false, error: 'subscription_not_active' }, 409);
+
+      const latestSuccessfulOrderId = line.latestSuccessfulOrderId?.trim() || purchase.latestOrderId?.trim();
+      if (!latestSuccessfulOrderId) return json({ verified: false, error: 'verified_subscription_order_missing' }, 409);
 
       await admin.from('care_plus_entitlements').upsert({
         user_id: userData.user.id,
@@ -124,8 +131,13 @@ Deno.serve(async (req) => {
         if (!ack.ok) throw new Error(`Google subscription acknowledgement failed: ${ack.status}`);
       }
 
-      const periodStart = new Date().toISOString().slice(0, 10);
-      await admin.rpc('grant_monthly_care_credits_server', { p_user_id: userData.user.id, p_period_start: periodStart });
+      const orderReferenceHash = await sha256Hex(latestSuccessfulOrderId);
+      const { error: grantError } = await admin.rpc('grant_monthly_care_credits_for_verified_order_server', {
+        p_user_id: userData.user.id,
+        p_order_reference_hash: orderReferenceHash,
+      });
+      if (grantError) throw grantError;
+
       return json({ verified: true, entitlement: 'care_plus_monthly' });
     }
 
