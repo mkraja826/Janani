@@ -1,24 +1,91 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { JananiPageHeader } from '@/components/navigation/JananiPageHeader';
+import { resolveActivePregnancyId } from '@/features/pregnancy/activePregnancy';
+import { listOwnMedicalReports, type MedicalReportSummary } from '@/features/reports/medicalReports';
+import { useAuth } from '@/providers/AuthProvider';
 import { colors, spacing } from '@/theme/tokens';
 
+function reportLabel(kind: string): string {
+  switch (kind) {
+    case 'blood_test': return 'Blood test';
+    case 'urine_test': return 'Urine test';
+    case 'scan_report': return 'Written scan report';
+    case 'prescription': return 'Prescription';
+    case 'discharge_summary': return 'Discharge summary';
+    default: return 'Medical report';
+  }
+}
+
+function statusLabel(report: MedicalReportSummary): string {
+  if (report.extractionStatus === 'needs_confirmation') return 'Needs your review';
+  if (report.extractionStatus === 'confirmed') return 'Reviewed';
+  if (report.extractionStatus === 'processing' || report.extractionStatus === 'queued') return 'Reading report';
+  if (report.extractionStatus === 'failed' || report.extractionStatus === 'not_available') return 'Manual review available';
+  return report.uploadState === 'uploaded' ? 'Stored privately' : 'Upload incomplete';
+}
+
 export default function ReportsScreen() {
+  const { session } = useAuth();
+  const [reports, setReports] = useState<MedicalReportSummary[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  async function load() {
+    const userId = session?.user.id;
+    if (!userId) return;
+    try {
+      const pregnancyId = await resolveActivePregnancyId(userId);
+      if (!pregnancyId) {
+        setReports([]);
+        return;
+      }
+      setReports(await listOwnMedicalReports(pregnancyId));
+    } catch (error) {
+      Alert.alert('Reports unavailable', error instanceof Error ? error.message : 'Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void load(); }, [session?.user.id]);
+
   return <SafeAreaView style={styles.page} edges={['top']}><ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-    <JananiPageHeader eyebrow="YOUR RECORDS" title="Reports" subtitle="Keep the records that matter close to your pregnancy journey." />
-    <View style={styles.heroCard}><View style={styles.iconWrap}><Ionicons name="document-text-outline" size={27} color={colors.roseDark} /></View><View style={styles.statusPill}><View style={styles.statusDot}/><Text style={styles.statusText}>COMING SAFELY</Text></View><Text style={styles.heroTitle}>Your care information stays organized</Text><Text style={styles.heroText}>The current production app does not yet expose report upload in this tab. PregaLove will keep this area fail-closed until the private upload and confirmation flow is fully release-validated.</Text></View>
-    <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>Available now</Text><Text style={styles.sectionCaption}>Use the private information already supported in the app.</Text></View>
+    <JananiPageHeader eyebrow="YOUR RECORDS" title="Reports" subtitle="Keep written care records close to your pregnancy journey." />
+
+    <View style={styles.heroCard}>
+      <View style={styles.iconWrap}><Ionicons name="document-text-outline" size={27} color={colors.roseDark} /></View>
+      <View style={styles.statusPill}><View style={styles.statusDot}/><Text style={styles.statusText}>PRIVATE + CONFIRM FIRST</Text></View>
+      <Text style={styles.heroTitle}>Janani only trusts values you review</Text>
+      <Text style={styles.heroText}>Written report extraction can organize visible text, but it does not diagnose, judge whether results are normal, or interpret ultrasound imagery. Extracted values stay untrusted until you confirm or correct them.</Text>
+    </View>
+
+    <View style={styles.sectionHeader}><Text style={styles.sectionTitle}>Your private reports</Text><Text style={styles.sectionCaption}>Only reports belonging to your pregnancy are shown here.</Text></View>
+
+    {loading ? <View style={styles.loading}><ActivityIndicator color={colors.rose} /><Text style={styles.loadingText}>Loading reports…</Text></View> : reports.length === 0 ? <View style={styles.emptyCard}><Ionicons name="folder-open-outline" size={28} color={colors.muted} /><Text style={styles.emptyTitle}>No reports yet</Text><Text style={styles.emptyText}>New report upload is still fail-closed while the final device upload flow is release-validated.</Text></View> : reports.map((report) => {
+      const needsReview = report.extractionStatus === 'needs_confirmation';
+      return <Pressable key={report.id} disabled={!needsReview} onPress={() => router.push({ pathname: '/report-review', params: { reportId: report.id } })} style={({ pressed }) => [styles.reportCard, pressed && needsReview && styles.pressed]}>
+        <View style={[styles.reportIcon, needsReview && styles.reportIconAttention]}><Ionicons name={needsReview ? 'alert-circle-outline' : 'document-outline'} size={22} color={needsReview ? colors.roseDark : colors.sage} /></View>
+        <View style={styles.flex}><Text style={styles.reportTitle}>{reportLabel(report.reportKind)}</Text><Text numberOfLines={1} style={styles.reportName}>{report.originalFileName}</Text><Text style={styles.reportMeta}>{report.reportDate ?? 'Date not provided'} · {statusLabel(report)}{report.proposedFacts ? ` · ${report.proposedFacts} to review` : ''}</Text></View>
+        {needsReview ? <Ionicons name="chevron-forward" size={18} color={colors.roseDark} /> : <Ionicons name="checkmark-circle-outline" size={19} color={report.extractionStatus === 'confirmed' ? colors.sage : colors.muted} />}
+      </Pressable>;
+    })}
+
     <Pressable onPress={() => router.push('/care-context')} style={({ pressed }) => [styles.actionCard, pressed && styles.pressed]}><View style={styles.actionIcon}><Ionicons name="clipboard-outline" size={22} color={colors.roseDark} /></View><View style={styles.flex}><Text style={styles.actionTitle}>Care Context</Text><Text style={styles.actionText}>Review the information you have chosen to keep in PregaLove.</Text></View><Ionicons name="chevron-forward" size={18} color={colors.muted} /></Pressable>
-    <View style={styles.noteCard}><Ionicons name="lock-closed-outline" size={18} color={colors.sage}/><Text style={styles.noteText}>Report uploads will stay unavailable until the private storage, access and confirmation flow passes release validation.</Text></View>
+
+    <View style={styles.noteCard}><Ionicons name="lock-closed-outline" size={18} color={colors.sage}/><Text style={styles.noteText}>Adding new report files remains unavailable in this build until device-side private upload, retry and deletion are fully release-validated.</Text></View>
   </ScrollView></SafeAreaView>;
 }
 
 const styles = StyleSheet.create({
   page:{flex:1,backgroundColor:colors.background},content:{padding:spacing.lg,paddingBottom:spacing.xxl,gap:spacing.xl},flex:{flex:1},pressed:{opacity:.78,transform:[{scale:.995}]},
-  heroCard:{alignItems:'flex-start',padding:spacing.lg,borderRadius:26,backgroundColor:colors.rosePale,borderWidth:1,borderColor:colors.border},iconWrap:{width:54,height:54,borderRadius:19,alignItems:'center',justifyContent:'center',backgroundColor:colors.surface},statusPill:{marginTop:spacing.md,flexDirection:'row',alignItems:'center',gap:6,paddingHorizontal:9,paddingVertical:5,borderRadius:999,backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border},statusDot:{width:7,height:7,borderRadius:4,backgroundColor:colors.sage},statusText:{fontSize:9,letterSpacing:1.15,fontWeight:'900',color:colors.sage},heroTitle:{marginTop:spacing.md,fontSize:20,lineHeight:26,fontWeight:'900',color:colors.ink},heroText:{marginTop:spacing.sm,fontSize:13.5,lineHeight:21,color:colors.muted},
-  sectionHeader:{gap:2},sectionTitle:{fontSize:19,fontWeight:'900',color:colors.ink},sectionCaption:{fontSize:12.5,lineHeight:18,color:colors.muted},actionCard:{minHeight:84,flexDirection:'row',alignItems:'center',gap:spacing.md,padding:spacing.md,borderRadius:21,backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border},actionIcon:{width:46,height:46,borderRadius:16,alignItems:'center',justifyContent:'center',backgroundColor:colors.sageSoft},actionTitle:{fontSize:15.5,fontWeight:'900',color:colors.ink},actionText:{marginTop:3,fontSize:12.5,lineHeight:18,color:colors.muted},
+  heroCard:{alignItems:'flex-start',padding:spacing.lg,borderRadius:26,backgroundColor:colors.rosePale,borderWidth:1,borderColor:colors.border},iconWrap:{width:54,height:54,borderRadius:19,alignItems:'center',justifyContent:'center',backgroundColor:colors.surface},statusPill:{marginTop:spacing.md,flexDirection:'row',alignItems:'center',gap:6,paddingHorizontal:9,paddingVertical:5,borderRadius:999,backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border},statusDot:{width:7,height:7,borderRadius:4,backgroundColor:colors.sage},statusText:{fontSize:9,letterSpacing:1.05,fontWeight:'900',color:colors.sage},heroTitle:{marginTop:spacing.md,fontSize:20,lineHeight:26,fontWeight:'900',color:colors.ink},heroText:{marginTop:spacing.sm,fontSize:13.5,lineHeight:21,color:colors.muted},
+  sectionHeader:{gap:2},sectionTitle:{fontSize:19,fontWeight:'900',color:colors.ink},sectionCaption:{fontSize:12.5,lineHeight:18,color:colors.muted},
+  loading:{minHeight:110,alignItems:'center',justifyContent:'center',gap:spacing.sm},loadingText:{fontSize:12.5,color:colors.muted},emptyCard:{alignItems:'center',padding:spacing.xl,borderRadius:21,backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border},emptyTitle:{marginTop:spacing.sm,fontSize:16,fontWeight:'900',color:colors.ink},emptyText:{marginTop:5,textAlign:'center',fontSize:12.5,lineHeight:19,color:colors.muted},
+  reportCard:{minHeight:90,flexDirection:'row',alignItems:'center',gap:spacing.md,padding:spacing.md,borderRadius:21,backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border},reportIcon:{width:46,height:46,borderRadius:16,alignItems:'center',justifyContent:'center',backgroundColor:colors.sageSoft},reportIconAttention:{backgroundColor:colors.rosePale},reportTitle:{fontSize:15,fontWeight:'900',color:colors.ink},reportName:{marginTop:2,fontSize:12.5,color:colors.muted},reportMeta:{marginTop:4,fontSize:11.5,lineHeight:17,color:colors.muted},
+  actionCard:{minHeight:84,flexDirection:'row',alignItems:'center',gap:spacing.md,padding:spacing.md,borderRadius:21,backgroundColor:colors.surface,borderWidth:1,borderColor:colors.border},actionIcon:{width:46,height:46,borderRadius:16,alignItems:'center',justifyContent:'center',backgroundColor:colors.sageSoft},actionTitle:{fontSize:15.5,fontWeight:'900',color:colors.ink},actionText:{marginTop:3,fontSize:12.5,lineHeight:18,color:colors.muted},
   noteCard:{flexDirection:'row',alignItems:'flex-start',gap:spacing.sm,padding:spacing.md,borderRadius:18,backgroundColor:colors.surfaceWarm,borderWidth:1,borderColor:colors.border},noteText:{flex:1,fontSize:12,lineHeight:18,color:colors.muted}
 });
