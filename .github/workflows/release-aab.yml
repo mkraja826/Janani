@@ -102,7 +102,7 @@ jobs:
           EXPO_PUBLIC_ACCOUNT_DELETION_URL: ${{ vars.EXPO_PUBLIC_ACCOUNT_DELETION_URL }}
           EXPO_PUBLIC_CARE_PLUS_VISIBLE: 'true'
           EXPO_PUBLIC_CARE_PLUS_PURCHASES_ENABLED: 'false'
-          EXPO_PUBLIC_CARE_PLUS_AI_ENABLED: 'true'
+          EXPO_PUBLIC_CARE_PLUS_AI_ENABLED: "${{ vars.EXPO_PUBLIC_CARE_PLUS_AI_ENABLED || 'false' }}"
         run: npm run validate:production-config
 
       - name: Materialize Android signing keystore
@@ -145,7 +145,7 @@ jobs:
           EXPO_PUBLIC_ACCOUNT_DELETION_URL: ${{ vars.EXPO_PUBLIC_ACCOUNT_DELETION_URL }}
           EXPO_PUBLIC_CARE_PLUS_VISIBLE: 'true'
           EXPO_PUBLIC_CARE_PLUS_PURCHASES_ENABLED: 'false'
-          EXPO_PUBLIC_CARE_PLUS_AI_ENABLED: 'true'
+          EXPO_PUBLIC_CARE_PLUS_AI_ENABLED: "${{ vars.EXPO_PUBLIC_CARE_PLUS_AI_ENABLED || 'false' }}"
         run: npx expo prebuild --platform android --clean --no-install
 
       - name: Build production AAB
@@ -158,7 +158,7 @@ jobs:
           EXPO_PUBLIC_ACCOUNT_DELETION_URL: ${{ vars.EXPO_PUBLIC_ACCOUNT_DELETION_URL }}
           EXPO_PUBLIC_CARE_PLUS_VISIBLE: 'true'
           EXPO_PUBLIC_CARE_PLUS_PURCHASES_ENABLED: 'false'
-          EXPO_PUBLIC_CARE_PLUS_AI_ENABLED: 'true'
+          EXPO_PUBLIC_CARE_PLUS_AI_ENABLED: "${{ vars.EXPO_PUBLIC_CARE_PLUS_AI_ENABLED || 'false' }}"
           JANANI_ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/janani-release.keystore
           JANANI_ANDROID_KEYSTORE_PASSWORD: ${{ secrets.JANANI_ANDROID_KEYSTORE_PASSWORD }}
           JANANI_ANDROID_KEY_ALIAS: ${{ secrets.JANANI_ANDROID_KEY_ALIAS }}
@@ -169,6 +169,7 @@ jobs:
         env:
           VERSION_NAME: ${{ inputs.version_name }}
           VERSION_CODE: ${{ inputs.version_code }}
+          EXPO_PUBLIC_CARE_PLUS_AI_ENABLED: "${{ vars.EXPO_PUBLIC_CARE_PLUS_AI_ENABLED || 'false' }}"
         run: |
           test -s android/app/build/outputs/bundle/release/app-release.aab
           jarsigner -verify android/app/build/outputs/bundle/release/app-release.aab
@@ -179,7 +180,7 @@ jobs:
             echo "version_code=$VERSION_CODE"
             echo "release_candidate=true"
             echo "care_plus_visible=true"
-            echo "care_plus_ai=true"
+            echo "care_plus_ai=$EXPO_PUBLIC_CARE_PLUS_AI_ENABLED"
             echo "care_plus_purchases=false"
           } > janani-release-metadata.txt
 
