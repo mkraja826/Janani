@@ -49,24 +49,39 @@ export type MedicalReportFactReview = {
   referenceRange?: string | null;
 };
 
+type ReportRpcResult = {
+  data: unknown;
+  error: unknown;
+};
+
+type ReportRpc = (
+  functionName: string,
+  args?: Record<string, unknown>,
+) => PromiseLike<ReportRpcResult>;
+
+// The connected database type snapshot predates the reconciled medical-report
+// RPCs. Keep this compatibility shim local to the report feature until the
+// generated database types are refreshed from production.
+const reportRpc = supabase.rpc.bind(supabase) as unknown as ReportRpc;
+
 function unwrapRpc<T>(data: unknown): T {
   return data as T;
 }
 
 export async function listOwnMedicalReports(pregnancyId: string): Promise<MedicalReportSummary[]> {
-  const { data, error } = await supabase.rpc('list_own_medical_reports', { p_pregnancy_id: pregnancyId });
+  const { data, error } = await reportRpc('list_own_medical_reports', { p_pregnancy_id: pregnancyId });
   if (error) throw error;
   return unwrapRpc<MedicalReportSummary[]>(data ?? []);
 }
 
 export async function getOwnMedicalReport(reportId: string): Promise<MedicalReportDetail> {
-  const { data, error } = await supabase.rpc('get_own_medical_report', { p_report_id: reportId });
+  const { data, error } = await reportRpc('get_own_medical_report', { p_report_id: reportId });
   if (error) throw error;
   return unwrapRpc<MedicalReportDetail>(data);
 }
 
 export async function reviewOwnMedicalReportFacts(reportId: string, reviews: MedicalReportFactReview[]): Promise<MedicalReportDetail> {
-  const { data, error } = await supabase.rpc('review_own_medical_report_facts', { p_report_id: reportId, p_reviews: reviews });
+  const { data, error } = await reportRpc('review_own_medical_report_facts', { p_report_id: reportId, p_reviews: reviews });
   if (error) throw error;
   return unwrapRpc<MedicalReportDetail>(data);
 }
