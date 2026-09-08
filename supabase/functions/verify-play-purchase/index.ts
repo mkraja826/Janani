@@ -83,6 +83,7 @@ Deno.serve(async (req) => {
     const { data: userData, error: userError } = await userClient.auth.getUser();
     if (userError || !userData.user) return json({ error: 'authentication_required' }, 401);
 
+    const expectedAccountId = await sha256Hex(`janani-play-account:${userData.user.id}`);
     const body = await req.json() as { productId?: string; productType?: 'subs' | 'inapp'; purchaseToken?: string };
     const productId = body.productId?.trim();
     const purchaseToken = body.purchaseToken?.trim();
@@ -101,6 +102,7 @@ Deno.serve(async (req) => {
         subscriptionState?: string;
         acknowledgementState?: string;
         latestOrderId?: string;
+        externalAccountIdentifiers?: { obfuscatedExternalAccountId?: string };
         lineItems?: Array<{
           productId?: string;
           expiryTime?: string;
@@ -110,6 +112,9 @@ Deno.serve(async (req) => {
       const line = purchase.lineItems?.find((item) => item.productId === productId);
       const activeStates = new Set(['SUBSCRIPTION_STATE_ACTIVE', 'SUBSCRIPTION_STATE_IN_GRACE_PERIOD']);
       if (!line || !activeStates.has(purchase.subscriptionState ?? '')) return json({ verified: false, error: 'subscription_not_active' }, 409);
+      if (purchase.externalAccountIdentifiers?.obfuscatedExternalAccountId !== expectedAccountId) {
+        return json({ verified: false, error: 'purchase_account_mismatch' }, 409);
+      }
 
       const latestSuccessfulOrderId = line.latestSuccessfulOrderId?.trim() || purchase.latestOrderId?.trim();
       if (!latestSuccessfulOrderId) return json({ verified: false, error: 'verified_subscription_order_missing' }, 409);
@@ -144,8 +149,17 @@ Deno.serve(async (req) => {
     const productUrl = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${PACKAGE_NAME}/purchases/products/${encodeURIComponent(productId)}/tokens/${encodeURIComponent(purchaseToken)}`;
     const response = await fetch(productUrl, { headers });
     if (!response.ok) return json({ verified: false, error: 'google_product_verification_failed' }, 400);
-    const purchase = await response.json() as { purchaseState?: number; consumptionState?: number; acknowledgementState?: number; orderId?: string };
+    const purchase = await response.json() as {
+      purchaseState?: number;
+      consumptionState?: number;
+      acknowledgementState?: number;
+      orderId?: string;
+      obfuscatedExternalAccountId?: string;
+    };
     if (purchase.purchaseState !== 0) return json({ verified: false, error: 'product_not_purchased' }, 409);
+    if (purchase.obfuscatedExternalAccountId !== expectedAccountId) {
+      return json({ verified: false, error: 'purchase_account_mismatch' }, 409);
+    }
 
     const tokenHash = await sha256Hex(purchaseToken);
     const { data: grant, error: grantError } = await admin.rpc('grant_verified_topup_care_credits_server', {
