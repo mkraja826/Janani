@@ -114,9 +114,6 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       && nextFamilyId
       && priorFamilyId !== nextFamilyId,
     );
-    // Keep privacy cleanup retryable. Native notification/widget cleanup is
-    // best-effort, so repeat it on every authoritative membershipless check
-    // instead of treating a cached `false` value as proof that cleanup finished.
     const confirmedLoss = !exists;
     if (confirmedLoss || familyChanged) {
       setMembership(exists ? 'loading' : 'none');
@@ -231,8 +228,6 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     const accessToken = session?.access_token;
     const activeFamilyId = membershipUserId === userId ? familyId : null;
     if (!accessToken) {
-      // Return Realtime to Supabase's session callback so an explicit JWT never
-      // remains pinned after sign-out.
       void supabase.realtime.setAuth().catch(() => undefined);
       return;
     }
@@ -288,15 +283,16 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     content = <LoadingGate />;
   } else {
     const publicPath = pathname === '/' || pathname === '/auth' || pathname === '/auth/callback';
+    const onboardingPath = pathname === '/onboarding' || pathname === '/onboarding-ai';
     if (!session) {
       if (!publicPath) content = <Redirect href="/auth" />;
     } else if (!publicPath && currentMembership === 'loading') {
       content = <LoadingGate />;
     } else if (!publicPath && currentMembership === 'error') {
       content = <MembershipErrorGate onRetry={refreshMembership} />;
-    } else if (currentMembership === 'none' && pathname !== '/' && pathname !== '/onboarding') {
+    } else if (currentMembership === 'none' && pathname !== '/' && !onboardingPath) {
       content = <Redirect href="/onboarding" />;
-    } else if (currentMembership === 'member' && (pathname === '/auth' || pathname === '/onboarding')) {
+    } else if (currentMembership === 'member' && (pathname === '/auth' || onboardingPath)) {
       content = <Redirect href="/home" />;
     }
   }
