@@ -4,6 +4,7 @@
     "strict": true,
     "baseUrl": ".",
     "paths": {
+      "@/app/diet-region": ["src/features/diet/regionalDietStorage.ts"],
       "@/*": ["src/*"]
     }
   },

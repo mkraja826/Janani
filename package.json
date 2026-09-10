@@ -13,8 +13,9 @@
     "web": "expo start --web",
     "smoke:supabase": "node --env-file=.env scripts/supabase-smoke.mjs",
     "validate:production-config": "node scripts/validate-production-config.mjs",
+    "validate:router-root": "node scripts/validate-router-root.mjs",
     "test:image-size": "node vendor/image-size-compat/test.cjs",
-    "audit:production": "npm run test:image-size && node scripts/audit-production.mjs",
+    "audit:production": "npm run validate:router-root && npm run test:image-size && node scripts/audit-production.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "expo lint"
   },
