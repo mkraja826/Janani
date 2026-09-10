@@ -52,3 +52,18 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew :app:compileDebugKotlin -PreactNativeArchitectures=x86_64 --stacktrace --no-daemon --max-workers=2 --console=plain
+      - name: Verify merged Android manifest privacy
+        run: |
+          mapfile -t manifests < <(find android/app/build/intermediates -type f -name AndroidManifest.xml \( -path '*/merged_manifest/*' -o -path '*/merged_manifests/*' \))
+          if [ "${#manifests[@]}" -eq 0 ]; then
+            echo 'No merged Android manifest was produced.' >&2
+            exit 1
+          fi
+          printf 'Checking merged manifests:\n%s\n' "${manifests[@]}"
+          for manifest in "${manifests[@]}"; do
+            if grep -q 'com.google.android.gms.permission.AD_ID' "$manifest"; then
+              echo "Advertising ID permission leaked into merged manifest: $manifest" >&2
+              exit 1
+            fi
+            grep -q 'android.permission.health.READ_STEPS' "$manifest"
+          done
