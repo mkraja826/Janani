@@ -42,6 +42,7 @@ const reviewedXmldomBuildNodes = new Map([
 ]);
 const reviewedJsYamlBuildNodes = new Map([
   ['node_modules/js-yaml', '3.15.1'],
+  ['node_modules/@expo/xcpretty/node_modules/js-yaml', '4.3.1'],
 ]);
 
 function fail(message) {
