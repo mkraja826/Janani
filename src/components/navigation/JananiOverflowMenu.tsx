@@ -6,7 +6,7 @@ import { ActivityIndicator, Alert, Modal, Pressable, StyleSheet, Text, View } fr
 import { PendingOfflineChangesError, useAuth } from '@/providers/AuthProvider';
 import { colors, radius, spacing } from '@/theme/tokens';
 
-type MenuDestination = '/settings' | '/reminders' | '/safety-privacy' | '/thinking-of-you';
+type MenuDestination = '/settings' | '/reminders' | '/safety-privacy' | '/thinking-of-you' | '/app-lock-settings';
 type MenuItemProps = { icon: keyof typeof Ionicons.glyphMap; label: string; caption: string; destination: MenuDestination; onNavigate: (destination: MenuDestination) => void; };
 
 export function JananiOverflowMenu() {
@@ -68,6 +68,7 @@ export function JananiOverflowMenu() {
           <MenuItem caption="Family controls and partner settings" destination="/settings" icon="people-outline" label="Partner & family" onNavigate={navigate} />
           <MenuItem caption="Medicines, supplements and care reminders" destination="/reminders" icon="alarm-outline" label="Reminders" onNavigate={navigate} />
           <MenuItem caption="Send a little warmth to your partner" destination="/thinking-of-you" icon="heart-outline" label="Thinking of you" onNavigate={navigate} />
+          <MenuItem caption="PIN, biometrics and automatic lock" destination="/app-lock-settings" icon="lock-closed-outline" label="App Lock" onNavigate={navigate} />
           <MenuItem caption="Understand PregaLove's safety and privacy choices" destination="/safety-privacy" icon="shield-checkmark-outline" label="Safety & privacy" onNavigate={navigate} />
           <MenuItem caption="Account, data and family controls" destination="/settings" icon="settings-outline" label="Settings" onNavigate={navigate} />
           <View style={styles.divider} />
