@@ -1,16 +1,55 @@
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { PendingOfflineChangesError, useAuth } from '@/providers/AuthProvider';
 import { colors, radius, spacing } from '@/theme/tokens';
 
-type MenuDestination = '/settings' | '/reminders' | '/safety-privacy' | '/thinking-of-you';
+type MenuDestination = '/settings' | '/reminders' | '/safety-privacy' | '/thinking-of-you' | '/app-lock-settings';
 type MenuItemProps = { icon: keyof typeof Ionicons.glyphMap; label: string; caption: string; destination: MenuDestination; onNavigate: (destination: MenuDestination) => void; };
 
 export function JananiOverflowMenu() {
   const [visible, setVisible] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+  const { signOut } = useAuth();
+
   function navigate(destination: MenuDestination) { setVisible(false); router.push(destination); }
+
+  async function finishSignOut(discardPending = false) {
+    setSigningOut(true);
+    try {
+      await signOut({ discardPending });
+      setVisible(false);
+      router.replace('/');
+    } catch (error) {
+      if (error instanceof PendingOfflineChangesError) {
+        Alert.alert(
+          'Unsynced changes',
+          `${error.count} offline change${error.count === 1 ? '' : 's'} still need to sync. Signing out now will discard them from this device.`,
+          [
+            { text: 'Keep me signed in', style: 'cancel' },
+            { text: 'Discard & log out', style: 'destructive', onPress: () => void finishSignOut(true) },
+          ],
+        );
+      } else {
+        Alert.alert('Could not log out', error instanceof Error ? error.message : 'Please try again.');
+      }
+    } finally {
+      setSigningOut(false);
+    }
+  }
+
+  function confirmSignOut() {
+    Alert.alert(
+      'Log out of PregaLove?',
+      'Your account will be signed out on this device. Your saved PregaLove data will remain in your account.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Log out', style: 'destructive', onPress: () => void finishSignOut(false) },
+      ],
+    );
+  }
 
   return <>
     <Pressable accessibilityLabel="More PregaLove options" accessibilityRole="button" hitSlop={8} onPress={() => setVisible(true)} style={({ pressed }) => [styles.trigger, pressed && styles.triggerPressed]}>
@@ -29,8 +68,15 @@ export function JananiOverflowMenu() {
           <MenuItem caption="Family controls and partner settings" destination="/settings" icon="people-outline" label="Partner & family" onNavigate={navigate} />
           <MenuItem caption="Medicines, supplements and care reminders" destination="/reminders" icon="alarm-outline" label="Reminders" onNavigate={navigate} />
           <MenuItem caption="Send a little warmth to your partner" destination="/thinking-of-you" icon="heart-outline" label="Thinking of you" onNavigate={navigate} />
+          <MenuItem caption="PIN, biometrics and automatic lock" destination="/app-lock-settings" icon="lock-closed-outline" label="App Lock" onNavigate={navigate} />
           <MenuItem caption="Understand PregaLove's safety and privacy choices" destination="/safety-privacy" icon="shield-checkmark-outline" label="Safety & privacy" onNavigate={navigate} />
           <MenuItem caption="Account, data and family controls" destination="/settings" icon="settings-outline" label="Settings" onNavigate={navigate} />
+          <View style={styles.divider} />
+          <Pressable accessibilityLabel="Log out" accessibilityRole="button" disabled={signingOut} onPress={confirmSignOut} style={({ pressed }) => [styles.item, styles.logoutItem, pressed && styles.itemPressed, signingOut && styles.disabled]}>
+            <View style={[styles.itemIcon, styles.logoutIcon]}><Ionicons name="log-out-outline" size={20} color={colors.danger} /></View>
+            <View style={styles.flex}><Text style={[styles.itemLabel, styles.logoutLabel]}>Log out</Text><Text style={styles.itemCaption}>End this PregaLove session on this device</Text></View>
+            {signingOut ? <ActivityIndicator color={colors.danger} /> : <Ionicons name="chevron-forward" size={17} color={colors.muted} />}
+          </Pressable>
         </View>
       </View>
     </Modal>
@@ -62,4 +108,8 @@ const styles = StyleSheet.create({
   menuCaption:{marginTop:2,fontSize:11.5,color:colors.muted},
   itemLabel:{fontSize:15,fontWeight:'800',color:colors.ink},
   itemCaption:{marginTop:3,fontSize:12,lineHeight:17,color:colors.muted},
+  logoutItem:{marginTop:2},
+  logoutIcon:{backgroundColor:'#FBE9E9'},
+  logoutLabel:{color:colors.danger},
+  disabled:{opacity:.55},
 });

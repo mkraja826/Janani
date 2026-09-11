@@ -12,6 +12,7 @@ import { OfflineQueueSync } from '@/features/offline/OfflineQueueSync';
 import { SyncStatus } from '@/features/offline/SyncStatus';
 import { ReminderScheduleSync } from '@/features/reminders/ReminderScheduleSync';
 import { WidgetSync } from '@/features/widget/WidgetSync';
+import { AppLockGate } from '@/providers/AppLockGate';
 import { AuthGate } from '@/providers/AuthGate';
 import { AuthProvider } from '@/providers/AuthProvider';
 import { colors, radius, spacing } from '@/theme/tokens';
@@ -107,16 +108,18 @@ export default function RootLayout() {
     <SafeAreaProvider>
       <RootErrorBoundary>
         <AuthProvider>
-          <AuthGate>
-            <RuntimeBreadcrumbs />
-            <NotificationNavigation />
-            <OfflineQueueSync />
-            <ReminderScheduleSync />
-            <WidgetSync />
-            <StatusBar style="dark" />
-            <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background }, animation: 'fade' }} />
-            <ReleaseCandidateBadge />
-          </AuthGate>
+          <AppLockGate>
+            <AuthGate>
+              <RuntimeBreadcrumbs />
+              <NotificationNavigation />
+              <OfflineQueueSync />
+              <ReminderScheduleSync />
+              <WidgetSync />
+              <StatusBar style="dark" />
+              <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: colors.background }, animation: 'fade' }} />
+              <ReleaseCandidateBadge />
+            </AuthGate>
+          </AppLockGate>
           <SyncStatus />
         </AuthProvider>
       </RootErrorBoundary>
