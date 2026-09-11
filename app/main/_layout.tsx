@@ -1,10 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
 
+import { useFamilyRole } from '@/features/family/useFamilyRole';
 import { colors, radius } from '@/theme/tokens';
 
 export default function JananiMainLayout() {
+  const { isPartner, loading } = useFamilyRole();
+
+  if (loading) {
+    return <View style={styles.loading}><ActivityIndicator color={colors.rose} /></View>;
+  }
+
   return (
     <Tabs
       initialRouteName="home"
@@ -20,10 +27,11 @@ export default function JananiMainLayout() {
       }}
     >
       <Tabs.Screen name="home" options={{ title: 'Home', tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'home' : 'home-outline'} size={22} color={color} /> }} />
-      <Tabs.Screen name="health" options={{ title: 'Health', tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'heart' : 'heart-outline'} size={22} color={color} /> }} />
+      <Tabs.Screen name="health" options={{ href: isPartner ? null : undefined, title: 'Health', tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'heart' : 'heart-outline'} size={22} color={color} /> }} />
       <Tabs.Screen
         name="ask"
         options={{
+          href: isPartner ? null : undefined,
           title: 'Ask',
           tabBarIcon: ({ color, focused }) => (
             <View style={[styles.askIcon, focused && styles.askIconFocused]}>
@@ -32,13 +40,16 @@ export default function JananiMainLayout() {
           ),
         }}
       />
-      <Tabs.Screen name="reports" options={{ title: 'Reports', tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'document-text' : 'document-text-outline'} size={22} color={color} /> }} />
+      <Tabs.Screen name="reports" options={{ href: isPartner ? null : undefined, title: 'Reports', tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'document-text' : 'document-text-outline'} size={22} color={color} /> }} />
+      <Tabs.Screen name="care" options={{ href: isPartner ? undefined : null, title: 'Care', tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'heart-circle' : 'heart-circle-outline'} size={22} color={color} /> }} />
       <Tabs.Screen name="journey" options={{ title: 'Journey', tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'book' : 'book-outline'} size={22} color={color} /> }} />
+      <Tabs.Screen name="us" options={{ href: isPartner ? undefined : null, title: 'Us', tabBarIcon: ({ color, focused }) => <Ionicons name={focused ? 'people' : 'people-outline'} size={22} color={color} /> }} />
     </Tabs>
   );
 }
 
 const styles = StyleSheet.create({
+  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.background },
   scene: { backgroundColor: colors.background },
   tabBar: {
     minHeight: 74,

@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { PartnerHome } from '@/components/partner/PartnerHome';
 import { productionConfig } from '@/config/production';
 import { getCareCreditStatus, LOW_CREDIT_THRESHOLD, type CareCreditStatus } from '@/features/ai/careCredits';
 import { readHealthConnectSummary } from '@/features/healthConnect/healthConnectGateway';
@@ -118,12 +119,13 @@ export default function HomeScreen() {
     </View>;
   }
 
-  const isMother = summary?.role === 'mother';
-  const carePlusAvailable = isMother
-    && productionConfig.carePlusVisible
-    && productionConfig.aiUiEnabled;
+  if (summary?.role === 'partner') {
+    return <PartnerHome familyName={summary.familyName} progress={progress} />;
+  }
+
+  const carePlusAvailable = productionConfig.carePlusVisible && productionConfig.aiUiEnabled;
   const lowCredits = Boolean(credits && credits.balance <= LOW_CREDIT_THRESHOLD);
-  const healthBits = isMother && healthSummary ? [
+  const healthBits = healthSummary ? [
     healthSummary.stepsToday != null ? `${Math.round(healthSummary.stepsToday).toLocaleString()} steps` : null,
     healthSummary.sleepMinutesLastNight != null ? `${Math.round(healthSummary.sleepMinutesLastNight / 60 * 10) / 10} h sleep` : null,
     healthSummary.latestHeartRateBpm != null ? `${Math.round(healthSummary.latestHeartRateBpm)} bpm` : null,
@@ -135,7 +137,7 @@ export default function HomeScreen() {
       <View style={styles.topRow}>
         <View style={styles.flex}>
           <Text style={styles.eyebrow}>TODAY WITH PREGALOVE</Text>
-          <Text style={styles.title}>{isMother ? 'Good morning ❤️' : 'Here’s how you can help today ❤️'}</Text>
+          <Text style={styles.title}>Good morning ❤️</Text>
         </View>
         <Pressable accessibilityLabel="Settings" onPress={() => router.push('/settings')} style={styles.iconButton}>
           <Ionicons name="settings-outline" size={21} color={colors.inkSoft} />
@@ -174,7 +176,7 @@ export default function HomeScreen() {
       <View style={styles.todayGrid}>
         <TodayCard icon="alarm-outline" title="Medicines & reminders" caption="See what is due today" onPress={() => router.push('/reminders')} />
         <TodayCard icon="nutrition-outline" title="Food for today" caption="Regional pregnancy-friendly choices" onPress={() => router.push('/food-guide')} />
-        {isMother ? <TodayCard icon="pulse-outline" title="Health" caption={healthCaption} onPress={() => router.push('/health-connect')} /> : <TodayCard icon="heart-outline" title="Support her" caption="Send a thoughtful nudge" onPress={() => router.push('/thinking-of-you')} />}
+        <TodayCard icon="pulse-outline" title="Health" caption={healthCaption} onPress={() => router.push('/health-connect')} />
         <TodayCard icon="book-outline" title="Journal" caption="Save how today felt" onPress={() => router.push('/journal')} />
       </View>
 
