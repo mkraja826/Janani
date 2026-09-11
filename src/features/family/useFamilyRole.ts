@@ -19,13 +19,15 @@ export function useFamilyRole() {
       return () => { active = false; };
     }
 
+    const resolvedUserId = userId;
     setLoading(true);
+
     async function loadRole() {
       try {
         const { data } = await supabase
           .from('family_members')
           .select('role')
-          .eq('user_id', userId)
+          .eq('user_id', resolvedUserId)
           .maybeSingle();
         if (!active) return;
         setRole(data?.role === 'partner' ? 'partner' : data?.role === 'mother' ? 'mother' : null);
