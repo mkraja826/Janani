@@ -20,22 +20,24 @@ export function useFamilyRole() {
     }
 
     setLoading(true);
-    void supabase
-      .from('family_members')
-      .select('role')
-      .eq('user_id', userId)
-      .maybeSingle()
-      .then(({ data }) => {
+    async function loadRole() {
+      try {
+        const { data } = await supabase
+          .from('family_members')
+          .select('role')
+          .eq('user_id', userId)
+          .maybeSingle();
         if (!active) return;
         setRole(data?.role === 'partner' ? 'partner' : data?.role === 'mother' ? 'mother' : null);
-        setLoading(false);
-      })
-      .catch(() => {
+      } catch {
         if (!active) return;
         setRole(null);
-        setLoading(false);
-      });
+      } finally {
+        if (active) setLoading(false);
+      }
+    }
 
+    void loadRole();
     return () => { active = false; };
   }, [userId]);
 
